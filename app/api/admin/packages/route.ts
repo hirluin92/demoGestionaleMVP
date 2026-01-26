@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
+// Forza rendering dinamico (usa headers per autenticazione)
+export const dynamic = 'force-dynamic'
+
 const createPackageSchema = z.object({
   userId: z.string(),
   name: z.string().min(1),

@@ -4,6 +4,9 @@ import { sendWhatsAppMessage, formatBookingReminderMessage } from '@/lib/whatsap
 import { logger } from '@/lib/logger'
 import { env } from '@/lib/env'
 
+// Forza rendering dinamico (usa headers per autenticazione)
+export const dynamic = 'force-dynamic'
+
 // API route per inviare promemoria (da chiamare con cron job)
 export async function GET(request: NextRequest) {
   try {

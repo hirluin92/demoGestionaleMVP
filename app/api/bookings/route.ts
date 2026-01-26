@@ -9,6 +9,9 @@ import { isTwilioError } from '@/lib/errors'
 import { handleApiError } from '@/lib/api-response'
 import { z } from 'zod'
 
+// Forza rendering dinamico (usa headers per autenticazione)
+export const dynamic = 'force-dynamic'
+
 const bookingSchema = z.object({
   date: z.string()
     .refine((dateStr) => {

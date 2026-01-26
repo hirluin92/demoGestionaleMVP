@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAvailableSlots } from '@/lib/google-calendar'
 import { logger } from '@/lib/logger'
 
+// Forza rendering dinamico (usa request.url per query params)
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)

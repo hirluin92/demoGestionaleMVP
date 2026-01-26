@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 
+// Forza rendering dinamico (usa headers per autenticazione)
+export const dynamic = 'force-dynamic'
+
 const createUserSchema = z.object({
   email: z.string()
     .email('Email non valida')

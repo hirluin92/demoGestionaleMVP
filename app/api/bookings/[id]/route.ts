@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { deleteCalendarEvent } from '@/lib/google-calendar'
 
+// Forza rendering dinamico (usa headers per autenticazione)
+export const dynamic = 'force-dynamic'
+
 // DELETE - Cancella prenotazione
 export async function DELETE(
   request: NextRequest,

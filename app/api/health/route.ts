@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { env } from '@/lib/env'
 
+// Forza rendering dinamico (fa query al database)
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const healthCheck = {
     status: 'ok' as 'ok' | 'degraded' | 'error',
