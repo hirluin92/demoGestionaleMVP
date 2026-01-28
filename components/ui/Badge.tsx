@@ -15,12 +15,11 @@ export function Badge({
   ...props 
 }: BadgeProps) {
   const variants = {
-    // Usando gold-400 invece di gold-500 per WCAG compliance
-    gold: 'bg-gradient-to-r from-gold-400 to-gold-500 text-dark-950 shadow-gold font-bold',
-    success: 'bg-accent-success/20 text-accent-success border border-accent-success/30 font-semibold',
-    warning: 'bg-gold-400/20 text-gold-300 border border-gold-400/30 font-semibold',
-    danger: 'bg-accent-danger/20 text-accent-danger border border-accent-danger/30 font-semibold',
-    info: 'bg-accent-info/20 text-accent-info border border-accent-info/30 font-semibold',
+    gold: 'status-badge status-confirmed',
+    success: 'status-badge status-confirmed',
+    warning: 'status-badge status-pending',
+    danger: 'status-badge status-cancelled',
+    info: 'status-badge status-completed',
   }
   
   const sizes = {
@@ -32,7 +31,7 @@ export function Badge({
   
   return (
     <span 
-      className={`inline-flex items-center rounded-full ${variants[variant]} ${sizes[size]} ${glowClass} ${className}`}
+      className={`inline-flex items-center rounded-full font-sans ${variants[variant]} ${sizes[size]} ${glowClass} ${className}`}
       role="status"
       {...props}
     >

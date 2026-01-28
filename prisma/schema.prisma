@@ -11,19 +11,34 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String
-  name          String
-  phone         String?
-  role          UserRole  @default(CLIENT)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  packages      Package[]
-  bookings      Booking[]
-  
+  id                     String    @id @default(cuid())
+  email                  String    @unique
+  password               String
+  name                   String
+  phone                  String?
+  role                   UserRole  @default(CLIENT)
+  collaborationStartDate DateTime? // Data inizio collaborazione
+  resetToken             String? // Token per reset password
+  resetTokenExpiry       DateTime? // Scadenza token (1 ora)
+
+  // Preferenze Notifiche
+  emailNotifications Boolean @default(true) // Notifiche email generali
+  bookingReminders   Boolean @default(true) // Promemoria prenotazioni
+  measurementUpdates Boolean @default(true) // Aggiornamenti misurazioni
+
+  // Impostazioni Sicurezza
+  loginAlerts    Boolean @default(true) // Avvisi per login sospetti
+  sessionTimeout Int     @default(30) // Timeout sessione in giorni (default 30)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  packages     Package[]
+  bookings     Booking[]
+  measurements BodyMeasurement[]
+
   @@index([email])
+  @@index([resetToken])
   @@map("users")
 }
 
@@ -33,39 +48,39 @@ enum UserRole {
 }
 
 model Package {
-  id            String    @id @default(cuid())
-  userId        String
-  name          String
-  totalSessions Int
-  usedSessions  Int       @default(0)
-  durationMinutes Int     @default(60)  // Durata sessione in minuti (default 60 = 1 ora)
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bookings      Booking[]
-  
+  id              String   @id @default(cuid())
+  userId          String
+  name            String
+  totalSessions   Int
+  usedSessions    Int      @default(0)
+  durationMinutes Int      @default(60) // Durata sessione in minuti (default 60 = 1 ora)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
   @@index([userId, isActive])
   @@index([userId])
   @@map("packages")
 }
 
 model Booking {
-  id            String    @id @default(cuid())
+  id            String        @id @default(cuid())
   userId        String
   packageId     String
   date          DateTime
-  time          String    // Format: "HH:mm"
+  time          String // Format: "HH:mm"
   status        BookingStatus @default(CONFIRMED)
-  googleEventId String?   @unique
-  reminderSent  Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  package        Package   @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  
+  googleEventId String?       @unique
+  reminderSent  Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
   @@index([userId, status])
   @@index([date, status])
   @@index([date, time, status])
@@ -80,14 +95,54 @@ enum BookingStatus {
 }
 
 model GoogleCalendar {
-  id            String    @id @default(cuid())
-  calendarId    String    @unique
-  accessToken   String
-  refreshToken  String
-  expiresAt     DateTime
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  id           String   @id @default(cuid())
+  calendarId   String   @unique
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   @@index([calendarId])
   @@map("google_calendars")
+}
+
+model BodyMeasurement {
+  id              String   @id @default(cuid())
+  userId          String
+  measurementDate DateTime @default(now())
+
+  // Dati generali
+  peso    Float? // kg
+  altezza Float? // cm
+  bodyFat Float? // %
+
+  // Circonferenze Torso
+  collo   Float? // cm
+  spalle  Float? // cm
+  torace  Float? // cm
+  vita    Float? // cm
+  fianchi Float? // cm
+
+  // Circonferenze Braccia
+  bicipiteDx    Float? // cm
+  bicipiteSx    Float? // cm
+  avambraccioDx Float? // cm
+  avambraccioSx Float? // cm
+
+  // Circonferenze Gambe
+  cosciaDx    Float? // cm
+  cosciaSx    Float? // cm
+  polpaccioDx Float? // cm
+  polpaccioSx Float? // cm
+
+  notes     String? // Note opzionali
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, measurementDate])
+  @@index([userId])
+  @@map("body_measurements")
 }

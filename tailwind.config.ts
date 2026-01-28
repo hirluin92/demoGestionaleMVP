@@ -9,18 +9,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Gold/Oro palette - Brillante e dorato - WCAG AA compliant
+        // Gold/Oro palette - Canva Design System
         gold: {
-          50: '#fffef0',
-          100: '#fff9d6',
-          200: '#fff2b3',
-          300: '#ffeb80',  // Oro brillante chiaro
-          400: '#ffd700',  // Gold puro - ✅ 8.5:1 contrast on dark-950 (WCAG AAA)
-          500: '#ffc107',  // Oro brillante principale
-          600: '#ffb300',  // Oro più scuro
-          700: '#ffa000',
-          800: '#ff8f00',
-          900: '#ff6f00',
+          50: '#F5ECC8',
+          100: '#F5ECC8',
+          200: '#E8DCA0',
+          300: '#E8DCA0',  // Gold principale Canva
+          400: '#E8DCA0',  // Gold principale Canva
+          500: '#D4C896',  // Gold scuro Canva
+          600: '#D4C896',
+          700: '#D4C896',
+          800: '#D4C896',
+          900: '#D4C896',
         },
         // Black palette - Nero puro, non marrone
         dark: {
@@ -45,8 +45,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['Playfair Display', 'Georgia', 'serif'],
+        sans: ['Outfit', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        display: ['Cormorant Garamond', 'Georgia', 'serif'],
+        heading: ['Cormorant Garamond', 'Georgia', 'serif'],
         mono: ['JetBrains Mono', 'Consolas', 'monospace'],
       },
       fontSize: {

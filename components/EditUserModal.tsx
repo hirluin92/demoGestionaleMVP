@@ -5,19 +5,34 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import Button from '@/components/ui/Button'
 
-interface CreateUserModalProps {
+interface UserData {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  collaborationStartDate: string | null
+}
+
+interface EditUserModalProps {
+  user: UserData | null
+  isOpen: boolean
   onClose: () => void
   onSuccess: () => void
 }
 
-export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalProps) {
-  const [formData, setFormData] = useState({
+export default function EditUserModal({
+  user,
+  isOpen,
+  onClose,
+  onSuccess,
+}: EditUserModalProps) {
+  const [formData, setFormData] = useState<Partial<UserData>>({
     name: '',
     email: '',
-    password: '',
     phone: '',
+    collaborationStartDate: null,
   })
-  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
 
@@ -26,51 +41,62 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
     return () => setMounted(false)
   }, [])
 
+  useEffect(() => {
+    if (user && isOpen) {
+      setFormData({
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        collaborationStartDate: user.collaborationStartDate
+          ? new Date(user.collaborationStartDate).toISOString().split('T')[0]
+          : null,
+      })
+      setError(null)
+    }
+  }, [user, isOpen])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSaving(true)
     setError(null)
-    setLoading(true)
 
     try {
-      const response = await fetch('/api/admin/users', {
-        method: 'POST',
+      const response = await fetch(`/api/admin/users/${user?.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || null,
+          collaborationStartDate: formData.collaborationStartDate || null,
+        }),
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        const errorMessages: Record<number, string> = {
-          400: data.details 
-            ? `Dati non validi: ${data.details.map((d: any) => d.message).join(', ')}`
-            : data.error || 'Verifica i dati inseriti',
-          409: 'Un cliente con questa email esiste già',
-          500: 'Errore del server. Riprova tra qualche minuto.',
-        }
-        setError(errorMessages[response.status] || data.error || 'Errore nella creazione del cliente')
-        return
+      if (response.ok) {
+        onSuccess()
+        onClose()
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Errore durante il salvataggio')
       }
-
-      onSuccess()
-      onClose()
     } catch (error) {
-      setError('Impossibile connettersi al server. Verifica la connessione.')
+      console.error('Errore aggiornamento utente:', error)
+      setError('Errore durante il salvataggio')
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: keyof UserData, value: string | null) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }))
   }
 
-  if (!mounted) return null
+  if (!isOpen || !user || !mounted) return null
 
   const modalContent = (
     <div className="modal-overlay" onClick={onClose}>
@@ -81,7 +107,7 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
       >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold gold-text-gradient heading-font">
-            Nuovo Cliente
+            Modifica Cliente
           </h2>
           <button
             onClick={onClose}
@@ -113,7 +139,7 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
               required
               className="input-field w-full"
               placeholder="Mario Rossi"
-              value={formData.name}
+              value={formData.name || ''}
               onChange={(e) => handleInputChange('name', e.target.value)}
             />
           </div>
@@ -132,28 +158,8 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
               required
               className="input-field w-full"
               placeholder="mario.rossi@email.com"
-              value={formData.email}
+              value={formData.email || ''}
               onChange={(e) => handleInputChange('email', e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-light mb-2 heading-font"
-              style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-            >
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              required
-              minLength={6}
-              className="input-field w-full"
-              placeholder="Minimo 6 caratteri"
-              value={formData.password}
-              onChange={(e) => handleInputChange('password', e.target.value)}
             />
           </div>
 
@@ -163,15 +169,32 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
               className="block text-sm font-light mb-2 heading-font"
               style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
             >
-              Telefono (Opzionale)
+              Telefono
             </label>
             <input
               type="tel"
               id="phone"
               className="input-field w-full"
               placeholder="+39 123 456 7890"
-              value={formData.phone}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
+              value={formData.phone || ''}
+              onChange={(e) => handleInputChange('phone', e.target.value || null)}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="collaborationStartDate"
+              className="block text-sm font-light mb-2 heading-font"
+              style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+            >
+              Data Inizio Collaborazione
+            </label>
+            <input
+              type="date"
+              id="collaborationStartDate"
+              className="input-field w-full"
+              value={formData.collaborationStartDate || ''}
+              onChange={(e) => handleInputChange('collaborationStartDate', e.target.value || null)}
             />
           </div>
 
@@ -188,10 +211,10 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
               type="submit"
               variant="gold"
               className="flex-1"
-              disabled={loading}
-              loading={loading}
+              disabled={saving}
+              loading={saving}
             >
-              {loading ? 'Creazione...' : 'Crea Cliente'}
+              {saving ? 'Salvando...' : 'Salva Modifiche'}
             </Button>
           </div>
         </form>

@@ -57,6 +57,13 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string
       }
       return session
+    },
+    async redirect({ url, baseUrl }) {
+      // Se l'URL è relativo, usa baseUrl
+      if (url.startsWith('/')) return `${baseUrl}${url}`
+      // Se l'URL è sulla stessa origine, permetti
+      if (new URL(url).origin === baseUrl) return url
+      return baseUrl
     }
   },
   pages: {
@@ -64,6 +71,10 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 giorni
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30 giorni
   },
   secret: env.NEXTAUTH_SECRET,
 }

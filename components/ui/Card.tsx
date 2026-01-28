@@ -23,9 +23,9 @@ export function Card({
   }
   
   const variants = {
-    dark: 'bg-dark-50/50 backdrop-blur-sm border border-dark-200/30',
+    dark: 'glass-card',
     darker: 'bg-dark-950 border border-dark-100/20',
-    'gold-border': 'bg-dark-50/50 backdrop-blur-sm border-2 border-gold-400/30 shadow-gold',
+    'gold-border': 'glass-card border-2 border-[#E8DCA0]/30 shadow-gold',
   }
   
   const hoverClass = hover 
@@ -61,7 +61,7 @@ export function CardTitle({
   ...props 
 }: HTMLAttributes<HTMLHeadingElement> & { as?: 'h1' | 'h2' | 'h3' | 'h4' }) {
   return (
-    <Component className={`text-xl md:text-2xl font-display font-bold text-white ${className}`} {...props}>
+    <Component className={`text-xl md:text-2xl heading-font font-bold text-white ${className}`} {...props}>
       {children}
     </Component>
   )
@@ -73,7 +73,7 @@ export function CardDescription({
   ...props 
 }: HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={`text-sm text-dark-600 mt-2 ${className}`} {...props}>
+    <p className={`text-sm text-dark-600 mt-2 font-sans ${className}`} {...props}>
       {children}
     </p>
   )

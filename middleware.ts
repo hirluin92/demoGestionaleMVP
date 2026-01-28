@@ -4,7 +4,14 @@ import { NextResponse } from 'next/server'
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token
-    const isAdmin = token?.role === 'ADMIN'
+    
+    // Se non c'è token, il middleware con withAuth dovrebbe già reindirizzare
+    // ma aggiungiamo un controllo esplicito per sicurezza
+    if (!token) {
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
+
+    const isAdmin = token.role === 'ADMIN'
     const isAdminRoute = req.nextUrl.pathname.startsWith('/admin')
 
     // Se l'utente non è admin e cerca di accedere a route admin
@@ -21,7 +28,13 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token }) => {
+        // Verifica che il token esista e sia valido
+        return !!token
+      },
+    },
+    pages: {
+      signIn: '/login',
     },
   }
 )

@@ -47,6 +47,10 @@ const envSchema = z.object({
   // Cron (opzionale - per reminder job)
   CRON_SECRET: z.string().min(16).optional(),
   
+  // Resend (opzionale - per email password reset)
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().email().optional(),
+  
   // Environment
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 })

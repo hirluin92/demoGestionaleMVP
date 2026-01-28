@@ -2,15 +2,19 @@
 
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { signOut } from 'next-auth/react'
-import { Users, Package, LogOut, Plus, Menu, X, Settings } from 'lucide-react'
+import { Users, Package, LogOut, Plus, Menu, X, Settings, Calendar, User, ChevronDown } from 'lucide-react'
 import HugemassLogo from '@/components/HugemassLogo'
 import AdminUsersList from '@/components/AdminUsersList'
 import AdminPackagesList from '@/components/AdminPackagesList'
+import AdminCalendar from '@/components/AdminCalendar'
 import CreateUserModal from '@/components/CreateUserModal'
 import CreatePackageModal from '@/components/CreatePackageModal'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
+import ProfileModal from '@/components/ProfileModal'
+import SettingsModal from '@/components/SettingsModal'
+// import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -18,10 +22,22 @@ import { Badge } from '@/components/ui/Badge'
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'users' | 'packages'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'packages' | 'calendar'>('users')
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [showCreatePackage, setShowCreatePackage] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [showProfileModal, setShowProfileModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 })
+  const userMenuRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -31,9 +47,38 @@ export default function AdminPage() {
     }
   }, [status, session, router])
 
+  // Calcola la posizione del dropdown quando si apre
+  useEffect(() => {
+    if (userMenuOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 8, // 8px = mt-2
+        right: window.innerWidth - rect.right, // Distanza dal bordo destro dello schermo
+      })
+    }
+  }, [userMenuOpen])
+
+  // Chiudi il menu utente quando si clicca fuori
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (userMenuOpen && userMenuRef.current && !userMenuRef.current.contains(target) && !target.closest('.user-dropdown-menu')) {
+        setUserMenuOpen(false)
+      }
+    }
+
+    if (userMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [userMenuOpen])
+
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-dark-950">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
             <div className="w-16 h-16 md:w-20 md:h-20 border-4 border-dark-200 border-t-gold-400 rounded-full animate-spin mx-auto"></div>
@@ -52,15 +97,14 @@ export default function AdminPage() {
   }
 
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-dark-950 relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/sfondo.jpg')" }}>
+    <div className="min-h-screen relative">
         
         {/* Header Premium */}
-        <nav className="bg-dark-50/80 backdrop-blur-xl border-b border-gold-400/20 sticky top-0 z-50 shadow-dark">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav className="glass-card border-b border-opacity-20 sticky top-0 z-50 overflow-visible">
+          <div className="max-w-[98%] xl:max-w-[95%] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16 md:h-20">
               {/* Logo */}
-              <div className="flex items-center space-x-2 md:space-x-4">
+              <div className="flex items-center space-x-3 md:space-x-4">
                 <div className="hidden sm:block">
                   <HugemassLogo variant="icon" size="sm" />
                 </div>
@@ -68,34 +112,39 @@ export default function AdminPage() {
                   <HugemassLogo variant="icon" size="sm" />
                 </div>
                 <div>
-                  <h1 className="text-lg md:text-2xl font-display font-bold">
-                    <span className="bg-gradient-to-r from-gold-300 via-gold-400 to-gold-500 bg-clip-text text-transparent">
+                  <div className="text-lg md:text-2xl heading-font font-bold mb-0.5">
+                    <span className="gold-text-gradient">
                       HUGE MASS
                     </span>
-                    <span className="text-white ml-2 text-sm md:text-base">Admin</span>
-                  </h1>
-                  <p className="text-xs text-dark-600 tracking-widest uppercase hidden sm:block">Control Panel</p>
+                    <span className="text-white ml-2 text-sm md:text-base font-sans">Admin</span>
+                  </div>
+                  <p className="text-xs text-dark-600 tracking-widest uppercase font-sans">CONTROL PANEL</p>
                 </div>
               </div>
               
               {/* Desktop Menu */}
-              <div className="hidden md:flex items-center space-x-6">
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-white">Ciao, {session.user.name}</p>
-                  <Badge variant="gold" size="sm" className="mt-1">
-                    ADMIN
-                  </Badge>
+              <div className="hidden md:flex items-center space-x-4">
+                <div className="relative user-menu-container" ref={userMenuRef}>
+                  <button
+                    ref={buttonRef}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setUserMenuOpen(!userMenuOpen)
+                    }}
+                    className="flex items-center space-x-3 p-2 rounded-lg hover:bg-dark-100/50 transition-colors group"
+                    aria-label="Menu utente"
+                    aria-expanded={userMenuOpen}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 flex items-center justify-center shadow-gold group-hover:scale-110 transition-transform">
+                      <User className="w-5 h-5 text-dark-950" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-white font-sans">{session.user.name}</p>
+                      <p className="text-xs text-dark-600 font-sans">Admin</p>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-dark-600 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => signOut({ callbackUrl: '/login' })}
-                  className="text-dark-600 hover:text-gold-400 group"
-                  aria-label="Disconnetti"
-                >
-                  <LogOut className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
-                  Esci
-                </Button>
               </div>
 
               {/* Mobile Menu Button */}
@@ -106,9 +155,9 @@ export default function AdminPage() {
                 aria-expanded={mobileMenuOpen}
               >
                 {mobileMenuOpen ? (
-                  <X className="w-6 h-6 text-gold-400" />
+                  <X className="w-6 h-6 text-[#E8DCA0]" />
                 ) : (
-                  <Menu className="w-6 h-6 text-gold-400" />
+                  <Menu className="w-6 h-6 text-[#E8DCA0]" />
                 )}
               </button>
             </div>
@@ -117,12 +166,37 @@ export default function AdminPage() {
             {mobileMenuOpen && (
               <div className="md:hidden py-4 border-t border-dark-200/30 animate-slide-down">
                 <div className="space-y-3">
-                  <div className="px-4 py-2 bg-dark-100/50 rounded-lg">
-                    <p className="text-sm font-semibold text-white">Ciao, {session.user.name}</p>
-                    <Badge variant="gold" size="sm" className="mt-1">
-                      ADMIN
-                    </Badge>
+                  <div className="px-4 py-3 bg-dark-100/50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 flex items-center justify-center shadow-gold">
+                        <User className="w-5 h-5 text-dark-950" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white font-sans">{session.user.name}</p>
+                        <p className="text-xs text-dark-600 font-sans">{session.user.email}</p>
+                      </div>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      setShowProfileModal(true)
+                    }}
+                    className="w-full px-4 py-3 text-left text-sm text-white hover:bg-dark-200/50 transition-colors rounded-lg flex items-center space-x-3"
+                  >
+                    <User className="w-4 h-4 text-[#E8DCA0]" />
+                    <span>Profilo</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      setShowSettingsModal(true)
+                    }}
+                    className="w-full px-4 py-3 text-left text-sm text-white hover:bg-dark-200/50 transition-colors rounded-lg flex items-center space-x-3"
+                  >
+                    <Settings className="w-4 h-4 text-[#E8DCA0]" />
+                    <span>Impostazioni</span>
+                  </button>
                   <Button
                     variant="outline-gold"
                     size="sm"
@@ -141,39 +215,33 @@ export default function AdminPage() {
           </div>
         </nav>
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 relative z-10">
+        <main className="max-w-[98%] xl:max-w-[95%] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 relative z-10">
           {/* Hero Section */}
           <div className="mb-8 md:mb-12 animate-fade-in">
             <div className="flex items-center space-x-2 mb-2 md:mb-3">
-              <Settings className="w-4 h-4 md:w-5 md:h-5 text-gold-400 animate-pulse" aria-hidden="true" />
-              <span className="text-gold-400 text-xs md:text-sm font-semibold tracking-wide uppercase">Admin Panel</span>
+              <Settings className="w-4 h-4 md:w-5 md:h-5 text-[#E8DCA0] animate-pulse" aria-hidden="true" />
+              <span className="text-[#E8DCA0] text-xs md:text-sm font-semibold tracking-wide uppercase heading-font">Admin Panel</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-white mb-2 md:mb-3">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl heading-font font-bold gold-text-gradient mb-2 md:mb-3">
               Pannello di Controllo
             </h2>
-            <p className="text-dark-600 text-sm md:text-lg">
+            <p className="text-dark-600 text-sm md:text-lg heading-font">
               Gestisci clienti e pacchetti
             </p>
           </div>
 
           {/* Tabs */}
           <div className="mb-6 md:mb-8">
-            <div className="border-b border-dark-200/30">
-              <nav className="-mb-px flex space-x-4 md:space-x-8" role="tablist" aria-label="Sezioni amministrazione">
+            <div className="flex gap-4">
+              <nav className="flex gap-4" role="tablist" aria-label="Sezioni amministrazione">
                 <button
                   onClick={() => setActiveTab('users')}
                   role="tab"
                   aria-selected={activeTab === 'users'}
                   aria-controls="users-panel"
                   id="users-tab"
-                  className={`
-                    whitespace-nowrap py-3 md:py-4 px-1 border-b-2 font-semibold text-sm md:text-base transition-colors
-                    flex items-center space-x-2
-                    ${activeTab === 'users'
-                      ? 'border-gold-400 text-gold-400'
-                      : 'border-transparent text-dark-600 hover:text-dark-500 hover:border-dark-300/50'
-                    }
-                  `}
+                  className={`tab-button heading-font ${activeTab === 'users' ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
                   <Users className="w-4 h-4 md:w-5 md:h-5" />
                   <span>Clienti</span>
@@ -184,17 +252,23 @@ export default function AdminPage() {
                   aria-selected={activeTab === 'packages'}
                   aria-controls="packages-panel"
                   id="packages-tab"
-                  className={`
-                    whitespace-nowrap py-3 md:py-4 px-1 border-b-2 font-semibold text-sm md:text-base transition-colors
-                    flex items-center space-x-2
-                    ${activeTab === 'packages'
-                      ? 'border-gold-400 text-gold-400'
-                      : 'border-transparent text-dark-600 hover:text-dark-500 hover:border-dark-300/50'
-                    }
-                  `}
+                  className={`tab-button heading-font ${activeTab === 'packages' ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
                   <Package className="w-4 h-4 md:w-5 md:h-5" />
                   <span>Pacchetti</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('calendar')}
+                  role="tab"
+                  aria-selected={activeTab === 'calendar'}
+                  aria-controls="calendar-panel"
+                  id="calendar-tab"
+                  className={`tab-button heading-font ${activeTab === 'calendar' ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <Calendar className="w-4 h-4 md:w-5 md:h-5" />
+                  <span>Calendario</span>
                 </button>
               </nav>
             </div>
@@ -207,8 +281,8 @@ export default function AdminPage() {
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                      <CardTitle className="flex items-center text-lg md:text-2xl">
-                        <Users className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-gold-400" />
+                      <CardTitle className="flex items-center text-lg md:text-2xl heading-font gold-text-gradient">
+                        <Users className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-[#E8DCA0]" />
                         Gestione Clienti
                       </CardTitle>
                       <CardDescription className="text-xs md:text-sm">Aggiungi e gestisci i clienti del sistema</CardDescription>
@@ -235,8 +309,8 @@ export default function AdminPage() {
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                      <CardTitle className="flex items-center text-lg md:text-2xl">
-                        <Package className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-gold-400" />
+                      <CardTitle className="flex items-center text-lg md:text-2xl heading-font gold-text-gradient">
+                        <Package className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-[#E8DCA0]" />
                         Gestione Pacchetti
                       </CardTitle>
                       <CardDescription className="text-xs md:text-sm">Crea e gestisci i pacchetti per i clienti</CardDescription>
@@ -254,6 +328,23 @@ export default function AdminPage() {
                 </CardHeader>
                 <CardContent>
                   <AdminPackagesList />
+                </CardContent>
+              </div>
+            )}
+
+            {activeTab === 'calendar' && (
+              <div role="tabpanel" id="calendar-panel" aria-labelledby="calendar-tab">
+                <CardHeader>
+                  <div>
+                    <CardTitle className="flex items-center text-lg md:text-2xl heading-font gold-text-gradient">
+                      <Calendar className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-[#E8DCA0]" />
+                      Calendario Appuntamenti
+                    </CardTitle>
+                    <CardDescription className="text-xs md:text-sm">Visualizza gli appuntamenti del giorno e della settimana</CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <AdminCalendar />
                 </CardContent>
               </div>
             )}
@@ -280,7 +371,69 @@ export default function AdminPage() {
             }}
           />
         )}
+
+        {/* User Dropdown Menu - Portal */}
+        {mounted && userMenuOpen && buttonRef.current && createPortal(
+          <div
+            className="user-dropdown-menu fixed w-56 bg-dark-100/95 backdrop-blur-xl border border-dark-200/30 rounded-xl shadow-2xl z-[100] animate-slide-down"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              right: `${dropdownPosition.right}px`,
+            }}
+          >
+            <div className="py-2">
+              <div className="px-4 py-3 border-b border-dark-200/30">
+                <p className="text-sm font-semibold text-white font-sans">{session?.user.name}</p>
+                <p className="text-xs text-dark-600 font-sans mt-1">{session?.user.email}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setUserMenuOpen(false)
+                  setShowProfileModal(true)
+                }}
+                className="w-full px-4 py-3 text-left text-sm text-white hover:bg-dark-200/50 transition-colors flex items-center space-x-3"
+              >
+                <User className="w-4 h-4 text-[#E8DCA0]" />
+                <span>Profilo</span>
+              </button>
+              <button
+                onClick={() => {
+                  setUserMenuOpen(false)
+                  setShowSettingsModal(true)
+                }}
+                className="w-full px-4 py-3 text-left text-sm text-white hover:bg-dark-200/50 transition-colors flex items-center space-x-3"
+              >
+                <Settings className="w-4 h-4 text-[#E8DCA0]" />
+                <span>Impostazioni</span>
+              </button>
+              <div className="border-t border-dark-200/30 my-1"></div>
+              <button
+                onClick={() => {
+                  setUserMenuOpen(false)
+                  signOut({ callbackUrl: '/login' })
+                }}
+                className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center space-x-3"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Esci</span>
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Profile Modal */}
+        {showProfileModal && mounted && <ProfileModal
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          session={session}
+        />}
+
+        {/* Settings Modal */}
+        {showSettingsModal && <SettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+        />}
       </div>
-    </ErrorBoundary>
   )
 }

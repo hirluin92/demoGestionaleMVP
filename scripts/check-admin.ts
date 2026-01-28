@@ -1,38 +1,38 @@
 import { PrismaClient } from '@prisma/client'
-import { env } from '../lib/env'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  const adminEmail = env.ADMIN_EMAIL || 'admin@hugemass.com'
-  
-  console.log('📋 Configurazione Admin:')
-  console.log(`   Email configurata: ${adminEmail}`)
-  console.log(`   (da ADMIN_EMAIL nel .env o default: admin@hugemass.com)`)
-  console.log('')
-  
-  // Cerca tutti gli utenti admin
-  const admins = await prisma.user.findMany({
-    where: { role: 'ADMIN' },
+  const admin = await prisma.user.findUnique({
+    where: { email: 'admin@hugemass.com' },
     select: {
+      id: true,
       email: true,
       name: true,
       role: true,
     },
   })
-  
-  if (admins.length === 0) {
-    console.log('❌ Nessun admin trovato nel database!')
-    console.log('   Esegui: npm run seed:admin')
+
+  if (admin) {
+    console.log('✅ Admin trovato:')
+    console.log(JSON.stringify(admin, null, 2))
+    
+    if (admin.role !== 'ADMIN') {
+      console.log('⚠️  ATTENZIONE: Il ruolo non è ADMIN!')
+      console.log('Eseguendo correzione...')
+      
+      await prisma.user.update({
+        where: { email: 'admin@hugemass.com' },
+        data: { role: 'ADMIN' },
+      })
+      
+      console.log('✅ Ruolo corretto a ADMIN')
+    } else {
+      console.log('✅ Ruolo corretto: ADMIN')
+    }
   } else {
-    console.log(`✅ Trovati ${admins.length} admin:`)
-    admins.forEach((admin, index) => {
-      console.log(`   ${index + 1}. ${admin.email} (${admin.name})`)
-    })
-    console.log('')
-    console.log('💡 Per accedere, usa:')
-    console.log(`   Email: ${adminEmail}`)
-    console.log(`   Password: changeme (o quella in ADMIN_PASSWORD nel .env)`)
+    console.log('❌ Admin non trovato!')
+    console.log('Esegui: npm run seed:admin')
   }
 }
 

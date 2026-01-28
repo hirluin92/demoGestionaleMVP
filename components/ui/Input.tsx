@@ -32,17 +32,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={error ? 'true' : 'false'}
           aria-describedby={error ? errorId : helperText ? helperId : undefined}
           className={`
-            w-full px-4 py-3 
-            bg-dark-100/50 backdrop-blur-sm
-            border-2 rounded-lg
+            input-field
+            w-full
             ${error 
               ? 'border-accent-danger/50 focus:border-accent-danger' 
-              : 'border-dark-200/30 focus:border-gold-400'
+              : ''
             }
-            text-white placeholder:text-dark-500
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/20
-            transition-all duration-200
-            disabled:bg-dark-200/30 disabled:text-dark-600 disabled:cursor-not-allowed
             ${className}
           `}
           {...props}

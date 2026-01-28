@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Lock, Sparkles } from 'lucide-react'
 import Button from '@/components/ui/Button'
@@ -29,11 +29,32 @@ export default function LoginPage() {
 
       if (result?.error) {
         setError('Email o password non validi')
-      } else {
-        router.push('/dashboard')
-        router.refresh()
+        setLoading(false)
+        return
+      }
+
+      if (result?.ok) {
+        // Forza il refresh della sessione
+        const session = await getSession()
+        
+        console.log('Session after login:', session)
+        console.log('User role:', session?.user?.role)
+        
+        // Usa un redirect completo per forzare il refresh della pagina
+        if (session?.user?.role === 'ADMIN') {
+          console.log('Redirecting ADMIN to /admin')
+          window.location.replace('/admin')
+        } else if (session?.user?.role === 'CLIENT') {
+          console.log('Redirecting CLIENT to /dashboard')
+          window.location.replace('/dashboard')
+        } else {
+          // Se non c'è ruolo, redirect alla home che gestirà il redirect
+          console.log('No role found, redirecting to /')
+          window.location.replace('/')
+        }
       }
     } catch (error) {
+      console.error('Login error:', error)
       setError('Errore durante il login')
     } finally {
       setLoading(false)
@@ -41,10 +62,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-dark-950 relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/sfondo.jpg')" }}>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
       
       <div className="relative z-10 w-full max-w-md px-4">
-        <div className="bg-dark-50/80 backdrop-blur-xl border border-gold-400/20 rounded-2xl shadow-dark-lg p-8 md:p-10">
+        <div className="glass-card rounded-2xl p-8 md:p-10 fade-in">
           {/* Logo & Header */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
@@ -68,7 +89,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <div>
+            <div className="w-full">
               <Input
                 id="email"
                 type="email"
@@ -78,11 +99,11 @@ export default function LoginPage() {
                 required
                 placeholder="tuo@email.com"
                 aria-required="true"
-                className="text-base"
+                className="text-base w-full"
               />
             </div>
 
-            <div>
+            <div className="w-full">
               <Input
                 id="password"
                 type="password"
@@ -92,7 +113,7 @@ export default function LoginPage() {
                 required
                 placeholder="••••••••"
                 aria-required="true"
-                className="text-base"
+                className="text-base w-full"
               />
             </div>
 
@@ -107,12 +128,21 @@ export default function LoginPage() {
               {!loading && <Lock className="w-5 h-5 mr-2" aria-hidden="true" />}
               {loading ? 'Accesso in corso...' : 'Accedi'}
             </Button>
+
+            <div className="text-center">
+              <a 
+                href="/forgot-password" 
+                className="text-[#E8DCA0] hover:text-[#F5ECC8] text-sm font-medium"
+              >
+                Password dimenticata?
+              </a>
+            </div>
           </form>
 
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-dark-200/30 text-center">
             <p className="text-xs text-dark-600 flex items-center justify-center">
-              <Sparkles className="w-3 h-3 mr-1 text-gold-400" aria-hidden="true" />
+              <Sparkles className="w-3 h-3 mr-1 text-[#E8DCA0]" aria-hidden="true" />
               Sistema di gestione premium
             </p>
           </div>

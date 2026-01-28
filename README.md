@@ -87,7 +87,43 @@ GOOGLE_CALENDAR_ID="primary"  # o l'ID del tuo calendario
 GOOGLE_ACCESS_TOKEN="your-access-token" GOOGLE_REFRESH_TOKEN="your-refresh-token" npm run setup:calendar
 ```
 
-### 6. Configurazione Twilio (WhatsApp)
+### 6. Configurazione Resend (Email Password Reset)
+
+**⚠️ IMPORTANTE**: Resend non permette l'uso di domini pubblici gratuiti (gmail.com, yahoo.com, ecc.) come mittente email.
+
+#### Opzione A: Per Sviluppo/Test (Rapido)
+
+1. Crea un account su [Resend](https://resend.com)
+2. Ottieni la tua API Key dal dashboard
+3. Per sviluppo, usa `onboarding@resend.dev` come mittente (funziona solo per l'email del tuo account Resend)
+4. Aggiungi al file `.env`:
+
+```env
+RESEND_API_KEY="re_xxxxxxxxxxxxx"
+RESEND_FROM_EMAIL="onboarding@resend.dev"  # Solo per sviluppo!
+```
+
+#### Opzione B: Per Produzione (Dominio Personalizzato)
+
+1. Crea un account su [Resend](https://resend.com)
+2. Ottieni la tua API Key dal dashboard
+3. Vai su **Domains** nel dashboard Resend
+4. Clicca **"+ Add Domain"**
+5. Inserisci il tuo dominio (es. `hugemass.com`) - **NON** usare domini pubblici come gmail.com
+6. Segui le istruzioni per configurare i DNS records (SPF, DKIM, DMARC)
+7. Attendi la verifica del dominio (può richiedere qualche minuto)
+8. Una volta verificato, usa il tuo dominio come mittente:
+
+```env
+RESEND_API_KEY="re_xxxxxxxxxxxxx"
+RESEND_FROM_EMAIL="noreply@tuodominio.com"  # Il tuo dominio verificato
+```
+
+**Nota**: Se vedi l'errore "We don't allow free public domains", significa che stai cercando di usare un dominio pubblico. Devi configurare un dominio che possiedi.
+
+**💡 Non possiedi un dominio?** Vedi `SETUP_RESEND.md` per soluzioni alternative, incluso come acquistare un dominio economico (1-3€/anno) o usare servizi alternativi.
+
+### 7. Configurazione Twilio (WhatsApp)
 
 1. Crea un account su [Twilio](https://www.twilio.com/)
 2. Ottieni `TWILIO_ACCOUNT_SID` e `TWILIO_AUTH_TOKEN`
@@ -100,7 +136,7 @@ TWILIO_AUTH_TOKEN="your-auth-token"
 TWILIO_WHATSAPP_FROM="whatsapp:+14155238886"  # Il tuo numero Twilio
 ```
 
-### 7. Configurazione Cron Job per Promemoria
+### 8. Configurazione Cron Job per Promemoria
 
 Per inviare automaticamente i promemoria 1 ora prima delle prenotazioni, configura un cron job che chiami:
 
@@ -126,7 +162,7 @@ Oppure usa servizi come:
 - [EasyCron](https://www.easycron.com/)
 - [Cron-job.org](https://cron-job.org/)
 
-### 8. Avvio Applicazione
+### 9. Avvio Applicazione
 
 ```bash
 npm run dev
