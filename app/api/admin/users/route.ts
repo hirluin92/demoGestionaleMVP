@@ -25,8 +25,12 @@ const createUserSchema = z.object({
     .trim(),
     
   phone: z.string()
-    .regex(/^\+[1-9]\d{1,14}$/, 'Formato telefono non valido. Usa formato internazionale: +39XXXXXXXXXX')
-    .optional(),
+    .min(1, 'Il telefono è obbligatorio')
+    .refine((val) => {
+      // Deve rispettare il formato internazionale
+      return /^\+[1-9]\d{1,14}$/.test(val.trim())
+    }, 'Formato telefono non valido. Usa formato internazionale: +39XXXXXXXXXX')
+    .transform((val) => val.trim()),
 })
 
 // GET - Lista tutti gli utenti (solo admin)

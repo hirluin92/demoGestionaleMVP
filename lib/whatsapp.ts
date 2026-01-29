@@ -153,3 +153,60 @@ export function formatBookingReminderMessage(
 
   return `⏰ Promemoria sessione\n\nCiao ${clientName},\n\nTi ricordiamo che hai una sessione tra 1 ora:\n📅 ${formattedDate}\n🕐 ${time}\n\nTi aspettiamo! 💪`
 }
+
+/**
+ * Formats a booking modification message
+ * 
+ * @param clientName - Name of the client
+ * @param oldDate - Previous booking date
+ * @param oldTime - Previous booking time in HH:mm format
+ * @param newDate - New booking date
+ * @param newTime - New booking time in HH:mm format
+ * @returns Formatted WhatsApp message
+ */
+export function formatBookingModificationMessage(
+  clientName: string,
+  oldDate: Date,
+  oldTime: string,
+  newDate: Date,
+  newTime: string
+) {
+  const formattedOldDate = oldDate.toLocaleDateString('it-IT', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+  
+  const formattedNewDate = newDate.toLocaleDateString('it-IT', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+
+  return `🔄 Appuntamento modificato\n\nCiao ${clientName},\n\nIl tuo appuntamento è stato modificato:\n\n❌ Precedente:\n📅 ${formattedOldDate}\n🕐 ${oldTime}\n\n✅ Nuovo:\n📅 ${formattedNewDate}\n🕐 ${newTime}\n\nTi aspettiamo allo studio Hugemass! 💪`
+}
+
+/**
+ * Formats a booking cancellation message
+ * 
+ * @param clientName - Name of the client
+ * @param date - Booking date
+ * @param time - Booking time in HH:mm format
+ * @returns Formatted WhatsApp message
+ */
+export function formatBookingCancellationMessage(
+  clientName: string,
+  date: Date,
+  time: string
+) {
+  const formattedDate = date.toLocaleDateString('it-IT', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+
+  return `❌ Appuntamento disdetto\n\nCiao ${clientName},\n\nIl tuo appuntamento è stato disdetto:\n📅 ${formattedDate}\n🕐 ${time}\n\nLa sessione è stata restituita al tuo pacchetto.\n\nPer prenotare un nuovo appuntamento, accedi alla tua area riservata.`
+}

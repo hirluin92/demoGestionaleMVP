@@ -139,6 +139,46 @@ export async function createCalendarEvent(
 }
 
 /**
+ * Updates an event in Google Calendar
+ * 
+ * @param eventId - Google Calendar event ID
+ * @param summary - Event title
+ * @param description - Event description
+ * @param startDateTime - Event start time
+ * @param endDateTime - Event end time
+ * @throws {GoogleCalendarError} If update fails
+ */
+export async function updateCalendarEvent(
+  eventId: string,
+  summary: string,
+  description: string,
+  startDateTime: Date,
+  endDateTime: Date
+) {
+  const calendar = await getGoogleCalendarClient()
+  const calendarId = env.GOOGLE_CALENDAR_ID
+
+  const event = {
+    summary,
+    description,
+    start: {
+      dateTime: startDateTime.toISOString(),
+      timeZone: APP_CONFIG.timezone,
+    },
+    end: {
+      dateTime: endDateTime.toISOString(),
+      timeZone: APP_CONFIG.timezone,
+    },
+  }
+
+  await calendar.events.update({
+    calendarId,
+    eventId,
+    requestBody: event,
+  })
+}
+
+/**
  * Deletes an event from Google Calendar
  * 
  * @param eventId - Google Calendar event ID

@@ -23,7 +23,33 @@ export async function GET(request: NextRequest) {
     }
 
     if (userId) {
-      where.userId = userId
+      // Per pacchetti multipli, dobbiamo includere anche gli appuntamenti degli altri atleti
+      // che condividono lo stesso pacchetto
+      
+      // Trova tutti i pacchetti a cui l'utente è associato
+      const userPackages = await prisma.userPackage.findMany({
+        where: { userId },
+        select: { packageId: true },
+      })
+
+      const packageIds = userPackages.map(up => up.packageId)
+
+      if (packageIds.length > 0) {
+        // Trova tutti gli utenti associati a questi pacchetti (per pacchetti multipli)
+        const relatedUserPackages = await prisma.userPackage.findMany({
+          where: { packageId: { in: packageIds } },
+          select: { userId: true },
+        })
+
+        const relatedUserIds = Array.from(new Set(relatedUserPackages.map(rup => rup.userId)))
+
+        // Include appuntamenti dell'utente E degli altri atleti che condividono i pacchetti
+        where.userId = { in: relatedUserIds }
+        where.packageId = { in: packageIds } // Assicura che siano dello stesso pacchetto
+      } else {
+        // Se l'utente non ha pacchetti, mostra solo i suoi appuntamenti
+        where.userId = userId
+      }
     }
 
     if (startDate && endDate) {

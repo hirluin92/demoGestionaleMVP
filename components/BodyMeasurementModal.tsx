@@ -49,6 +49,9 @@ export default function BodyMeasurementModal({
   const [saving, setSaving] = useState(false)
   const [highlightedMuscle, setHighlightedMuscle] = useState<string | null>(null)
   const [selectedMeasurement, setSelectedMeasurement] = useState<BodyMeasurement | null>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [showWarningModal, setShowWarningModal] = useState(false)
+  const [pendingSubmit, setPendingSubmit] = useState(false)
 
   const [formData, setFormData] = useState<Partial<BodyMeasurement>>({
     peso: undefined,
@@ -118,9 +121,38 @@ export default function BodyMeasurementModal({
     }
   }
 
+  const checkTodayMeasurements = (): boolean => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    return measurements.some(measurement => {
+      const measurementDate = new Date(measurement.measurementDate)
+      measurementDate.setHours(0, 0, 0, 0)
+      return measurementDate.getTime() === today.getTime()
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Controlla se ci sono già misurazioni oggi
+    const hasTodayMeasurements = checkTodayMeasurements()
+    
+    if (hasTodayMeasurements) {
+      // Mostra modal di avvertimento invece di confirm nativo
+      setShowWarningModal(true)
+      setPendingSubmit(true)
+      return
+    }
+    
+    // Procede direttamente con il salvataggio se non ci sono misurazioni oggi
+    performSave()
+  }
+
+  const performSave = async () => {
     setSaving(true)
+    setShowWarningModal(false)
+    setPendingSubmit(false)
 
     try {
       const response = await fetch('/api/admin/measurements', {
@@ -137,10 +169,14 @@ export default function BodyMeasurementModal({
 
       if (response.ok) {
         await fetchMeasurements()
-        // Reset form mantiene i valori appena salvati
+        // Mostra modal di successo personalizzato
+        setShowSuccessModal(true)
       } else {
         const error = await response.json()
-        alert(`Errore: ${error.error || 'Errore durante il salvataggio'}`)
+        const errorMessage = error.details 
+          ? error.details.map((d: any) => d.message).join('\n')
+          : error.error || 'Errore durante il salvataggio'
+        alert(`Errore: ${errorMessage}`)
       }
     } catch (error) {
       console.error('Errore salvataggio misurazione:', error)
@@ -148,6 +184,15 @@ export default function BodyMeasurementModal({
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleWarningConfirm = () => {
+    performSave()
+  }
+
+  const handleWarningCancel = () => {
+    setShowWarningModal(false)
+    setPendingSubmit(false)
   }
 
   const handleInputChange = (field: keyof BodyMeasurement, value: string | number | null) => {
@@ -1083,5 +1128,101 @@ export default function BodyMeasurementModal({
     </div>
   )
 
-  return createPortal(modalContent, document.body)
+  const successModalContent = showSuccessModal ? (
+    <div className="modal-overlay" onClick={() => setShowSuccessModal(false)}>
+      <div
+        className="modal-content glass-card rounded-xl p-8"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: '600px', width: '90vw' }}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold gold-text-gradient heading-font">
+            ✅ Misurazioni Salvate
+          </h2>
+          <button
+            onClick={() => setShowSuccessModal(false)}
+            className="text-4xl text-gray-400 hover:text-white transition"
+            aria-label="Chiudi"
+          >
+            <X className="w-8 h-8" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <p className="text-white text-lg">
+            Le misurazioni sono state salvate con successo!
+          </p>
+        </div>
+
+        <div className="flex gap-4 pt-6">
+          <Button
+            variant="gold"
+            onClick={() => setShowSuccessModal(false)}
+            className="flex-1"
+          >
+            Chiudi
+          </Button>
+        </div>
+      </div>
+    </div>
+  ) : null
+
+  const warningModalContent = showWarningModal ? (
+    <div className="modal-overlay" onClick={handleWarningCancel}>
+      <div
+        className="modal-content glass-card rounded-xl p-8"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: '600px', width: '90vw' }}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold gold-text-gradient heading-font">
+            ⚠️ Attenzione
+          </h2>
+          <button
+            onClick={handleWarningCancel}
+            className="text-4xl text-gray-400 hover:text-white transition"
+            aria-label="Chiudi"
+          >
+            <X className="w-8 h-8" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <p className="text-white text-lg">
+            Hai già salvato delle misurazioni oggi.
+          </p>
+          <p className="text-dark-400 text-base">
+            Vuoi continuare e salvare una nuova misurazione per oggi?
+          </p>
+        </div>
+
+        <div className="flex gap-4 pt-6">
+          <Button
+            variant="ghost"
+            onClick={handleWarningCancel}
+            className="flex-1"
+          >
+            Annulla
+          </Button>
+          <Button
+            variant="gold"
+            onClick={handleWarningConfirm}
+            className="flex-1"
+            disabled={saving}
+            loading={saving}
+          >
+            {saving ? 'Salvataggio...' : 'Continua'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  ) : null
+
+  return (
+    <>
+      {createPortal(modalContent, document.body)}
+      {showSuccessModal && createPortal(successModalContent, document.body)}
+      {showWarningModal && createPortal(warningModalContent, document.body)}
+    </>
+  )
 }

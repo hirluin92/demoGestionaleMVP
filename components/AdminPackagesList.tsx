@@ -43,6 +43,14 @@ interface UserWithPackage {
     usedSessions: number
     remaining: number
     isActive: boolean
+    athletes?: Array<{
+      id: string
+      name: string
+      email: string
+      phone: string | null
+      usedSessions: number
+      remaining: number
+    }>
   }>
 }
 
@@ -78,6 +86,7 @@ export default function AdminPackagesList() {
   }
 
   // Raggruppa pacchetti per tipo e utente, ordinati per nome utente o numero sessioni
+  // Per pacchetti multipli, mostra un singolo record con tutti gli atleti
   const usersByPackageType = useMemo(() => {
     let filtered: PackageData[]
     
@@ -95,27 +104,67 @@ export default function AdminPackagesList() {
 
     // Itera su tutti i pacchetti e le loro relazioni userPackages
     filtered.forEach(pkg => {
-      // Ogni pacchetto può essere associato a più utenti tramite userPackages
-      pkg.userPackages.forEach(userPackage => {
-        const userId = userPackage.user.id
-        if (!grouped[userId]) {
-          grouped[userId] = {
-            user: userPackage.user,
+      // Se è un pacchetto multiplo, crea un singolo record con tutti gli atleti
+      if (pkg.userPackages.length > 1) {
+        // Crea un record unico per il pacchetto multiplo
+        const packageKey = `package-${pkg.id}`
+        if (!grouped[packageKey]) {
+          // Usa il primo utente come "rappresentante" per il record
+          const firstUser = pkg.userPackages[0].user
+          grouped[packageKey] = {
+            user: {
+              ...firstUser,
+              // Modifica il nome per mostrare tutti gli atleti
+              name: pkg.userPackages.map(up => up.user.name).join(' - '),
+            },
             packages: []
           }
         }
-        // Aggiungi il pacchetto all'utente (evita duplicati)
-        if (!grouped[userId].packages.find(p => p.id === pkg.id)) {
-          grouped[userId].packages.push({
+        // Aggiungi il pacchetto con le informazioni aggregate
+        if (!grouped[packageKey].packages.find(p => p.id === pkg.id)) {
+          // Per i pacchetti multipli, mostra le sessioni totali e quelle usate aggregate
+          const totalUsed = pkg.userPackages.reduce((sum, up) => sum + up.usedSessions, 0)
+          grouped[packageKey].packages.push({
             id: pkg.id,
             name: pkg.name,
             totalSessions: pkg.totalSessions,
-            usedSessions: userPackage.usedSessions, // Usa usedSessions dalla relazione userPackage
-            remaining: pkg.totalSessions - userPackage.usedSessions,
-            isActive: pkg.isActive
+            usedSessions: totalUsed, // Somma delle sessioni usate da tutti gli atleti
+            remaining: pkg.totalSessions - totalUsed,
+            isActive: pkg.isActive,
+            // Aggiungi informazioni sugli atleti
+            athletes: pkg.userPackages.map(up => ({
+              id: up.user.id,
+              name: up.user.name,
+              email: up.user.email,
+              phone: up.user.phone,
+              usedSessions: up.usedSessions,
+              remaining: pkg.totalSessions - up.usedSessions,
+            })),
           })
         }
-      })
+      } else {
+        // Per pacchetti singoli, mantieni la logica originale
+        pkg.userPackages.forEach(userPackage => {
+          const userId = userPackage.user.id
+          if (!grouped[userId]) {
+            grouped[userId] = {
+              user: userPackage.user,
+              packages: []
+            }
+          }
+          // Aggiungi il pacchetto all'utente (evita duplicati)
+          if (!grouped[userId].packages.find(p => p.id === pkg.id)) {
+            grouped[userId].packages.push({
+              id: pkg.id,
+              name: pkg.name,
+              totalSessions: pkg.totalSessions,
+              usedSessions: userPackage.usedSessions,
+              remaining: pkg.totalSessions - userPackage.usedSessions,
+              isActive: pkg.isActive
+            })
+          }
+        })
+      }
     })
 
     // Converti in array e ordina gli utenti
@@ -348,6 +397,32 @@ export default function AdminPackagesList() {
                         </div>
                       </div>
                       
+                      {/* Dettagli atleti per pacchetti multipli */}
+                      {pkg.athletes && pkg.athletes.length > 0 && (
+                        <div className="mb-3 space-y-2">
+                          <div className="text-sm font-semibold text-dark-600 mb-2">Atleti:</div>
+                          {pkg.athletes.map((athlete) => (
+                            <div
+                              key={athlete.id}
+                              className="bg-dark-200/50 rounded-lg p-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                            >
+                              <div className="flex-1">
+                                <div className="font-semibold text-white text-sm">{athlete.name}</div>
+                                <div className="text-xs text-dark-600">{athlete.email}</div>
+                                {athlete.phone && (
+                                  <div className="text-xs text-dark-600">{athlete.phone}</div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant={athlete.remaining > 0 ? 'gold' : 'danger'} size="sm">
+                                  {athlete.remaining} / {pkg.totalSessions} rimaste
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Progress bar */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">

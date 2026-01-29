@@ -47,6 +47,7 @@ const bookingSchema = z.object({
 })
 
 // GET - Lista prenotazioni utente
+// Per pacchetti multipli, include anche le prenotazioni degli altri atleti
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -55,13 +56,53 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
-    const bookings = await prisma.booking.findMany({
+    // STEP 1: Trova tutti i pacchetti dell'utente corrente
+    const userPackages = await prisma.userPackage.findMany({
       where: {
         userId: session.user.id,
-        status: { not: 'CANCELLED' },
       },
       include: {
         package: true,
+      },
+    })
+
+    // STEP 2: Identifica i pacchetti multipli e raccogli tutti gli userId che li condividono
+    const userIdsToInclude = new Set<string>([session.user.id]) // Inizia con l'utente corrente
+
+    for (const userPackage of userPackages) {
+      // Se il pacchetto ha più di un userPackage, è un pacchetto multiplo
+      const allUserPackages = await prisma.userPackage.findMany({
+        where: {
+          packageId: userPackage.packageId,
+        },
+        select: {
+          userId: true,
+        },
+      })
+
+      // Se è un pacchetto multiplo (più di 1 atleta), aggiungi tutti gli userId
+      if (allUserPackages.length > 1) {
+        allUserPackages.forEach(up => userIdsToInclude.add(up.userId))
+      }
+    }
+
+    // STEP 3: Recupera tutte le prenotazioni dell'utente corrente E degli altri atleti dei pacchetti multipli
+    const bookings = await prisma.booking.findMany({
+      where: {
+        userId: { in: Array.from(userIdsToInclude) },
+        status: { not: 'CANCELLED' },
+        // Solo prenotazioni relative ai pacchetti dell'utente corrente o dei pacchetti multipli condivisi
+        packageId: { in: userPackages.map(up => up.packageId) },
+      },
+      include: {
+        package: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
       },
       orderBy: {
         date: 'asc',
@@ -113,20 +154,28 @@ export async function POST(request: NextRequest) {
     const { date, time, packageId } = validatedData
 
     // STEP 1: Verifica preliminare pacchetto (fuori transazione) - serve per durata
-    const packageData = await prisma.package.findFirst({
+    // Verifica tramite userPackages per supportare pacchetti multipli
+    const userPackage = await prisma.userPackage.findFirst({
       where: {
-        id: packageId,
+        packageId,
         userId: session.user.id,
-        isActive: true,
+        package: {
+          isActive: true,
+        },
+      },
+      include: {
+        package: true,
       },
     })
 
-    if (!packageData) {
+    if (!userPackage) {
       return NextResponse.json(
         { error: 'Pacchetto non trovato o non attivo' },
         { status: 404 }
       )
     }
+
+    const packageData = userPackage.package
 
     // Prepara date usando la durata del package
     const bookingDate = new Date(date)
@@ -135,12 +184,35 @@ export async function POST(request: NextRequest) {
     const endDate = new Date(bookingDate)
     endDate.setMinutes(endDate.getMinutes() + (packageData.durationMinutes || 60)) // Usa durata del package, default 60 min
 
-    const remainingSessions = packageData.totalSessions - packageData.usedSessions
-    if (remainingSessions <= 0) {
-      return NextResponse.json(
-        { error: 'Nessuna sessione disponibile' },
-        { status: 400 }
-      )
+    // Verifica se è un pacchetto multiplo
+    const allUserPackagesForPackage = await prisma.userPackage.findMany({
+      where: {
+        packageId,
+      },
+    })
+
+    const isMultiplePackage = allUserPackagesForPackage.length > 1
+
+    // Per pacchetti multipli, verifica che TUTTI gli atleti abbiano sessioni disponibili
+    if (isMultiplePackage) {
+      for (const up of allUserPackagesForPackage) {
+        const remaining = packageData.totalSessions - up.usedSessions
+        if (remaining <= 0) {
+          return NextResponse.json(
+            { error: 'Uno o più atleti del pacchetto non hanno sessioni disponibili' },
+            { status: 400 }
+          )
+        }
+      }
+    } else {
+      // Per pacchetti singoli, verifica solo l'utente corrente
+      const remainingSessions = packageData.totalSessions - userPackage.usedSessions
+      if (remainingSessions <= 0) {
+        return NextResponse.json(
+          { error: 'Nessuna sessione disponibile' },
+          { status: 400 }
+        )
+      }
     }
 
     // STEP 2: Crea Google Calendar event PRIMA della transazione (opzionale)
@@ -218,17 +290,44 @@ export async function POST(request: NextRequest) {
       }
 
       // Ricontrolla sessioni disponibili (dentro transazione per evitare race)
-      const pkg = await tx.package.findUnique({
-        where: { id: packageId },
-        select: { totalSessions: true, usedSessions: true, isActive: true }
+      // Usa userPackage per supportare pacchetti multipli
+      const userPkg = await tx.userPackage.findFirst({
+        where: {
+          packageId,
+          userId: session.user.id,
+        },
+        include: {
+          package: {
+            select: { totalSessions: true, isActive: true },
+          },
+        },
       })
 
-      if (!pkg || !pkg.isActive) {
+      if (!userPkg || !userPkg.package.isActive) {
         throw new Error('Pacchetto non più valido')
       }
 
-      if ((pkg.totalSessions - pkg.usedSessions) <= 0) {
-        throw new Error('Sessioni terminate durante l\'elaborazione')
+      // Verifica se è un pacchetto multiplo
+      const allUserPackages = await tx.userPackage.findMany({
+        where: {
+          packageId,
+        },
+      })
+
+      const isMultiplePackage = allUserPackages.length > 1
+
+      // Per pacchetti multipli, verifica che TUTTI gli atleti abbiano sessioni disponibili
+      if (isMultiplePackage) {
+        for (const up of allUserPackages) {
+          if ((userPkg.package.totalSessions - up.usedSessions) <= 0) {
+            throw new Error('Uno o più atleti del pacchetto non hanno sessioni disponibili')
+          }
+        }
+      } else {
+        // Per pacchetti singoli, verifica solo l'utente corrente
+        if ((userPkg.package.totalSessions - userPkg.usedSessions) <= 0) {
+          throw new Error('Sessioni terminate durante l\'elaborazione')
+        }
       }
 
       // Crea booking
@@ -243,15 +342,30 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      // Scala sessione
-      await tx.package.update({
-        where: { id: packageId },
-        data: {
-          usedSessions: {
-            increment: 1,
+      // Scala sessione: per pacchetti multipli scala a TUTTI gli atleti, altrimenti solo all'utente corrente
+      if (isMultiplePackage) {
+        // Scala la sessione a tutti gli atleti del pacchetto multiplo
+        await tx.userPackage.updateMany({
+          where: {
+            packageId,
           },
-        },
-      })
+          data: {
+            usedSessions: {
+              increment: 1,
+            },
+          },
+        })
+      } else {
+        // Scala solo all'utente corrente per pacchetti singoli
+        await tx.userPackage.update({
+          where: { id: userPkg.id },
+          data: {
+            usedSessions: {
+              increment: 1,
+            },
+          },
+        })
+      }
 
       return newBooking
     })

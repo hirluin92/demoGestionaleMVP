@@ -15,17 +15,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
-    const packages = await prisma.package.findMany({
+    // Recupera i pacchetti tramite userPackages per supportare pacchetti multipli
+    const userPackages = await prisma.userPackage.findMany({
       where: {
         userId: session.user.id,
-        isActive: true,
+        package: {
+          isActive: true,
+        },
       },
       include: {
-        _count: {
-          select: {
-            bookings: {
-              where: {
-                status: 'CONFIRMED',
+        package: {
+          include: {
+            _count: {
+              select: {
+                bookings: {
+                  where: {
+                    status: 'CONFIRMED',
+                    userId: session.user.id, // Solo le prenotazioni dell'utente corrente
+                  },
+                },
               },
             },
           },
@@ -35,6 +43,18 @@ export async function GET(request: NextRequest) {
         createdAt: 'desc',
       },
     })
+
+    // Trasforma i dati per mantenere la compatibilità con il frontend
+    const packages = userPackages.map(up => ({
+      id: up.package.id,
+      name: up.package.name,
+      totalSessions: up.package.totalSessions,
+      usedSessions: up.usedSessions, // Usa usedSessions da userPackage
+      isActive: up.package.isActive,
+      durationMinutes: up.package.durationMinutes,
+      createdAt: up.package.createdAt,
+      updatedAt: up.package.updatedAt,
+    }))
 
     return NextResponse.json(packages)
   } catch (error) {

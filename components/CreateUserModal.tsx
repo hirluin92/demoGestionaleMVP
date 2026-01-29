@@ -15,7 +15,7 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
     name: '',
     email: '',
     password: '',
-    phone: '',
+    phone: '+39',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -31,13 +31,23 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
     setError(null)
     setLoading(true)
 
+    // Validazione telefono: deve essere diverso da "+39" solo
+    if (!formData.phone || formData.phone.trim() === '' || formData.phone.trim() === '+39') {
+      setError('Il telefono è obbligatorio e deve essere completo')
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          phone: formData.phone.trim(),
+        }),
       })
 
       const data = await response.json()
@@ -163,11 +173,12 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
               className="block text-sm font-light mb-2 heading-font"
               style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
             >
-              Telefono (Opzionale)
+              Telefono
             </label>
             <input
               type="tel"
               id="phone"
+              required
               className="input-field w-full"
               placeholder="+39 123 456 7890"
               value={formData.phone}

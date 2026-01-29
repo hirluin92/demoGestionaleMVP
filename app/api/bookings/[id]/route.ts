@@ -20,13 +20,22 @@ export async function DELETE(
     }
 
     // STEP 1: Prendi booking info PRIMA della transazione
+    // Per pacchetti multipli, qualsiasi atleta del pacchetto può cancellare
     const booking = await prisma.booking.findFirst({
       where: {
         id: params.id,
-        userId: session.user.id,
+        status: 'CONFIRMED',
       },
       include: {
-        package: true,
+        package: {
+          include: {
+            userPackages: {
+              select: {
+                userId: true,
+              },
+            },
+          },
+        },
       },
     })
 
@@ -34,6 +43,18 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Prenotazione non trovata' },
         { status: 404 }
+      )
+    }
+
+    // Verifica che l'utente corrente sia uno degli atleti del pacchetto
+    const isUserInPackage = booking.package.userPackages.some(
+      up => up.userId === session.user.id
+    )
+
+    if (!isUserInPackage) {
+      return NextResponse.json(
+        { error: 'Non autorizzato a cancellare questa prenotazione' },
+        { status: 403 }
       )
     }
 
@@ -70,15 +91,41 @@ export async function DELETE(
         data: { status: 'CANCELLED' },
       })
 
-      // Restituisci sessione
-      await tx.package.update({
-        where: { id: booking.packageId },
-        data: {
-          usedSessions: {
-            decrement: 1,
-          },
+      // Verifica se è un pacchetto multiplo
+      const allUserPackages = await tx.userPackage.findMany({
+        where: {
+          packageId: booking.packageId,
         },
       })
+
+      const isMultiplePackage = allUserPackages.length > 1
+
+      // Per pacchetti multipli, reintegra la sessione a TUTTI gli atleti
+      // Per pacchetti singoli, reintegra solo all'utente che ha prenotato
+      if (isMultiplePackage) {
+        await tx.userPackage.updateMany({
+          where: {
+            packageId: booking.packageId,
+          },
+          data: {
+            usedSessions: {
+              decrement: 1,
+            },
+          },
+        })
+      } else {
+        await tx.userPackage.updateMany({
+          where: {
+            userId: booking.userId,
+            packageId: booking.packageId,
+          },
+          data: {
+            usedSessions: {
+              decrement: 1,
+            },
+          },
+        })
+      }
     })
 
     console.log('✅ Prenotazione cancellata con successo:', params.id)

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { Calendar, Clock, X, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale/it'
@@ -12,8 +13,14 @@ interface Booking {
   date: string
   time: string
   status: string
+  userId: string
   package: {
     name: string
+  }
+  user?: {
+    id: string
+    name: string
+    email: string
   }
 }
 
@@ -23,6 +30,7 @@ interface BookingsListProps {
 }
 
 export default function BookingsList({ onCancel, showCountOnly }: BookingsListProps) {
+  const { data: session } = useSession()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
@@ -120,13 +128,45 @@ export default function BookingsList({ onCancel, showCountOnly }: BookingsListPr
     )
   }
 
+  // Filtra prenotazioni future considerando anche l'ora
   const upcomingBookings = bookings
-    .filter(b => new Date(b.date) >= new Date())
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .filter(b => {
+      const bookingDateTime = new Date(b.date)
+      const [hours, minutes] = b.time.split(':').map(Number)
+      bookingDateTime.setHours(hours, minutes, 0, 0)
+      return bookingDateTime >= new Date()
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.date)
+      const [hoursA, minutesA] = a.time.split(':').map(Number)
+      dateA.setHours(hoursA, minutesA, 0, 0)
+      
+      const dateB = new Date(b.date)
+      const [hoursB, minutesB] = b.time.split(':').map(Number)
+      dateB.setHours(hoursB, minutesB, 0, 0)
+      
+      return dateA.getTime() - dateB.getTime()
+    })
 
+  // Filtra prenotazioni passate considerando anche l'ora
   const pastBookings = bookings
-    .filter(b => new Date(b.date) < new Date())
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .filter(b => {
+      const bookingDateTime = new Date(b.date)
+      const [hours, minutes] = b.time.split(':').map(Number)
+      bookingDateTime.setHours(hours, minutes, 0, 0)
+      return bookingDateTime < new Date()
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.date)
+      const [hoursA, minutesA] = a.time.split(':').map(Number)
+      dateA.setHours(hoursA, minutesA, 0, 0)
+      
+      const dateB = new Date(b.date)
+      const [hoursB, minutesB] = b.time.split(':').map(Number)
+      dateB.setHours(hoursB, minutesB, 0, 0)
+      
+      return dateB.getTime() - dateA.getTime()
+    })
 
   return (
     <div className="space-y-6">
@@ -150,7 +190,11 @@ export default function BookingsList({ onCancel, showCountOnly }: BookingsListPr
               return (
                 <div
                   key={booking.id}
-                  className="bg-dark-100/50 backdrop-blur-sm border-2 border-dark-200/30 rounded-xl p-4 md:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-gold-400/50 transition-all duration-300 group"
+                  className={`bg-dark-100/50 backdrop-blur-sm border-2 rounded-xl p-4 md:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all duration-300 group ${
+                    isPast 
+                      ? 'opacity-60 border-dark-400/30 hover:border-dark-400/50' 
+                      : 'border-dark-200/30 hover:border-gold-400/50'
+                  }`}
                 >
                   <div className="flex items-center space-x-4 flex-1">
                     <div className="bg-gradient-to-br from-gold-400 to-gold-500 p-3 rounded-xl shadow-gold group-hover:scale-110 transition-transform duration-300">
@@ -167,6 +211,14 @@ export default function BookingsList({ onCancel, showCountOnly }: BookingsListPr
                         </div>
                         <span className="text-dark-500">•</span>
                         <Badge variant="gold" size="sm">{booking.package.name}</Badge>
+                        {booking.user && booking.user.id !== session?.user?.id && (
+                          <>
+                            <span className="text-dark-500">•</span>
+                            <span className="text-xs text-dark-500 italic">
+                              Prenotato da {booking.user.name}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -187,7 +239,9 @@ export default function BookingsList({ onCancel, showCountOnly }: BookingsListPr
                             </p>
                           </div>
                           <p className="text-xs text-dark-600 mb-3">
-                            La sessione verrà restituita al tuo pacchetto.
+                            {booking.user && booking.user.id !== session?.user?.id
+                              ? 'La sessione verrà restituita a tutti gli atleti del pacchetto multiplo.'
+                              : 'La sessione verrà restituita al tuo pacchetto.'}
                           </p>
                           <div className="flex gap-2">
                             <Button

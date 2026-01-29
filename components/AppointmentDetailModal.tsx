@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Calendar, User, Mail, Phone, Package, Clock, CheckCircle } from 'lucide-react'
+import { X, Calendar, User, Mail, Phone, Package, Clock, CheckCircle, Edit, Trash2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import Button from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import EditAppointmentModal from '@/components/EditAppointmentModal'
+import DeleteConfirmModal from '@/components/DeleteConfirmModal'
 
 interface AppointmentData {
   id: string
@@ -18,25 +20,77 @@ interface AppointmentData {
   service: string
   status: string
   notes?: string
+  userId?: string
+  packageId?: string
 }
 
 interface AppointmentDetailModalProps {
   appointment: AppointmentData | null
   isOpen: boolean
   onClose: () => void
+  onUpdate?: () => void // Callback quando l'appuntamento viene modificato o cancellato
 }
 
 export default function AppointmentDetailModal({
   appointment,
   isOpen,
   onClose,
+  onUpdate,
 }: AppointmentDetailModalProps) {
   const [mounted, setMounted] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     setMounted(true)
     return () => setMounted(false)
   }, [])
+
+  const handleDelete = async () => {
+    if (!appointment) return
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/admin/bookings/${appointment.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Errore nella cancellazione')
+      }
+
+      // Chiudi prima il modal di conferma
+      setShowDeleteModal(false)
+      
+      // Poi chiudi il modal principale
+      onClose()
+      
+      // Infine aggiorna il calendario (con un piccolo delay per assicurarsi che i modals si chiudano)
+      setTimeout(() => {
+        if (onUpdate) {
+          onUpdate()
+        }
+      }, 100)
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Errore nella cancellazione')
+      setIsDeleting(false)
+    } finally {
+      // Reset dello stato di cancellazione dopo un breve delay
+      setTimeout(() => {
+        setIsDeleting(false)
+      }, 200)
+    }
+  }
+
+  const handleEditSuccess = () => {
+    if (onUpdate) {
+      onUpdate()
+    }
+    setShowEditModal(false)
+    onClose()
+  }
 
   if (!isOpen || !appointment || !mounted) return null
 
@@ -147,8 +201,24 @@ export default function AppointmentDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="mt-6 pt-6 border-t border-dark-200/30 flex justify-end">
-          <Button variant="gold" onClick={onClose}>
+        <div className="mt-6 pt-6 border-t border-dark-200/30 flex flex-col sm:flex-row gap-3 justify-end">
+          <Button
+            variant="outline-gold"
+            onClick={() => setShowEditModal(true)}
+            className="flex items-center justify-center gap-2"
+          >
+            <Edit className="w-4 h-4" />
+            Modifica
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => setShowDeleteModal(true)}
+            className="flex items-center justify-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Disdici
+          </Button>
+          <Button variant="ghost" onClick={onClose}>
             Chiudi
           </Button>
         </div>
@@ -156,5 +226,30 @@ export default function AppointmentDetailModal({
     </div>
   )
 
-  return createPortal(modalContent, document.body)
+  return (
+    <>
+      {createPortal(modalContent, document.body)}
+      {showEditModal && (
+        <EditAppointmentModal
+          appointment={appointment}
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+      {showDeleteModal && (
+        <DeleteConfirmModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={handleDelete}
+          title="Disdici Appuntamento"
+          message={`Sei sicuro di voler disdire l'appuntamento di ${appointment.client_name} per il ${format(parseISO(appointment.date), 'dd/MM/yyyy', { locale: it })} alle ${appointment.time}?`}
+          confirmText="Sì, disdici"
+          cancelText="Annulla"
+          variant="danger"
+          isLoading={isDeleting}
+        />
+      )}
+    </>
+  )
 }

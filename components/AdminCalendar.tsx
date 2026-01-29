@@ -38,6 +38,9 @@ interface AppointmentData {
   service: string
   status: string
   notes?: string
+  isPast?: boolean // Flag per appuntamenti passati
+  userId?: string // User ID per modifica
+  packageId?: string // Package ID per modifica
 }
 
 export default function AdminCalendar() {
@@ -50,10 +53,20 @@ export default function AdminCalendar() {
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentData | null>(null)
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
 
+  // Verifica se un appuntamento è passato
+  const isAppointmentPast = (apt: AppointmentData): boolean => {
+    const now = new Date()
+    const appointmentDateTime = new Date(`${apt.date}T${apt.time}:00`)
+    return appointmentDateTime < now
+  }
+
   // Trasforma i booking dal formato API al formato del calendario
   const transformBookings = (bookings: Booking[]): AppointmentData[] => {
     return bookings.map(booking => {
       const bookingDate = parseISO(booking.date)
+      const appointmentDateTime = new Date(`${format(bookingDate, 'yyyy-MM-dd')}T${booking.time}:00`)
+      const isPast = appointmentDateTime < new Date()
+      
       return {
         id: booking.id,
         client_name: booking.user.name,
@@ -64,6 +77,9 @@ export default function AdminCalendar() {
         service: booking.package.name,
         status: booking.status.toLowerCase(),
         notes: `${booking.package.durationMinutes} minuti`,
+        isPast, // Aggiungi flag per appuntamenti passati
+        userId: booking.user.id, // Aggiungi userId per modifica
+        packageId: booking.package.id, // Aggiungi packageId per modifica
       }
     })
   }
@@ -195,9 +211,13 @@ export default function AdminCalendar() {
             </p>
             <div className="space-y-1.5">
               {appointmentsByDate[selectedDate].map(apt => (
-                <div 
-                  key={apt.id} 
-                  className="glass-card rounded-lg p-2 md:p-2 cursor-pointer hover:border-gold-400/50 transition-all duration-300"
+                <div
+                  key={apt.id}
+                  className={`glass-card rounded-lg p-2 md:p-2 cursor-pointer transition-all duration-300 ${
+                    apt.isPast 
+                      ? 'opacity-60 border-dark-400/30 hover:border-dark-400/50' 
+                      : 'hover:border-gold-400/50'
+                  }`}
                   onClick={() => showAppointmentDetail(apt)}
                 >
                   <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 md:gap-0">
@@ -266,7 +286,9 @@ export default function AdminCalendar() {
                   {hasAppointment && appointmentsByHour[hour].map(apt => (
                     <div
                       key={apt.id}
-                      className="appointment-block cursor-pointer"
+                      className={`appointment-block cursor-pointer ${
+                        apt.isPast ? 'opacity-60' : ''
+                      }`}
                       onClick={() => showAppointmentDetail(apt)}
                     >
                       <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 md:gap-0">
@@ -391,6 +413,9 @@ export default function AdminCalendar() {
           onClose={() => {
             setIsAppointmentModalOpen(false)
             setSelectedAppointment(null)
+          }}
+          onUpdate={() => {
+            fetchBookings() // Ricarica le prenotazioni dopo modifica/cancellazione
           }}
         />
       )}
