@@ -30,7 +30,12 @@ const PACKAGE_TYPES = [24, 48, 80] as const
 type PackageType = typeof PACKAGE_TYPES[number]
 
 interface UserWithPackage {
-  user: PackageData['user']
+  user: {
+    id: string
+    name: string
+    email: string
+    phone: string | null
+  }
   packages: Array<{
     id: string
     name: string
