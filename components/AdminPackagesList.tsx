@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Package, User, Mail, Phone } from 'lucide-react'
+import { Package, User, Mail, Phone, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
+import DeleteConfirmModal from '@/components/DeleteConfirmModal'
 
 interface PackageData {
   id: string
@@ -44,6 +45,9 @@ export default function AdminPackagesList() {
   const [selectedPackageType, setSelectedPackageType] = useState<PackageType | 'all'>('all')
   const [sortBy, setSortBy] = useState<SortBy>('totalSessions')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
+  const [packageToDelete, setPackageToDelete] = useState<{ id: string; name: string } | null>(null)
+  const [deletingPackage, setDeletingPackage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchPackages()
@@ -132,6 +136,34 @@ export default function AdminPackagesList() {
     } else {
       setSortBy(field)
       setSortOrder('asc')
+    }
+  }
+
+  const handleDeletePackageClick = (packageId: string, packageName: string) => {
+    setPackageToDelete({ id: packageId, name: packageName })
+  }
+
+  const handleDeletePackageConfirm = async () => {
+    if (!packageToDelete) return
+
+    setDeletingPackage(packageToDelete.id)
+    setError(null)
+    try {
+      const response = await fetch(`/api/admin/packages/${packageToDelete.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Errore nell\'eliminazione')
+      }
+
+      fetchPackages()
+      setPackageToDelete(null)
+    } catch (error: any) {
+      setError(error.message || 'Errore nell\'eliminazione del pacchetto')
+    } finally {
+      setDeletingPackage(null)
     }
   }
 
@@ -258,6 +290,16 @@ export default function AdminPackagesList() {
                           <Badge variant={pkg.remaining > 0 ? 'gold' : 'danger'} size="sm">
                             {pkg.remaining} rimaste
                           </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeletePackageClick(pkg.id, pkg.name)}
+                            disabled={deletingPackage === pkg.id}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10 p-2"
+                            aria-label="Elimina pacchetto"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                       
@@ -291,6 +333,34 @@ export default function AdminPackagesList() {
             </div>
           ))}
         </div>
+      )}
+
+      {packageToDelete && (
+        <DeleteConfirmModal
+          isOpen={!!packageToDelete}
+          onClose={() => {
+            setPackageToDelete(null)
+            setError(null)
+          }}
+          onConfirm={handleDeletePackageConfirm}
+          title="Elimina Pacchetto"
+          message={`Sei sicuro di voler eliminare il pacchetto "${packageToDelete.name}"? Questa azione è irreversibile. Il pacchetto può essere eliminato solo se non ci sono prenotazioni attive associate.`}
+          confirmText="Elimina"
+          cancelText="Annulla"
+          variant="danger"
+        />
+      )}
+
+      {error && (
+        <DeleteConfirmModal
+          isOpen={!!error}
+          onClose={() => setError(null)}
+          onConfirm={() => setError(null)}
+          title="Errore"
+          message={error}
+          confirmText="Ok"
+          variant="danger"
+        />
       )}
     </div>
   )

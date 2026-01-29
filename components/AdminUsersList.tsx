@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Phone, Mail, Edit, Trash2, X, ChevronDown, ChevronUp, Calendar } from 'lucide-react'
+import { User, Phone, Mail, Edit, Trash2, X, ChevronDown, ChevronUp, Calendar, Ruler } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import BodyMeasurementModal from '@/components/BodyMeasurementModal'
 import EditUserModal from '@/components/EditUserModal'
+import DeleteConfirmModal from '@/components/DeleteConfirmModal'
 
 interface UserData {
   id: string
@@ -51,6 +52,9 @@ export default function AdminUsersList() {
   const [loadingBookings, setLoadingBookings] = useState<Record<string, boolean>>({})
   const [deletingUser, setDeletingUser] = useState<string | null>(null)
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null)
+  const [bookingToCancel, setBookingToCancel] = useState<{ id: string; userId: string } | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchUsers()
@@ -108,14 +112,17 @@ export default function AdminUsersList() {
     }
   }
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
-    if (!confirm(`Sei sicuro di voler eliminare il cliente "${userName}"? Questa azione è irreversibile e eliminerà anche tutti i pacchetti e le prenotazioni associate.`)) {
-      return
-    }
+  const handleDeleteUserClick = (userId: string, userName: string) => {
+    setUserToDelete({ id: userId, name: userName })
+  }
 
-    setDeletingUser(userId)
+  const handleDeleteUserConfirm = async () => {
+    if (!userToDelete) return
+
+    setDeletingUser(userToDelete.id)
+    setError(null)
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await fetch(`/api/admin/users/${userToDelete.id}`, {
         method: 'DELETE',
       })
 
@@ -125,21 +132,25 @@ export default function AdminUsersList() {
       }
 
       fetchUsers()
+      setUserToDelete(null)
     } catch (error: any) {
-      alert(error.message || 'Errore nell\'eliminazione del cliente')
+      setError(error.message || 'Errore nell\'eliminazione del cliente')
     } finally {
       setDeletingUser(null)
     }
   }
 
-  const handleCancelBooking = async (bookingId: string, userId: string) => {
-    if (!confirm('Sei sicuro di voler disdire questa prenotazione?')) {
-      return
-    }
+  const handleCancelBookingClick = (bookingId: string, userId: string) => {
+    setBookingToCancel({ id: bookingId, userId })
+  }
 
-    setCancellingBooking(bookingId)
+  const handleCancelBookingConfirm = async () => {
+    if (!bookingToCancel) return
+
+    setCancellingBooking(bookingToCancel.id)
+    setError(null)
     try {
-      const response = await fetch(`/api/admin/bookings/${bookingId}`, {
+      const response = await fetch(`/api/admin/bookings/${bookingToCancel.id}`, {
         method: 'DELETE',
       })
 
@@ -151,14 +162,15 @@ export default function AdminUsersList() {
       // Ricarica prenotazioni e utenti
       setUserBookings(prev => {
         const updated = { ...prev }
-        if (updated[userId]) {
-          updated[userId] = updated[userId].filter(b => b.id !== bookingId)
+        if (updated[bookingToCancel.userId]) {
+          updated[bookingToCancel.userId] = updated[bookingToCancel.userId].filter(b => b.id !== bookingToCancel.id)
         }
         return updated
       })
       fetchUsers()
+      setBookingToCancel(null)
     } catch (error: any) {
-      alert(error.message || 'Errore nella disdetta della prenotazione')
+      setError(error.message || 'Errore nella disdetta della prenotazione')
     } finally {
       setCancellingBooking(null)
     }
@@ -259,10 +271,10 @@ export default function AdminUsersList() {
                       setEditingUser(user)
                       setIsEditModalOpen(true)
                     }}
-                    className="flex-1"
+                    className="p-2 flex-1"
+                    aria-label="Modifica"
                   >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Modifica
+                    <Edit className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -272,9 +284,10 @@ export default function AdminUsersList() {
                       setSelectedUser({ id: user.id, name: user.name, email: user.email })
                       setIsMeasurementModalOpen(true)
                     }}
-                    className="flex-1"
+                    className="p-2 flex-1"
+                    aria-label="Misurazioni"
                   >
-                    Misurazioni
+                    <Ruler className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -283,20 +296,26 @@ export default function AdminUsersList() {
                       e.stopPropagation()
                       handleToggleExpanded(user.id)
                     }}
-                    className="flex-1"
+                    className="p-2 flex-1"
+                    aria-label="Prenotazioni"
                   >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Prenotazioni
+                    <Calendar className="w-4 h-4" />
+                    {expandedUser === user.id ? (
+                      <ChevronUp className="w-3 h-3 ml-1" />
+                    ) : (
+                      <ChevronDown className="w-3 h-3 ml-1" />
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleDeleteUser(user.id, user.name)
+                      handleDeleteUserClick(user.id, user.name)
                     }}
                     disabled={deletingUser === user.id}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                    className="text-red-400 hover:text-red-300 hover:bg-red-400/10 p-2 flex-1"
+                    aria-label="Elimina"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -323,7 +342,7 @@ export default function AdminUsersList() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleCancelBooking(booking.id, user.id)}
+                              onClick={() => handleCancelBookingClick(booking.id, user.id)}
                               disabled={cancellingBooking === booking.id}
                               className="text-red-400 hover:text-red-300"
                             >
@@ -441,11 +460,10 @@ export default function AdminUsersList() {
                                 setEditingUser(user)
                                 setIsEditModalOpen(true)
                               }}
-                              className="whitespace-nowrap"
+                              className="p-2"
+                              aria-label="Modifica"
                             >
-                              <Edit className="w-4 h-4 mr-1.5 flex-shrink-0" />
-                              <span className="hidden xl:inline">Modifica</span>
-                              <span className="xl:hidden">Mod.</span>
+                              <Edit className="w-4 h-4" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -454,32 +472,32 @@ export default function AdminUsersList() {
                                 setSelectedUser({ id: user.id, name: user.name, email: user.email })
                                 setIsMeasurementModalOpen(true)
                               }}
-                              className="whitespace-nowrap"
+                              className="p-2"
+                              aria-label="Misurazioni"
                             >
-                              <span className="hidden xl:inline">Misurazioni</span>
-                              <span className="xl:hidden">Mis.</span>
+                              <Ruler className="w-4 h-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleToggleExpanded(user.id)}
-                              className="whitespace-nowrap"
+                              className="p-2"
+                              aria-label="Prenotazioni"
                             >
-                              <Calendar className="w-4 h-4 mr-1.5 flex-shrink-0" />
-                              <span className="hidden xl:inline">Prenotazioni</span>
-                              <span className="xl:hidden">Pren.</span>
+                              <Calendar className="w-4 h-4" />
                               {expandedUser === user.id ? (
-                                <ChevronUp className="w-4 h-4 ml-1" />
+                                <ChevronUp className="w-3 h-3 ml-1" />
                               ) : (
-                                <ChevronDown className="w-4 h-4 ml-1" />
+                                <ChevronDown className="w-3 h-3 ml-1" />
                               )}
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDeleteUser(user.id, user.name)}
+                              onClick={() => handleDeleteUserClick(user.id, user.name)}
                               disabled={deletingUser === user.id}
-                              className="text-red-400 hover:text-red-300 hover:bg-red-400/10 whitespace-nowrap"
+                              className="text-red-400 hover:text-red-300 hover:bg-red-400/10 p-2"
+                              aria-label="Elimina"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -510,7 +528,7 @@ export default function AdminUsersList() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleCancelBooking(booking.id, user.id)}
+                                      onClick={() => handleCancelBookingClick(booking.id, user.id)}
                                       disabled={cancellingBooking === booking.id}
                                       className="text-red-400 hover:text-red-300"
                                     >
@@ -559,6 +577,50 @@ export default function AdminUsersList() {
           onSuccess={() => {
             fetchUsers()
           }}
+        />
+      )}
+
+      {userToDelete && (
+        <DeleteConfirmModal
+          isOpen={!!userToDelete}
+          onClose={() => {
+            setUserToDelete(null)
+            setError(null)
+          }}
+          onConfirm={handleDeleteUserConfirm}
+          title="Elimina Cliente"
+          message={`Sei sicuro di voler eliminare il cliente "${userToDelete.name}"? Questa azione è irreversibile e eliminerà anche tutti i pacchetti e le prenotazioni associate.`}
+          confirmText="Elimina"
+          cancelText="Annulla"
+          variant="danger"
+        />
+      )}
+
+      {bookingToCancel && (
+        <DeleteConfirmModal
+          isOpen={!!bookingToCancel}
+          onClose={() => {
+            setBookingToCancel(null)
+            setError(null)
+          }}
+          onConfirm={handleCancelBookingConfirm}
+          title="Disdici Prenotazione"
+          message="Sei sicuro di voler disdire questa prenotazione?"
+          confirmText="Disdici"
+          cancelText="Annulla"
+          variant="warning"
+        />
+      )}
+
+      {error && (
+        <DeleteConfirmModal
+          isOpen={!!error}
+          onClose={() => setError(null)}
+          onConfirm={() => setError(null)}
+          title="Errore"
+          message={error}
+          confirmText="Ok"
+          variant="danger"
         />
       )}
     </div>
