@@ -60,7 +60,36 @@ export default function BookingForm({ packages, onSuccess }: BookingFormProps) {
       const response = await fetch(`/api/available-slots?date=${selectedDate}`)
       if (response.ok) {
         const data = await response.json()
-        setAvailableSlots(data.slots)
+        let slots = data.slots
+        
+        // Se la data selezionata è oggi, filtra anche gli orari passati (doppia sicurezza lato client)
+        const now = new Date()
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const selectedDateObj = new Date(selectedDate)
+        const selectedDateOnly = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate())
+        
+        if (selectedDateOnly.getTime() === today.getTime()) {
+          const currentHour = now.getHours()
+          const currentMinute = now.getMinutes()
+          
+          slots = slots.filter((slot: string) => {
+            const [slotHour, slotMinute] = slot.split(':').map(Number)
+            
+            // Se l'ora dello slot è passata, escludilo
+            if (slotHour < currentHour) {
+              return false
+            }
+            
+            // Se l'ora è la stessa, controlla i minuti
+            if (slotHour === currentHour && slotMinute <= currentMinute) {
+              return false
+            }
+            
+            return true
+          })
+        }
+        
+        setAvailableSlots(slots)
       }
     } catch (error) {
       console.error('Errore recupero slot:', error)

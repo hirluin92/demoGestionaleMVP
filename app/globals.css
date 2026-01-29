@@ -116,36 +116,34 @@
   box-shadow: 0 0 8px rgba(250, 245, 200, 0.3), 0 0 15px rgba(255, 250, 220, 0.15);
 }
 
-/* Particelle molto più grandi e visibili su mobile */
+/* Particelle su mobile: dimensioni originali ma con opacità e animazione migliorate */
 @media (max-width: 768px) {
   .particle {
-    width: 15px !important;
-    height: 15px !important;
-    background: radial-gradient(circle, rgba(250, 245, 200, 1) 0%, rgba(255, 250, 220, 1) 30%, rgba(255, 250, 220, 0.8) 60%, rgba(255, 250, 220, 0.4) 90%, transparent 100%) !important;
-    box-shadow: 0 0 25px rgba(250, 245, 200, 1), 0 0 40px rgba(255, 250, 220, 0.9), 0 0 60px rgba(255, 250, 220, 0.6), 0 0 80px rgba(255, 250, 220, 0.3) !important;
+    width: 4px !important;
+    height: 4px !important;
+    background: radial-gradient(circle, rgba(250, 245, 200, 0.8) 0%, rgba(255, 250, 220, 0.5) 40%, transparent 70%) !important;
+    box-shadow: 0 0 12px rgba(250, 245, 200, 0.5), 0 0 20px rgba(255, 250, 220, 0.3) !important;
     will-change: transform, opacity !important;
     transform: translateZ(0) !important;
     -webkit-transform: translateZ(0) !important;
-    opacity: 1 !important;
-    z-index: 2 !important;
   }
   
   @keyframes float-particle-mobile {
     0% {
-      transform: translate3d(0, 100vh, 0) scale(0);
+      transform: translate3d(0, 100vh, 0) translateZ(0) scale(0);
       opacity: 0;
     }
-    2% {
-      opacity: 1;
+    5% {
+      opacity: 0.8;
     }
     50% {
       opacity: 1;
     }
-    98% {
-      opacity: 1;
+    95% {
+      opacity: 0.8;
     }
     100% {
-      transform: translate3d(var(--tx), -100px, 0) scale(2);
+      transform: translate3d(var(--tx), -100px, 0) translateZ(0) scale(1.2);
       opacity: 0;
     }
   }

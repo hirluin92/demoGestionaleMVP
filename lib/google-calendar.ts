@@ -320,6 +320,35 @@ export async function getAvailableSlots(date: Date) {
   // Combina slot occupati da database e Google Calendar
   const allOccupiedSlots = [...new Set([...occupiedSlotsFromDB, ...occupiedSlotsFromCalendar])]
 
-  // Filtra e restituisci solo slot disponibili
-  return allSlots.filter(slot => !allOccupiedSlots.includes(slot))
+  // Filtra slot disponibili (non occupati)
+  let availableSlots = allSlots.filter(slot => !allOccupiedSlots.includes(slot))
+
+  // Se la data è oggi, filtra anche gli orari passati
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const selectedDateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  
+  if (selectedDateOnly.getTime() === today.getTime()) {
+    // È oggi: filtra gli orari passati
+    const currentHour = now.getHours()
+    const currentMinute = now.getMinutes()
+    
+    availableSlots = availableSlots.filter(slot => {
+      const [slotHour, slotMinute] = slot.split(':').map(Number)
+      
+      // Se l'ora dello slot è passata, escludilo
+      if (slotHour < currentHour) {
+        return false
+      }
+      
+      // Se l'ora è la stessa, controlla i minuti
+      if (slotHour === currentHour && slotMinute <= currentMinute) {
+        return false
+      }
+      
+      return true
+    })
+  }
+
+  return availableSlots
 }

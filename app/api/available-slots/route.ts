@@ -64,7 +64,31 @@ export async function GET(request: NextRequest) {
         }
         
         const occupied = dbBookings.map(b => b.time)
-        const available = allSlots.filter(slot => !occupied.includes(slot))
+        let available = allSlots.filter(slot => !occupied.includes(slot))
+        
+        // Se la data è oggi, filtra anche gli orari passati
+        const now = new Date()
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
+        
+        if (selectedDateOnly.getTime() === today.getTime()) {
+          const currentHour = now.getHours()
+          const currentMinute = now.getMinutes()
+          
+          available = available.filter(slot => {
+            const [slotHour, slotMinute] = slot.split(':').map(Number)
+            
+            if (slotHour < currentHour) {
+              return false
+            }
+            
+            if (slotHour === currentHour && slotMinute <= currentMinute) {
+              return false
+            }
+            
+            return true
+          })
+        }
         
         logger.warn('Restituiti slot solo da database (Google Calendar fallito)', {
           count: available.length

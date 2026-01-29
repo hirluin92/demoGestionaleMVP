@@ -9,27 +9,28 @@ export function Particles() {
 
     // Detect mobile device
     const isMobile = window.innerWidth <= 768
-    const particleCount = isMobile ? 50 : 20 // Ancora più particelle su mobile
+    const particleCount = isMobile ? 30 : 20 // Più particelle su mobile per compensare le dimensioni piccole
 
     // Create particles
     for (let i = 0; i < particleCount; i++) {
       const particle = document.createElement('div')
       particle.className = 'particle'
       particle.style.left = Math.random() * 100 + '%'
-      particle.style.setProperty('--tx', (Math.random() - 0.5) * 400 + 'px')
-      // Animazioni più veloci su mobile per maggiore visibilità
-      const duration = isMobile ? (8 + Math.random() * 12) : (15 + Math.random() * 20)
+      particle.style.setProperty('--tx', (Math.random() - 0.5) * 300 + 'px')
+      
+      // Durata animazione: leggermente più veloce su mobile
+      const duration = isMobile ? (12 + Math.random() * 15) : (15 + Math.random() * 20)
       particle.style.animationDuration = duration + 's'
-      particle.style.animationDelay = Math.random() * 3 + 's'
+      particle.style.animationDelay = Math.random() * 5 + 's'
+      
       // Forza rendering hardware su mobile
       if (isMobile) {
         particle.style.willChange = 'transform, opacity'
         particle.style.transform = 'translateZ(0)'
         particle.style.webkitTransform = 'translateZ(0)'
-        particle.style.animationName = 'float-particle-mobile'
-        particle.style.webkitAnimationName = 'float-particle-mobile'
-        particle.style.opacity = '1'
+        // L'animazione viene applicata via CSS, non qui
       }
+      
       container.appendChild(particle)
     }
 

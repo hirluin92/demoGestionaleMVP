@@ -29,6 +29,21 @@ const bookingSchema = z.object({
     }, 'Orario non valido (8:00-20:00)'),
     
   packageId: z.string().min(1, 'Package ID richiesto'),
+}).refine((data) => {
+  // Valida che la data + orario combinati non siano nel passato
+  const bookingDateTime = new Date(data.date)
+  const [hours, minutes] = data.time.split(':').map(Number)
+  bookingDateTime.setHours(hours, minutes, 0, 0)
+  
+  const now = new Date()
+  
+  // Aggiungi un buffer di 1 minuto per evitare problemi di timing
+  const buffer = 60 * 1000 // 1 minuto in millisecondi
+  
+  return bookingDateTime.getTime() > (now.getTime() + buffer)
+}, {
+  message: 'Non è possibile prenotare per un orario nel passato',
+  path: ['time'], // Mostra l'errore sul campo time
 })
 
 // GET - Lista prenotazioni utente
