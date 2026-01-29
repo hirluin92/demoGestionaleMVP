@@ -13,12 +13,17 @@ interface PackageData {
   usedSessions: number
   isActive: boolean
   createdAt: string
-  user: {
+  userPackages: Array<{
     id: string
-    name: string
-    email: string
-    phone: string | null
-  }
+    userId: string
+    usedSessions: number
+    user: {
+      id: string
+      name: string
+      email: string
+      phone: string | null
+    }
+  }>
 }
 
 const PACKAGE_TYPES = [24, 48, 80] as const
@@ -42,7 +47,7 @@ type SortOrder = 'asc' | 'desc'
 export default function AdminPackagesList() {
   const [packages, setPackages] = useState<PackageData[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedPackageType, setSelectedPackageType] = useState<PackageType | 'all'>('all')
+  const [selectedPackageType, setSelectedPackageType] = useState<PackageType | 'all' | 'multipli'>('all')
   const [sortBy, setSortBy] = useState<SortBy>('userName')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
   const [packageToDelete, setPackageToDelete] = useState<{ id: string; name: string } | null>(null)
@@ -69,27 +74,42 @@ export default function AdminPackagesList() {
 
   // Raggruppa pacchetti per tipo e utente, ordinati per nome utente o numero sessioni
   const usersByPackageType = useMemo(() => {
-    const filtered = selectedPackageType === 'all' 
-      ? packages 
-      : packages.filter(pkg => pkg.totalSessions === selectedPackageType)
+    let filtered: PackageData[]
+    
+    if (selectedPackageType === 'all') {
+      filtered = packages
+    } else if (selectedPackageType === 'multipli') {
+      // Filtra solo i pacchetti assegnati a più di un utente
+      filtered = packages.filter(pkg => pkg.userPackages.length > 1)
+    } else {
+      // Filtra per numero di sessioni (24, 48, 80)
+      filtered = packages.filter(pkg => pkg.totalSessions === selectedPackageType)
+    }
 
     const grouped: Record<string, UserWithPackage> = {}
 
+    // Itera su tutti i pacchetti e le loro relazioni userPackages
     filtered.forEach(pkg => {
-      const userId = pkg.user.id
-      if (!grouped[userId]) {
-        grouped[userId] = {
-          user: pkg.user,
-          packages: []
+      // Ogni pacchetto può essere associato a più utenti tramite userPackages
+      pkg.userPackages.forEach(userPackage => {
+        const userId = userPackage.user.id
+        if (!grouped[userId]) {
+          grouped[userId] = {
+            user: userPackage.user,
+            packages: []
+          }
         }
-      }
-      grouped[userId].packages.push({
-        id: pkg.id,
-        name: pkg.name,
-        totalSessions: pkg.totalSessions,
-        usedSessions: pkg.usedSessions,
-        remaining: pkg.totalSessions - pkg.usedSessions,
-        isActive: pkg.isActive
+        // Aggiungi il pacchetto all'utente (evita duplicati)
+        if (!grouped[userId].packages.find(p => p.id === pkg.id)) {
+          grouped[userId].packages.push({
+            id: pkg.id,
+            name: pkg.name,
+            totalSessions: pkg.totalSessions,
+            usedSessions: userPackage.usedSessions, // Usa usedSessions dalla relazione userPackage
+            remaining: pkg.totalSessions - userPackage.usedSessions,
+            isActive: pkg.isActive
+          })
+        }
       })
     })
 
@@ -203,6 +223,13 @@ export default function AdminPackagesList() {
                 {type} lezioni
               </Button>
             ))}
+            <Button
+              variant={selectedPackageType === 'multipli' ? 'gold' : 'outline-gold'}
+              size="sm"
+              onClick={() => setSelectedPackageType('multipli')}
+            >
+              Multipli
+            </Button>
           </div>
         </div>
 
@@ -235,7 +262,11 @@ export default function AdminPackagesList() {
         <div className="text-center py-12">
           <Package className="w-12 h-12 text-dark-500 mx-auto mb-4" />
           <p className="text-dark-600 font-semibold">
-            Nessun utente con pacchetti {selectedPackageType !== 'all' ? `da ${selectedPackageType} lezioni` : ''}
+            {selectedPackageType === 'multipli' 
+              ? 'Nessun utente con pacchetti multipli'
+              : selectedPackageType !== 'all' 
+                ? `Nessun utente con pacchetti da ${selectedPackageType} lezioni`
+                : 'Nessun utente con pacchetti'}
           </p>
         </div>
       ) : (

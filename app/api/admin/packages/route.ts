@@ -25,14 +25,6 @@ export async function GET(request: NextRequest) {
 
     const packages = await prisma.package.findMany({
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-          },
-        },
         userPackages: {
           include: {
             user: {

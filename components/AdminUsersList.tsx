@@ -14,13 +14,13 @@ interface UserData {
   email: string
   phone: string | null
   collaborationStartDate: string | null
-  packages: Array<{
+  packages?: Array<{
     id: string
     name: string
     totalSessions: number
     usedSessions: number
   }>
-  userPackages?: Array<{
+  userPackages: Array<{
     id: string
     usedSessions: number
     package: {
@@ -28,7 +28,7 @@ interface UserData {
       name: string
       totalSessions: number
     }
-  }>
+  }> | []
   _count: {
     bookings: number
   }
@@ -317,7 +317,7 @@ export default function AdminUsersList() {
                 </div>
                 <div className="flex flex-wrap gap-2 pt-3 border-t border-dark-200/30">
                   <Badge variant="info" size="sm">
-                    {user.packages.length} {user.packages.length === 1 ? 'Pacchetto' : 'Pacchetti'}
+                    {user.userPackages.length} {user.userPackages.length === 1 ? 'Pacchetto' : 'Pacchetti'}
                   </Badge>
                   <Badge variant="gold" size="sm">
                     {user._count.bookings} {user._count.bookings === 1 ? 'Prenotazione' : 'Prenotazioni'}
@@ -487,13 +487,13 @@ export default function AdminUsersList() {
                         </td>
                         <td className="px-4 xl:px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-white">
-                            {user.packages.length > 0 ? (
+                            {user.userPackages.length > 0 ? (
                               <div className="space-y-1">
-                                {user.packages.map((pkg) => (
-                                  <div key={pkg.id} className="flex items-center space-x-2">
-                                    <span className="font-semibold truncate max-w-[120px]">{pkg.name}</span>
-                                    <Badge variant={pkg.totalSessions - pkg.usedSessions > 0 ? 'gold' : 'danger'} size="sm" className="flex-shrink-0">
-                                      {pkg.totalSessions - pkg.usedSessions} / {pkg.totalSessions}
+                                {user.userPackages.map((userPackage) => (
+                                  <div key={userPackage.id} className="flex items-center space-x-2">
+                                    <span className="font-semibold truncate max-w-[120px]">{userPackage.package.name}</span>
+                                    <Badge variant={userPackage.package.totalSessions - userPackage.usedSessions > 0 ? 'gold' : 'danger'} size="sm" className="flex-shrink-0">
+                                      {userPackage.package.totalSessions - userPackage.usedSessions} / {userPackage.package.totalSessions}
                                     </Badge>
                                   </div>
                                 ))}

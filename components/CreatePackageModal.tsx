@@ -18,7 +18,10 @@ interface CreatePackageModalProps {
 
 export default function CreatePackageModal({ onClose, onSuccess }: CreatePackageModalProps) {
   const [users, setUsers] = useState<User[]>([])
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
+  const [packageType, setPackageType] = useState<'singolo' | 'multiplo' | null>(null)
+  const [numberOfAthletes, setNumberOfAthletes] = useState<number>(2)
+  const [selectedSingleUserId, setSelectedSingleUserId] = useState<string>('')
+  const [selectedMultipleUserIds, setSelectedMultipleUserIds] = useState<Record<number, string>>({})
   const [formData, setFormData] = useState({
     name: '',
     totalSessions: '10',
@@ -54,6 +57,13 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
     setError(null)
     setLoading(true)
 
+    // Validazione tipo pacchetto
+    if (!packageType) {
+      setError('Seleziona il tipo di pacchetto')
+      setLoading(false)
+      return
+    }
+
     // Validazione numeri
     const totalSessions = parseInt(formData.totalSessions, 10)
     const durationMinutes = parseInt(formData.durationMinutes, 10)
@@ -70,10 +80,31 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
       return
     }
 
-    if (selectedUserIds.length === 0) {
-      setError('Seleziona almeno un cliente')
-      setLoading(false)
-      return
+    // Raccogli gli user IDs in base al tipo
+    let userIdsToSubmit: string[] = []
+    
+    if (packageType === 'singolo') {
+      if (!selectedSingleUserId) {
+        setError('Seleziona un cliente')
+        setLoading(false)
+        return
+      }
+      userIdsToSubmit = [selectedSingleUserId]
+    } else {
+      // Multiplo: verifica che tutti gli atleti siano selezionati
+      const selectedIds = Object.values(selectedMultipleUserIds).filter(id => id !== '')
+      if (selectedIds.length !== numberOfAthletes) {
+        setError(`Seleziona tutti i ${numberOfAthletes} atleti`)
+        setLoading(false)
+        return
+      }
+      // Verifica che non ci siano duplicati
+      if (new Set(selectedIds).size !== selectedIds.length) {
+        setError('Ogni atleta può essere selezionato solo una volta')
+        setLoading(false)
+        return
+      }
+      userIdsToSubmit = selectedIds
     }
 
     try {
@@ -83,7 +114,7 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userIds: selectedUserIds,
+          userIds: userIdsToSubmit,
           name: formData.name,
           totalSessions,
           durationMinutes,
@@ -120,6 +151,49 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
     }))
   }
 
+  // Funzione per ottenere i clienti disponibili per una tendina specifica
+  const getAvailableUsersForSelect = (excludeIndex?: number): User[] => {
+    if (packageType === 'singolo') {
+      return users
+    }
+    
+    // Per multiplo: escludi i clienti già selezionati nelle altre tendine
+    const selectedIds = Object.entries(selectedMultipleUserIds)
+      .filter(([index]) => excludeIndex === undefined || index !== excludeIndex.toString())
+      .map(([, id]) => id)
+      .filter(id => id !== '')
+    
+    return users.filter(user => !selectedIds.includes(user.id))
+  }
+
+  const handleMultipleUserSelect = (index: number, userId: string) => {
+    setSelectedMultipleUserIds((prev) => ({
+      ...prev,
+      [index]: userId,
+    }))
+  }
+
+  const handlePackageTypeChange = (type: 'singolo' | 'multiplo') => {
+    setPackageType(type)
+    setSelectedSingleUserId('')
+    setSelectedMultipleUserIds({})
+    setNumberOfAthletes(2)
+  }
+
+  const handleNumberOfAthletesChange = (num: number) => {
+    setNumberOfAthletes(num)
+    // Rimuovi le selezioni oltre il nuovo numero
+    setSelectedMultipleUserIds((prev) => {
+      const newState: Record<number, string> = {}
+      for (let i = 0; i < num; i++) {
+        if (prev[i]) {
+          newState[i] = prev[i]
+        }
+      }
+      return newState
+    })
+  }
+
   if (!mounted) return null
 
   const modalContent = (
@@ -149,49 +223,121 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
             </div>
           )}
 
+          {/* Selezione tipo pacchetto */}
           <div>
             <label
               className="block text-sm font-light mb-2 heading-font"
               style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
             >
-              Clienti (seleziona uno o più)
+              Tipo Pacchetto
             </label>
-            <div className="max-h-48 overflow-y-auto border border-dark-700 rounded-lg p-4 bg-dark-900/50">
-              {users.length === 0 ? (
-                <p className="text-dark-500 text-sm">Nessun cliente disponibile</p>
-              ) : (
-                <div className="space-y-2">
-                  {users.map((user) => (
-                    <label
-                      key={user.id}
-                      className="flex items-center gap-3 p-2 rounded hover:bg-dark-800/50 cursor-pointer transition"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedUserIds.includes(user.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedUserIds([...selectedUserIds, user.id])
-                          } else {
-                            setSelectedUserIds(selectedUserIds.filter(id => id !== user.id))
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-dark-600 bg-dark-900 text-gold-500 focus:ring-gold-500 focus:ring-2"
-                      />
-                      <span className="text-sm text-white">
-                        {user.name} ({user.email})
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
+            <div className="relative">
+              <select
+                value={packageType || ''}
+                onChange={(e) => {
+                  const value = e.target.value as 'singolo' | 'multiplo' | ''
+                  if (value === 'singolo' || value === 'multiplo') {
+                    handlePackageTypeChange(value)
+                  }
+                }}
+                className="input-field w-full appearance-none pr-10"
+                required
+              >
+                <option value="">Seleziona tipo pacchetto</option>
+                <option value="singolo">Singolo</option>
+                <option value="multiplo">Multiplo</option>
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500 pointer-events-none" aria-hidden="true" />
             </div>
-            {selectedUserIds.length > 0 && (
-              <p className="mt-2 text-xs text-dark-600">
-                {selectedUserIds.length} cliente{selectedUserIds.length > 1 ? 'i' : ''} selezionato{selectedUserIds.length > 1 ? 'i' : ''}
-              </p>
-            )}
           </div>
+
+          {/* Se singolo: tendina cliente */}
+          {packageType === 'singolo' && (
+            <div>
+              <label
+                className="block text-sm font-light mb-2 heading-font"
+                style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+              >
+                Cliente
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedSingleUserId}
+                  onChange={(e) => setSelectedSingleUserId(e.target.value)}
+                  className="input-field w-full appearance-none pr-10"
+                  required
+                >
+                  <option value="">Seleziona un cliente</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name} ({user.email})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500 pointer-events-none" aria-hidden="true" />
+              </div>
+            </div>
+          )}
+
+          {/* Se multiplo: tendina numero atleti + tante tendine quanti sono gli atleti */}
+          {packageType === 'multiplo' && (
+            <>
+              <div>
+                <label
+                  className="block text-sm font-light mb-2 heading-font"
+                  style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                >
+                  Numero Atleti
+                </label>
+                <div className="relative">
+                  <select
+                    value={numberOfAthletes}
+                    onChange={(e) => handleNumberOfAthletesChange(parseInt(e.target.value, 10))}
+                    className="input-field w-full appearance-none pr-10"
+                    required
+                  >
+                    {[2, 3, 4, 5, 6].map((num) => (
+                      <option key={num} value={num}>
+                        {num} atleti
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500 pointer-events-none" aria-hidden="true" />
+                </div>
+              </div>
+
+              {/* Tante tendine quanti sono gli atleti */}
+              {Array.from({ length: numberOfAthletes }, (_, i) => i).map((index) => {
+                const availableUsers = getAvailableUsersForSelect(index)
+                return (
+                  <div key={index}>
+                    <label
+                      className="block text-sm font-light mb-2 heading-font"
+                      style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                    >
+                      Atleta {index + 1}
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={selectedMultipleUserIds[index] || ''}
+                        onChange={(e) => handleMultipleUserSelect(index, e.target.value)}
+                        className="input-field w-full appearance-none pr-10"
+                        required
+                      >
+                        <option value="">Seleziona atleta {index + 1}</option>
+                        {availableUsers.map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.name} ({user.email})
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500 pointer-events-none" aria-hidden="true" />
+                    </div>
+                  </div>
+                )
+              })}
+            </>
+          )}
 
           <div>
             <label
