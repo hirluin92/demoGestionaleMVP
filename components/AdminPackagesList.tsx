@@ -36,14 +36,14 @@ interface UserWithPackage {
   }>
 }
 
-type SortBy = 'name' | 'totalSessions'
+type SortBy = 'userName' | 'totalSessions'
 type SortOrder = 'asc' | 'desc'
 
 export default function AdminPackagesList() {
   const [packages, setPackages] = useState<PackageData[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPackageType, setSelectedPackageType] = useState<PackageType | 'all'>('all')
-  const [sortBy, setSortBy] = useState<SortBy>('totalSessions')
+  const [sortBy, setSortBy] = useState<SortBy>('userName')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
   const [packageToDelete, setPackageToDelete] = useState<{ id: string; name: string } | null>(null)
   const [deletingPackage, setDeletingPackage] = useState<string | null>(null)
@@ -67,7 +67,7 @@ export default function AdminPackagesList() {
     }
   }
 
-  // Raggruppa pacchetti per tipo e utente, ordinati per numero sessioni
+  // Raggruppa pacchetti per tipo e utente, ordinati per nome utente o numero sessioni
   const usersByPackageType = useMemo(() => {
     const filtered = selectedPackageType === 'all' 
       ? packages 
@@ -93,22 +93,31 @@ export default function AdminPackagesList() {
       })
     })
 
-    // Ordina i pacchetti in base al criterio selezionato
-    Object.values(grouped).forEach(userData => {
-      userData.packages.sort((a, b) => {
-        let comparison = 0
-        
-        if (sortBy === 'name') {
-          comparison = a.name.localeCompare(b.name, 'it', { sensitivity: 'base' })
-        } else if (sortBy === 'totalSessions') {
-          comparison = a.totalSessions - b.totalSessions
-        }
-        
-        return sortOrder === 'asc' ? comparison : -comparison
-      })
+    // Converti in array e ordina gli utenti
+    const usersArray = Object.values(grouped)
+    
+    usersArray.sort((a, b) => {
+      let comparison = 0
+      
+      if (sortBy === 'userName') {
+        // Ordina per nome utente
+        comparison = a.user.name.localeCompare(b.user.name, 'it', { sensitivity: 'base' })
+      } else if (sortBy === 'totalSessions') {
+        // Ordina per numero totale di sessioni (somma di tutti i pacchetti dell'utente)
+        const totalA = a.packages.reduce((sum, pkg) => sum + pkg.totalSessions, 0)
+        const totalB = b.packages.reduce((sum, pkg) => sum + pkg.totalSessions, 0)
+        comparison = totalA - totalB
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison
     })
 
-    return Object.values(grouped)
+    // Ordina anche i pacchetti dentro ogni utente per numero sessioni (opzionale, per consistenza)
+    usersArray.forEach(userData => {
+      userData.packages.sort((a, b) => a.totalSessions - b.totalSessions)
+    })
+
+    return usersArray
   }, [packages, selectedPackageType, sortBy, sortOrder])
 
   if (loading) {
@@ -200,15 +209,15 @@ export default function AdminPackagesList() {
         {/* Ordinamento */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
           <label className="text-sm font-semibold text-dark-600 whitespace-nowrap">
-            Ordina pacchetti per:
+            Ordina utenti per:
           </label>
           <div className="flex flex-wrap gap-2">
             <Button
-              variant={sortBy === 'name' ? 'gold' : 'outline-gold'}
+              variant={sortBy === 'userName' ? 'gold' : 'outline-gold'}
               size="sm"
-              onClick={() => handleSort('name')}
+              onClick={() => handleSort('userName')}
             >
-              Nome Pacchetto {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+              Nome Utente {sortBy === 'userName' && (sortOrder === 'asc' ? '↑' : '↓')}
             </Button>
             <Button
               variant={sortBy === 'totalSessions' ? 'gold' : 'outline-gold'}
