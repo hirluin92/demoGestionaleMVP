@@ -77,9 +77,6 @@ export async function GET(request: NextRequest) {
     const users = await prisma.user.findMany({
       where,
       include: {
-        packages: {
-          where: { isActive: true },
-        },
         userPackages: {
           where: {
             package: {
