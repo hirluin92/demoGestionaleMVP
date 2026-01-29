@@ -99,6 +99,12 @@
   overflow: hidden;
 }
 
+@media (max-width: 768px) {
+  .particles-container {
+    z-index: 5 !important; /* Più alto su mobile per essere sicuri che sia visibile */
+  }
+}
+
 .particle {
   position: absolute;
   width: 4px;
@@ -113,13 +119,15 @@
 /* Particelle molto più grandi e visibili su mobile */
 @media (max-width: 768px) {
   .particle {
-    width: 10px !important;
-    height: 10px !important;
-    background: radial-gradient(circle, rgba(250, 245, 200, 1) 0%, rgba(255, 250, 220, 0.8) 50%, rgba(255, 250, 220, 0.4) 80%, transparent 100%) !important;
-    box-shadow: 0 0 20px rgba(250, 245, 200, 0.9), 0 0 30px rgba(255, 250, 220, 0.6), 0 0 40px rgba(255, 250, 220, 0.3) !important;
-    will-change: transform, opacity;
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
+    width: 15px !important;
+    height: 15px !important;
+    background: radial-gradient(circle, rgba(250, 245, 200, 1) 0%, rgba(255, 250, 220, 1) 30%, rgba(255, 250, 220, 0.8) 60%, rgba(255, 250, 220, 0.4) 90%, transparent 100%) !important;
+    box-shadow: 0 0 25px rgba(250, 245, 200, 1), 0 0 40px rgba(255, 250, 220, 0.9), 0 0 60px rgba(255, 250, 220, 0.6), 0 0 80px rgba(255, 250, 220, 0.3) !important;
+    will-change: transform, opacity !important;
+    transform: translateZ(0) !important;
+    -webkit-transform: translateZ(0) !important;
+    opacity: 1 !important;
+    z-index: 2 !important;
   }
   
   @keyframes float-particle-mobile {
@@ -127,23 +135,24 @@
       transform: translate3d(0, 100vh, 0) scale(0);
       opacity: 0;
     }
-    3% {
+    2% {
       opacity: 1;
     }
     50% {
       opacity: 1;
     }
-    97% {
+    98% {
       opacity: 1;
     }
     100% {
-      transform: translate3d(var(--tx), -100px, 0) scale(1.5);
+      transform: translate3d(var(--tx), -100px, 0) scale(2);
       opacity: 0;
     }
   }
   
   .particle {
     animation: float-particle-mobile linear infinite !important;
+    -webkit-animation: float-particle-mobile linear infinite !important;
   }
 }
 
@@ -875,6 +884,14 @@ button.tab-button.active,
 
 .modal-content::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
+}
+
+/* Padding bottom su mobile per evitare che il pulsante sia coperto dalla barra del browser */
+@media (max-width: 768px) {
+  .modal-content {
+    padding-bottom: 100px !important; /* Spazio per la barra di navigazione del browser mobile */
+    max-height: calc(100vh - 100px) !important;
+  }
 }
 
 @keyframes slideUp {

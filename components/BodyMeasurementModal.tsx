@@ -562,7 +562,7 @@ export default function BodyMeasurementModal({
             <h3 className="text-xl font-bold mb-4 gold-text-gradient heading-font">
               Nuova Misurazione
             </h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 pb-20 md:pb-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label
