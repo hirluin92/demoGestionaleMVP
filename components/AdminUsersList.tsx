@@ -66,6 +66,7 @@ export default function AdminUsersList() {
   const [error, setError] = useState<string | null>(null)
   const [selectedPackageId, setSelectedPackageId] = useState<string>('')
   const [packages, setPackages] = useState<Array<{ id: string; name: string; totalSessions: number }>>([])
+  const [totalUsersCount, setTotalUsersCount] = useState<number>(0) // Contatore totale clienti (senza filtri)
 
   useEffect(() => {
     fetchUsers()
@@ -78,6 +79,14 @@ export default function AdminUsersList() {
   const fetchUsers = async () => {
     setLoading(true)
     try {
+      // Prima recupera il conteggio totale (senza filtri) per distinguere tra "nessun cliente" e "nessun risultato"
+      const totalResponse = await fetch('/api/admin/users?sortBy=name&sortOrder=asc')
+      if (totalResponse.ok) {
+        const totalData = await totalResponse.json()
+        setTotalUsersCount(totalData.length)
+      }
+
+      // Poi recupera i clienti filtrati
       const url = new URL('/api/admin/users', window.location.origin)
       url.searchParams.set('sortBy', sortBy)
       url.searchParams.set('sortOrder', sortOrder)
@@ -227,16 +236,6 @@ export default function AdminUsersList() {
     )
   }
 
-  if (users.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <User className="w-12 h-12 text-dark-500 mx-auto mb-4" />
-        <p className="text-dark-600 font-semibold">Nessun cliente registrato</p>
-        <p className="text-sm text-dark-500 mt-2">Aggiungi il primo cliente utilizzando il pulsante sopra</p>
-      </div>
-    )
-  }
-
   return (
     <div className="w-full space-y-4">
       {/* Filtri e Ordinamento */}
@@ -285,6 +284,39 @@ export default function AdminUsersList() {
         </div>
       </div>
 
+      {/* Messaggio quando non ci sono risultati */}
+      {!loading && users.length === 0 && (
+        <div className="text-center py-12">
+          <User className="w-12 h-12 text-dark-500 mx-auto mb-4" />
+          {totalUsersCount === 0 ? (
+            <>
+              <p className="text-dark-600 font-semibold">Nessun cliente registrato</p>
+              <p className="text-sm text-dark-500 mt-2">Aggiungi il primo cliente utilizzando il pulsante sopra</p>
+            </>
+          ) : (
+            <>
+              <p className="text-dark-600 font-semibold">Nessun cliente corrisponde al filtro selezionato</p>
+              <p className="text-sm text-dark-500 mt-2">
+                {selectedPackageId 
+                  ? 'Prova a selezionare un altro pacchetto o rimuovi il filtro per vedere tutti i clienti'
+                  : 'Nessun cliente trovato con i criteri selezionati'}
+              </p>
+              {selectedPackageId && (
+                <Button
+                  variant="outline-gold"
+                  size="sm"
+                  onClick={() => setSelectedPackageId('')}
+                  className="mt-4"
+                >
+                  Rimuovi filtri
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {users.length > 0 && (
       <div className="w-full overflow-x-auto no-scrollbar">
         <div className="w-full min-w-0">
           {/* Mobile: Card Layout */}
@@ -401,10 +433,9 @@ export default function AdminUsersList() {
                             className="flex items-center justify-between bg-dark-200/30 rounded-lg p-3"
                           >
                             <div>
-                              <div className="text-sm font-semibold text-white">
-                                {new Date(booking.date).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })} alle {booking.time}
-                              </div>
-                              <div className="text-xs text-dark-600">{booking.package.name}</div>
+                                      <div className="text-sm font-semibold text-white">
+                                        {new Date(booking.date).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })} alle {booking.time}
+                                      </div>
                             </div>
                             <Button
                               variant="ghost"
@@ -490,14 +521,20 @@ export default function AdminUsersList() {
                           <div className="text-sm text-white">
                             {user.userPackages.length > 0 ? (
                               <div className="space-y-1">
-                                {user.userPackages.map((userPackage) => (
-                                  <div key={userPackage.id} className="flex items-center space-x-2">
-                                    <span className="font-semibold truncate max-w-[120px]">{userPackage.package.name}</span>
-                                    <Badge variant={userPackage.package.totalSessions - userPackage.usedSessions > 0 ? 'gold' : 'danger'} size="sm" className="flex-shrink-0">
-                                      {userPackage.package.totalSessions - userPackage.usedSessions} / {userPackage.package.totalSessions}
-                                    </Badge>
-                                  </div>
-                                ))}
+                                {user.userPackages.map((userPackage) => {
+                                  // Determina se è multiplo controllando il conteggio di userPackages del pacchetto
+                                  const isMultiple = (userPackage.package as any)._count?.userPackages > 1
+                                  const packageType = isMultiple ? 'Multiplo' : 'Singolo'
+                                  
+                                  return (
+                                    <div key={userPackage.id} className="flex items-center space-x-2">
+                                      <Badge variant={userPackage.package.totalSessions - userPackage.usedSessions > 0 ? 'gold' : 'danger'} size="sm" className="flex-shrink-0">
+                                        {userPackage.usedSessions} / {userPackage.package.totalSessions}
+                                      </Badge>
+                                      <span className="text-xs text-dark-600">{packageType}</span>
+                                    </div>
+                                  )
+                                })}
                               </div>
                             ) : (
                               <span className="text-dark-500">Nessun pacchetto</span>
@@ -590,7 +627,6 @@ export default function AdminUsersList() {
                                       <div className="text-sm font-semibold text-white">
                                         {new Date(booking.date).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })} alle {booking.time}
                                       </div>
-                                      <div className="text-xs text-dark-600">{booking.package.name}</div>
                                     </div>
                                     <Button
                                       variant="ghost"
@@ -619,6 +655,7 @@ export default function AdminUsersList() {
           </div>
         </div>
       </div>
+      )}
 
       {selectedUser && (
         <BodyMeasurementModal

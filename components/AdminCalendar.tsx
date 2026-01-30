@@ -23,6 +23,13 @@ interface Booking {
     id: string
     name: string
     durationMinutes: number
+    isMultiple?: boolean
+    athletes?: Array<{
+      id: string
+      name: string
+      email: string
+      phone: string | null
+    }>
   }
 }
 
@@ -41,6 +48,8 @@ interface AppointmentData {
   isPast?: boolean // Flag per appuntamenti passati
   userId?: string // User ID per modifica
   packageId?: string // Package ID per modifica
+  durationMinutes: number // Durata in minuti
+  isMultiplePackage?: boolean // Flag per pacchetti multipli
 }
 
 export default function AdminCalendar() {
@@ -67,9 +76,17 @@ export default function AdminCalendar() {
       const appointmentDateTime = new Date(`${format(bookingDate, 'yyyy-MM-dd')}T${booking.time}:00`)
       const isPast = appointmentDateTime < new Date()
       
+      // Per pacchetti multipli, mostra tutti gli atleti
+      let clientName = booking.user.name
+      const isMultiple = booking.package.isMultiple && booking.package.athletes && booking.package.athletes.length > 1
+      if (isMultiple && booking.package.athletes) {
+        const athleteNames = booking.package.athletes.map(a => a.name).join(', ')
+        clientName = athleteNames
+      }
+      
       return {
         id: booking.id,
-        client_name: booking.user.name,
+        client_name: clientName,
         client_email: booking.user.email,
         phone: booking.user.phone,
         date: format(bookingDate, 'yyyy-MM-dd'),
@@ -80,6 +97,8 @@ export default function AdminCalendar() {
         isPast, // Aggiungi flag per appuntamenti passati
         userId: booking.user.id, // Aggiungi userId per modifica
         packageId: booking.package.id, // Aggiungi packageId per modifica
+        durationMinutes: booking.package.durationMinutes, // Durata in minuti
+        isMultiplePackage: isMultiple, // Flag per pacchetti multipli
       }
     })
   }
@@ -244,20 +263,20 @@ export default function AdminCalendar() {
     const dateStr = format(currentDay, 'yyyy-MM-dd')
     const dayAppointments = allAppointments.filter(a => a.date === dateStr)
 
-    // Ore visibili: 6:00 - 22:00 (17 ore)
-    const hours = Array.from({ length: 17 }, (_, i) => i + 6)
+    const startHour = 6
+    const endHour = 22
+    const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour)
 
-    // Raggruppa per ora
-    const appointmentsByHour: Record<number, AppointmentData[]> = {}
-    dayAppointments.forEach(apt => {
-      const hour = parseInt(apt.time.split(':')[0])
-      if (hour >= 6 && hour <= 22) {
-        if (!appointmentsByHour[hour]) {
-          appointmentsByHour[hour] = []
-        }
-        appointmentsByHour[hour].push(apt)
-      }
-    })
+    const HOUR_HEIGHT = 80
+    const PX_PER_MIN = HOUR_HEIGHT / 60
+    const dayStartMin = startHour * 60
+    const totalMinutes = (endHour - startHour) * 60
+    const timelineHeight = totalMinutes * PX_PER_MIN
+
+    const minutesSinceMidnight = (hhmm: string) => {
+      const [h, m] = hhmm.split(':').map(Number)
+      return h * 60 + m
+    }
 
     return (
       <div className="space-y-4">
@@ -269,51 +288,85 @@ export default function AdminCalendar() {
           <p className="text-xs text-gray-400">Orario: 06:00 - 22:00</p>
         </div>
 
-        {/* Griglia giornaliera */}
-        <div className="space-y-1">
-          {hours.map((hour) => {
-            const hasAppointment = appointmentsByHour[hour]?.length > 0
-
-            return (
-              <div 
-                key={hour} 
-                className={`grid grid-cols-12 gap-2 ${hasAppointment ? 'min-h-[60px] md:min-h-[60px]' : 'min-h-[25px] md:min-h-[25px]'}`}
-              >
-                <div className="col-span-2 md:col-span-1 time-label flex items-center text-xs">
-                  {String(hour).padStart(2, '0')}:00
+        {/* UNICO SCROLL CONTAINER - ore + timeline insieme */}
+        <div
+          className="calendar-scroll overflow-y-auto rounded-lg no-scrollbar"
+          style={{ height: '70vh' }}
+        >
+          <div className="grid grid-cols-12 gap-2">
+            {/* Colonna etichette ore */}
+            <div className="col-span-2 md:col-span-1">
+              {hours.slice(0, -1).map((h) => (
+                <div
+                  key={h}
+                  className="time-label flex items-start text-xs"
+                  style={{ height: HOUR_HEIGHT }}
+                >
+                  {String(h).padStart(2, '0')}:00
                 </div>
-                <div className={`col-span-10 md:col-span-11 time-slot ${hasAppointment ? 'has-appointment min-h-[50px] md:min-h-[60px]' : 'min-h-[20px] md:min-h-[20px]'}`}>
-                  {hasAppointment && appointmentsByHour[hour].map(apt => (
+              ))}
+            </div>
+
+            {/* Colonna timeline */}
+            <div className="col-span-10 md:col-span-11">
+              <div
+                className="relative time-slot"
+                style={{ height: timelineHeight }}
+              >
+                {/* Linee orarie */}
+                {hours.slice(0, -1).map((h, idx) => (
+                  <div
+                    key={h}
+                    className="absolute left-0 right-0 border-t border-white/10 z-0"
+                    style={{ top: idx * HOUR_HEIGHT }}
+                  />
+                ))}
+
+                {/* Eventi assoluti */}
+                {dayAppointments.map((apt) => {
+                  const startMin = minutesSinceMidnight(apt.time)
+                  const duration = apt.durationMinutes || 60
+                  const endMin = startMin + duration
+
+                  // clamp dentro range visibile
+                  const clampedStart = Math.max(startMin, dayStartMin)
+                  const clampedEnd = Math.min(endMin, dayStartMin + totalMinutes)
+
+                  const top = (clampedStart - dayStartMin) * PX_PER_MIN
+                  const height = Math.max((clampedEnd - clampedStart) * PX_PER_MIN, 18)
+                  
+                  // Versione compatta per eventi bassi
+                  const compact = height < 55
+
+                  return (
                     <div
                       key={apt.id}
-                      className={`appointment-block cursor-pointer ${
-                        apt.isPast ? 'opacity-60' : ''
-                      }`}
+                      className={`appointment-block cursor-pointer absolute left-2 right-2 z-10 overflow-hidden
+                        bg-[#0b0b0b]/90 border border-gold-400/25 shadow-lg shadow-black/40
+                        rounded-xl backdrop-blur-sm
+                        ${apt.isPast ? 'grayscale brightness-75' : ''}`}
+                      style={{ top, height }}
                       onClick={() => showAppointmentDetail(apt)}
                     >
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 md:gap-0">
-                        <div className="flex-1">
-                          <div className="font-semibold text-xs md:text-sm text-white">{apt.client_name}</div>
-                          <div className="text-xs text-gray-400">{apt.time} • {apt.service}</div>
-                          <div className="text-xs mt-1">
-                            <Badge variant={apt.status === 'confirmed' ? 'success' : apt.status === 'pending' ? 'warning' : 'info'} size="sm">
-                              {apt.status.toUpperCase()}
-                            </Badge>
+                      <div className="h-full p-2 flex flex-col justify-center leading-tight">
+                        <div>
+                          <div className="font-semibold text-xs md:text-sm text-white truncate">
+                            {apt.client_name}
+                            {apt.isMultiplePackage && !compact && (
+                              <Badge variant="info" size="sm" className="ml-2">(Multiplo)</Badge>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-gray-400 truncate">
+                            {apt.time} • {apt.service}
                           </div>
                         </div>
-                        {apt.phone && (
-                          <div className="text-xs text-gray-500 md:ml-2">{apt.phone}</div>
-                        )}
                       </div>
-                      {apt.notes && (
-                        <div className="text-xs text-gray-400 mt-1">{apt.notes}</div>
-                      )}
                     </div>
-                  ))}
-                </div>
+                  )
+                })}
               </div>
-            )
-          })}
+            </div>
+          </div>
         </div>
       </div>
     )
