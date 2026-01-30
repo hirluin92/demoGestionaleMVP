@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Package, User, Mail, Phone, Trash2 } from 'lucide-react'
+import { Package, User, Mail, Phone, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import DeleteConfirmModal from '@/components/DeleteConfirmModal'
@@ -66,6 +66,7 @@ export default function AdminPackagesList() {
   const [packageToDelete, setPackageToDelete] = useState<{ id: string; name: string } | null>(null)
   const [deletingPackage, setDeletingPackage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [expandedUser, setExpandedUser] = useState<string | null>(null)
 
   useEffect(() => {
     fetchPackages()
@@ -251,19 +252,20 @@ export default function AdminPackagesList() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-2 md:space-y-3">
       {/* Filtri e ordinamento */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2 md:gap-3">
         {/* Selezione tipo pacchetto */}
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-          <label className="text-sm font-semibold text-dark-600 whitespace-nowrap">
+        <div className="flex flex-col sm:flex-row gap-1.5 md:gap-2 items-start sm:items-center">
+          <label className="text-xs md:text-sm font-semibold text-dark-600 whitespace-nowrap">
             Filtra per tipo pacchetto:
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1 md:gap-1.5">
             <Button
               variant={selectedPackageType === 'all' ? 'gold' : 'outline-gold'}
               size="sm"
               onClick={() => setSelectedPackageType('all')}
+              className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 h-auto whitespace-nowrap"
             >
               Tutti
             </Button>
@@ -273,6 +275,7 @@ export default function AdminPackagesList() {
                 variant={selectedPackageType === type ? 'gold' : 'outline-gold'}
                 size="sm"
                 onClick={() => setSelectedPackageType(type)}
+                className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 h-auto whitespace-nowrap"
               >
                 {type} lezioni
               </Button>
@@ -281,6 +284,7 @@ export default function AdminPackagesList() {
               variant={selectedPackageType === 'multipli' ? 'gold' : 'outline-gold'}
               size="sm"
               onClick={() => setSelectedPackageType('multipli')}
+              className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 h-auto whitespace-nowrap"
             >
               Multipli
             </Button>
@@ -288,24 +292,26 @@ export default function AdminPackagesList() {
         </div>
 
         {/* Ordinamento */}
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-          <label className="text-sm font-semibold text-dark-600 whitespace-nowrap">
+        <div className="flex flex-col sm:flex-row gap-1.5 md:gap-2 items-start sm:items-center">
+          <label className="text-xs md:text-sm font-semibold text-dark-600 whitespace-nowrap">
             Ordina utenti per:
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-1 md:gap-1.5 flex-nowrap">
             <Button
               variant={sortBy === 'userName' ? 'gold' : 'outline-gold'}
               size="sm"
               onClick={() => handleSort('userName')}
+              className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 h-auto whitespace-nowrap"
             >
-              Nome Utente {sortBy === 'userName' && (sortOrder === 'asc' ? '↑' : '↓')}
+              Nome {sortBy === 'userName' && (sortOrder === 'asc' ? '↑' : '↓')}
             </Button>
             <Button
               variant={sortBy === 'totalSessions' ? 'gold' : 'outline-gold'}
               size="sm"
               onClick={() => handleSort('totalSessions')}
+              className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 h-auto whitespace-nowrap"
             >
-              Numero Sessioni {sortBy === 'totalSessions' && (sortOrder === 'asc' ? '↑' : '↓')}
+              Sessioni {sortBy === 'totalSessions' && (sortOrder === 'asc' ? '↑' : '↓')}
             </Button>
           </div>
         </div>
@@ -324,136 +330,319 @@ export default function AdminPackagesList() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {usersByPackageType.map((userData) => (
-            <div
-              key={userData.user.id}
-              className="glass-card rounded-xl p-4 sm:p-6 hover:border-gold-400/50 transition-all duration-300"
-            >
-              {/* Header utente */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-gold-400 to-gold-500 flex items-center justify-center shadow-gold flex-shrink-0">
-                    <User className="w-6 h-6 text-dark-950" />
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="text-base sm:text-lg font-bold text-white truncate">{userData.user.name}</h4>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
-                      <div className="flex items-center space-x-1 text-sm text-dark-600">
-                        <Mail className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">{userData.user.email}</span>
-                      </div>
-                      {userData.user.phone && (
-                        <div className="flex items-center space-x-1 text-sm text-dark-600">
-                          <Phone className="w-4 h-4 flex-shrink-0" />
-                          <span>{userData.user.phone}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <Badge variant="info" size="sm" className="w-fit">
-                  {userData.packages.length} {userData.packages.length === 1 ? 'pacchetto' : 'pacchetti'}
-                </Badge>
-              </div>
-
-              {/* Lista pacchetti */}
-              <div className="space-y-3 pt-4 border-t border-dark-200/30">
-                {userData.packages.map((pkg) => {
-                  const percentage = (pkg.usedSessions / pkg.totalSessions) * 100
-                  
-                  return (
-                    <div
-                      key={pkg.id}
-                      className="bg-dark-100/30 rounded-lg p-3 sm:p-4"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-                        <div className="flex items-center space-x-2">
-                          <Package className="w-5 h-5 text-gold-400 flex-shrink-0" />
-                          <div>
-                            <div className="font-bold text-white">
-                              {pkg.athletes && pkg.athletes.length > 0 ? 'Multiplo' : 'Singolo'}
-                            </div>
-                            <div className="text-sm text-dark-600">
-                              {pkg.totalSessions} lezioni totali
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={pkg.isActive ? 'success' : 'warning'} size="sm">
-                            {pkg.isActive ? 'Attivo' : 'Inattivo'}
-                          </Badge>
-                          <Badge variant={pkg.remaining > 0 ? 'gold' : 'danger'} size="sm">
-                            {pkg.remaining} rimaste
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeletePackageClick(pkg.id, pkg.name)}
-                            disabled={deletingPackage === pkg.id}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10 p-2"
-                            aria-label="Elimina pacchetto"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+        <div className="w-full overflow-x-auto no-scrollbar">
+          <div className="w-full min-w-0">
+            {/* Mobile: Card Layout - Versione ultra compatta */}
+            <div className="lg:hidden space-y-1.5">
+              {usersByPackageType.map((userData) => {
+                const firstPackage = userData.packages[0]
+                const isMultiple = firstPackage?.athletes && firstPackage.athletes.length > 0
+                const packageType = isMultiple ? 'MULTIPLO' : 'SINGOLO'
+                // Per pacchetti multipli, estrai i nomi degli atleti
+                const athleteNames = isMultiple && firstPackage?.athletes 
+                  ? firstPackage.athletes.map(a => a.name)
+                  : [userData.user.name]
+                
+                return (
+                  <div
+                    key={userData.user.id}
+                    className="bg-dark-100/50 backdrop-blur-sm border border-dark-200/30 rounded-md p-2 hover:border-gold-400/50 transition-all duration-300"
+                  >
+                    <div className="flex items-center space-x-1.5">
+                      {/* Icona ultra piccola */}
+                      <div className="flex-shrink-0">
+                        <div className="h-8 w-8 rounded-md bg-gradient-to-br from-gold-400/20 to-gold-500/20 border border-gold-400/30 flex items-center justify-center">
+                          <User className="w-4 h-4 text-gold-400" />
                         </div>
                       </div>
                       
-                      {/* Dettagli atleti per pacchetti multipli */}
-                      {pkg.athletes && pkg.athletes.length > 0 && (
-                        <div className="mb-3 space-y-2">
-                          <div className="text-sm font-semibold text-dark-600 mb-2">Atleti:</div>
-                          {pkg.athletes.map((athlete) => (
-                            <div
-                              key={athlete.id}
-                              className="bg-dark-200/50 rounded-lg p-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
-                            >
-                              <div className="flex-1">
-                                <div className="font-semibold text-white text-sm">{athlete.name}</div>
-                                <div className="text-xs text-dark-600">{athlete.email}</div>
-                                {athlete.phone && (
-                                  <div className="text-xs text-dark-600">{athlete.phone}</div>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant={athlete.remaining > 0 ? 'gold' : 'danger'} size="sm">
-                                  {athlete.remaining} / {pkg.totalSessions} rimaste
-                                </Badge>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Progress bar */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-dark-600">Progresso</span>
-                          <span className="font-bold text-white">
-                            {pkg.usedSessions} / {pkg.totalSessions}
-                          </span>
-                        </div>
-                        <div className="relative w-full h-2 bg-dark-200 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              pkg.remaining > 0 
-                                ? 'bg-gradient-to-r from-gold-400 to-gold-500' 
-                                : 'bg-accent-danger'
-                            }`}
-                            style={{ width: `${percentage}%` }}
-                            role="progressbar"
-                            aria-valuenow={percentage}
-                            aria-valuemin={0}
-                            aria-valuemax={100}
-                          />
+                      {/* Contenuto principale - testi ultra ridotti */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-bold text-white mb-0.5 truncate leading-tight">{athleteNames[0]}</h4>
+                        
+                        {/* Secondo atleta (se multiplo) o spazio vuoto */}
+                        <div className="space-y-0">
+                          {athleteNames.length > 1 ? (
+                            <h4 className="text-xs font-bold text-white truncate leading-tight">{athleteNames[1]}</h4>
+                          ) : (
+                            <div className="h-[18px]"></div> // Mantiene l'altezza consistente (stessa altezza di text-xs)
+                          )}
                         </div>
                       </div>
+                      
+                      {/* Badge e azioni a destra - dimensioni ultra ridotte */}
+                      <div className="flex flex-col items-end space-y-0.5 flex-shrink-0">
+                        {/* Badge uno sotto l'altro per risparmiare spazio orizzontale */}
+                        <div className="flex flex-col items-end space-y-0.5">
+                          {/* Badge tipo pacchetto - ultra piccolo */}
+                          {firstPackage && (
+                            <Badge 
+                              variant={firstPackage.isActive ? 'gold' : 'danger'} 
+                              size="sm"
+                              className="text-[6px] px-0.5 py-0 leading-none h-auto scale-90"
+                            >
+                              {firstPackage.totalSessions} lezioni • {packageType}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {/* Freccia per dettagli - ultra piccola */}
+                        <button
+                          onClick={() => setExpandedUser(expandedUser === userData.user.id ? null : userData.user.id)}
+                          className="text-dark-500 hover:text-gold-400 transition-colors mt-0.5"
+                          aria-label="Dettagli"
+                        >
+                          {expandedUser === userData.user.id ? (
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          ) : (
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
                     </div>
-                  )
-                })}
+                    
+                    {/* Sezione espansa con dettagli - dimensioni ultra ridotte */}
+                    {expandedUser === userData.user.id && (
+                      <div className="mt-1.5 pt-1.5 border-t border-dark-200/30 space-y-1.5">
+                        {/* Email (nella sezione espansa) */}
+                        <div className="flex items-center space-x-1 text-[9px] text-dark-600">
+                          <Mail className="w-2.5 h-2.5 flex-shrink-0" />
+                          <a href={`mailto:${userData.user.email}`} className="underline truncate leading-tight">{userData.user.email}</a>
+                        </div>
+                        
+                        {/* Telefono (nella sezione espansa) */}
+                        {userData.user.phone && (
+                          <div className="flex items-center space-x-1 text-[9px] text-dark-600">
+                            <Phone className="w-2.5 h-2.5 flex-shrink-0" />
+                            <a href={`tel:${userData.user.phone}`} className="underline truncate leading-tight">{userData.user.phone}</a>
+                          </div>
+                        )}
+                        
+                        {/* Lista pacchetti */}
+                        <div className="space-y-2">
+                          {userData.packages.map((pkg) => {
+                            const percentage = (pkg.usedSessions / pkg.totalSessions) * 100
+                            const isMultiple = pkg.athletes && pkg.athletes.length > 0
+                            
+                            return (
+                              <div
+                                key={pkg.id}
+                                className="bg-dark-200/30 rounded-md p-2"
+                              >
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <div className="flex items-center space-x-1">
+                                    <Package className="w-3 h-3 text-gold-400 flex-shrink-0" />
+                                    <span className="text-[9px] font-semibold text-white">
+                                      {isMultiple ? 'Multiplo' : 'Singolo'} • {pkg.totalSessions} lezioni
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Badge variant={pkg.isActive ? 'success' : 'warning'} size="sm" className="text-[8px] px-0.5 py-0 h-auto">
+                                      {pkg.isActive ? 'Attivo' : 'Inattivo'}
+                                    </Badge>
+                                    <Badge variant={pkg.remaining > 0 ? 'gold' : 'danger'} size="sm" className="text-[8px] px-0.5 py-0 h-auto">
+                                      {pkg.remaining} rimaste
+                                    </Badge>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeletePackageClick(pkg.id, pkg.name)}
+                                      disabled={deletingPackage === pkg.id}
+                                      className="text-red-400 hover:text-red-300 p-0.5 h-auto"
+                                      aria-label="Elimina pacchetto"
+                                    >
+                                      <Trash2 className="w-2.5 h-2.5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                
+                                {/* Dettagli atleti per pacchetti multipli */}
+                                {isMultiple && pkg.athletes && (
+                                  <div className="mb-1.5 space-y-1">
+                                    <p className="text-[9px] font-semibold text-dark-600 uppercase">Atleti:</p>
+                                    {pkg.athletes.map((athlete) => (
+                                      <div
+                                        key={athlete.id}
+                                        className="bg-dark-100/50 rounded-md p-1.5"
+                                      >
+                                        <div className="text-[9px] font-semibold text-white">{athlete.name}</div>
+                                        <div className="text-[8px] text-dark-600">{athlete.email}</div>
+                                        {athlete.phone && (
+                                          <div className="text-[8px] text-dark-600">{athlete.phone}</div>
+                                        )}
+                                        <Badge variant={athlete.remaining > 0 ? 'gold' : 'danger'} size="sm" className="text-[8px] px-0.5 py-0 h-auto mt-0.5">
+                                          {athlete.remaining} / {pkg.totalSessions} rimaste
+                                        </Badge>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                
+                                {/* Progress bar */}
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between text-[9px]">
+                                    <span className="text-dark-600">Progresso</span>
+                                    <span className="font-bold text-white">
+                                      {pkg.usedSessions} / {pkg.totalSessions}
+                                    </span>
+                                  </div>
+                                  <div className="relative w-full h-1.5 bg-dark-200 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full transition-all duration-500 ${
+                                        pkg.remaining > 0 
+                                          ? 'bg-gradient-to-r from-gold-400 to-gold-500' 
+                                          : 'bg-accent-danger'
+                                      }`}
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Desktop: Table Layout */}
+            <div className="hidden lg:block overflow-x-auto">
+              <div className="space-y-4">
+                {usersByPackageType.map((userData) => (
+                  <div
+                    key={userData.user.id}
+                    className="glass-card rounded-xl p-4 sm:p-6 hover:border-gold-400/50 transition-all duration-300"
+                  >
+                    {/* Header utente */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-gold-400 to-gold-500 flex items-center justify-center shadow-gold flex-shrink-0">
+                          <User className="w-6 h-6 text-dark-950" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-base sm:text-lg font-bold text-white truncate">{userData.user.name}</h4>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
+                            <div className="flex items-center space-x-1 text-sm text-dark-600">
+                              <Mail className="w-4 h-4 flex-shrink-0" />
+                              <span className="truncate">{userData.user.email}</span>
+                            </div>
+                            {userData.user.phone && (
+                              <div className="flex items-center space-x-1 text-sm text-dark-600">
+                                <Phone className="w-4 h-4 flex-shrink-0" />
+                                <span>{userData.user.phone}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <Badge variant="info" size="sm" className="w-fit">
+                        {userData.packages.length} {userData.packages.length === 1 ? 'pacchetto' : 'pacchetti'}
+                      </Badge>
+                    </div>
+
+                    {/* Lista pacchetti */}
+                    <div className="space-y-3 pt-4 border-t border-dark-200/30">
+                      {userData.packages.map((pkg) => {
+                        const percentage = (pkg.usedSessions / pkg.totalSessions) * 100
+                        
+                        return (
+                          <div
+                            key={pkg.id}
+                            className="bg-dark-100/30 rounded-lg p-3 sm:p-4"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                              <div className="flex items-center space-x-2">
+                                <Package className="w-5 h-5 text-gold-400 flex-shrink-0" />
+                                <div>
+                                  <div className="font-bold text-white">
+                                    {pkg.athletes && pkg.athletes.length > 0 ? 'Multiplo' : 'Singolo'}
+                                  </div>
+                                  <div className="text-sm text-dark-600">
+                                    {pkg.totalSessions} lezioni totali
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant={pkg.isActive ? 'success' : 'warning'} size="sm">
+                                  {pkg.isActive ? 'Attivo' : 'Inattivo'}
+                                </Badge>
+                                <Badge variant={pkg.remaining > 0 ? 'gold' : 'danger'} size="sm">
+                                  {pkg.remaining} rimaste
+                                </Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeletePackageClick(pkg.id, pkg.name)}
+                                  disabled={deletingPackage === pkg.id}
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-400/10 p-2"
+                                  aria-label="Elimina pacchetto"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            {/* Dettagli atleti per pacchetti multipli */}
+                            {pkg.athletes && pkg.athletes.length > 0 && (
+                              <div className="mb-3 space-y-2">
+                                <div className="text-sm font-semibold text-dark-600 mb-2">Atleti:</div>
+                                {pkg.athletes.map((athlete) => (
+                                  <div
+                                    key={athlete.id}
+                                    className="bg-dark-200/50 rounded-lg p-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                                  >
+                                    <div className="flex-1">
+                                      <div className="font-semibold text-white text-sm">{athlete.name}</div>
+                                      <div className="text-xs text-dark-600">{athlete.email}</div>
+                                      {athlete.phone && (
+                                        <div className="text-xs text-dark-600">{athlete.phone}</div>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant={athlete.remaining > 0 ? 'gold' : 'danger'} size="sm">
+                                        {athlete.remaining} / {pkg.totalSessions} rimaste
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Progress bar */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-dark-600">Progresso</span>
+                                <span className="font-bold text-white">
+                                  {pkg.usedSessions} / {pkg.totalSessions}
+                                </span>
+                              </div>
+                              <div className="relative w-full h-2 bg-dark-200 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    pkg.remaining > 0 
+                                      ? 'bg-gradient-to-r from-gold-400 to-gold-500' 
+                                      : 'bg-accent-danger'
+                                  }`}
+                                  style={{ width: `${percentage}%` }}
+                                  role="progressbar"
+                                  aria-valuenow={percentage}
+                                  aria-valuemin={0}
+                                  aria-valuemax={100}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
+          </div>
         </div>
       )}
 

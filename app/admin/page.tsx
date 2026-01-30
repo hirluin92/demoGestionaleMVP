@@ -213,21 +213,21 @@ export default function AdminPage() {
           </div>
         </nav>
 
-        <main className="max-w-[98%] xl:max-w-[95%] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 relative z-10">
-          {/* Hero Section */}
-          <div className="mb-8 md:mb-12 animate-fade-in">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl heading-font font-bold gold-text-gradient mb-2 md:mb-3">
+        <main className="max-w-[98%] xl:max-w-[95%] mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-6 relative z-10">
+          {/* Hero Section - dimensioni ridotte */}
+          <div className="mb-4 md:mb-6 animate-fade-in">
+            <h2 className="text-lg sm:text-xl md:text-2xl heading-font font-bold gold-text-gradient mb-1 md:mb-2">
               Pannello di Controllo
             </h2>
-            <p className="text-dark-600 text-sm md:text-lg heading-font">
+            <p className="text-dark-600 text-xs md:text-sm heading-font">
               Gestisci clienti e pacchetti
             </p>
           </div>
 
-          {/* Tabs */}
-          <div className="mb-6 md:mb-8">
+          {/* Tabs - dimensioni ridotte */}
+          <div className="mb-4 md:mb-6">
             <div className="overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
-              <nav className="flex gap-2 md:gap-4 min-w-max" role="tablist" aria-label="Sezioni amministrazione">
+              <nav className="flex gap-1.5 md:gap-2 min-w-max" role="tablist" aria-label="Sezioni amministrazione">
                 <button
                   onClick={() => setActiveTab('users')}
                   role="tab"
@@ -235,10 +235,10 @@ export default function AdminPage() {
                   aria-controls="users-panel"
                   id="users-tab"
                   className={`tab-button heading-font ${activeTab === 'users' ? 'active' : ''} whitespace-nowrap`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Users className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-                  <span className="text-sm md:text-base">Clienti</span>
+                  <Users className="w-3.5 h-3.5 md:w-4 md:h-4 flex-shrink-0" />
+                  <span className="text-xs md:text-sm">Clienti</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('packages')}
@@ -247,10 +247,10 @@ export default function AdminPage() {
                   aria-controls="packages-panel"
                   id="packages-tab"
                   className={`tab-button heading-font ${activeTab === 'packages' ? 'active' : ''} whitespace-nowrap`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Package className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-                  <span className="text-sm md:text-base">Pacchetti</span>
+                  <Package className="w-3.5 h-3.5 md:w-4 md:h-4 flex-shrink-0" />
+                  <span className="text-xs md:text-sm">Pacchetti</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('calendar')}
@@ -259,10 +259,10 @@ export default function AdminPage() {
                   aria-controls="calendar-panel"
                   id="calendar-tab"
                   className={`tab-button heading-font ${activeTab === 'calendar' ? 'active' : ''} whitespace-nowrap`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Calendar className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-                  <span className="text-sm md:text-base">Calendario</span>
+                  <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 flex-shrink-0" />
+                  <span className="text-xs md:text-sm">Calendario</span>
                 </button>
               </nav>
             </div>
@@ -272,22 +272,22 @@ export default function AdminPage() {
           <Card>
             {activeTab === 'users' && (
               <div role="tabpanel" id="users-panel" aria-labelledby="users-tab">
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <CardHeader className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 md:gap-3">
                     <div>
-                      <CardTitle className="flex items-center text-lg md:text-2xl heading-font gold-text-gradient">
-                        <Users className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-[#E8DCA0]" />
+                      <CardTitle className="flex items-center text-sm md:text-lg heading-font gold-text-gradient">
+                        <Users className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 text-[#E8DCA0]" />
                         Gestione Clienti
                       </CardTitle>
-                      <CardDescription className="text-xs md:text-sm">Aggiungi e gestisci i clienti del sistema</CardDescription>
+                      <CardDescription className="text-[10px] md:text-xs">Aggiungi e gestisci i clienti del sistema</CardDescription>
                     </div>
                     <Button
                       variant="gold"
-                      size="md"
+                      size="sm"
                       onClick={() => setShowCreateUser(true)}
-                      className="w-full sm:w-auto"
+                      className="w-full sm:w-auto text-xs md:text-sm px-3 py-1.5 h-auto"
                     >
-                      <Plus className="w-4 h-4 mr-2" />
+                      <Plus className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1.5" />
                       Nuovo Cliente
                     </Button>
                   </div>
@@ -300,22 +300,22 @@ export default function AdminPage() {
 
             {activeTab === 'packages' && (
               <div role="tabpanel" id="packages-panel" aria-labelledby="packages-tab">
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <CardHeader className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 md:gap-3">
                     <div>
-                      <CardTitle className="flex items-center text-lg md:text-2xl heading-font gold-text-gradient">
-                        <Package className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-[#E8DCA0]" />
+                      <CardTitle className="flex items-center text-sm md:text-lg heading-font gold-text-gradient">
+                        <Package className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 text-[#E8DCA0]" />
                         Gestione Pacchetti
                       </CardTitle>
-                      <CardDescription className="text-xs md:text-sm">Crea e gestisci i pacchetti per i clienti</CardDescription>
+                      <CardDescription className="text-[10px] md:text-xs">Crea e gestisci i pacchetti per i clienti</CardDescription>
                     </div>
                     <Button
                       variant="gold"
-                      size="md"
+                      size="sm"
                       onClick={() => setShowCreatePackage(true)}
-                      className="w-full sm:w-auto"
+                      className="w-full sm:w-auto text-xs md:text-sm px-3 py-1.5 h-auto"
                     >
-                      <Plus className="w-4 h-4 mr-2" />
+                      <Plus className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1.5" />
                       Nuovo Pacchetto
                     </Button>
                   </div>
@@ -328,22 +328,22 @@ export default function AdminPage() {
 
             {activeTab === 'calendar' && (
               <div role="tabpanel" id="calendar-panel" aria-labelledby="calendar-tab">
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <CardHeader className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 md:gap-3">
                     <div>
-                      <CardTitle className="flex items-center text-lg md:text-2xl heading-font gold-text-gradient">
-                        <Calendar className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-[#E8DCA0]" />
+                      <CardTitle className="flex items-center text-sm md:text-lg heading-font gold-text-gradient">
+                        <Calendar className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 text-[#E8DCA0]" />
                         Calendario Appuntamenti
                       </CardTitle>
-                      <CardDescription className="text-xs md:text-sm">Visualizza gli appuntamenti per mese o giorno</CardDescription>
+                      <CardDescription className="text-[10px] md:text-xs">Visualizza gli appuntamenti per mese o giorno</CardDescription>
                     </div>
                     <Button
                       variant="gold"
-                      size="md"
+                      size="sm"
                       onClick={() => setShowAdminBooking(true)}
-                      className="w-full sm:w-auto"
+                      className="w-full sm:w-auto text-xs md:text-sm px-3 py-1.5 h-auto"
                     >
-                      <Plus className="w-4 h-4 mr-2" />
+                      <Plus className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1.5" />
                       Prenota Lezione
                     </Button>
                   </div>

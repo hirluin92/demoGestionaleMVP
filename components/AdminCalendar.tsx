@@ -61,6 +61,17 @@ export default function AdminCalendar() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentData | null>(null)
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Rileva se siamo su mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024) // lg breakpoint
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Verifica se un appuntamento è passato
   const isAppointmentPast = (apt: AppointmentData): boolean => {
@@ -267,7 +278,7 @@ export default function AdminCalendar() {
     const endHour = 22
     const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour)
 
-    const HOUR_HEIGHT = 80
+    const HOUR_HEIGHT = isMobile ? 40 : 60
     const PX_PER_MIN = HOUR_HEIGHT / 60
     const dayStartMin = startHour * 60
     const totalMinutes = (endHour - startHour) * 60
@@ -299,7 +310,7 @@ export default function AdminCalendar() {
               {hours.slice(0, -1).map((h) => (
                 <div
                   key={h}
-                  className="time-label flex items-start text-xs"
+                  className="time-label flex items-start text-[10px] md:text-xs"
                   style={{ height: HOUR_HEIGHT }}
                 >
                   {String(h).padStart(2, '0')}:00
@@ -333,10 +344,10 @@ export default function AdminCalendar() {
                   const clampedEnd = Math.min(endMin, dayStartMin + totalMinutes)
 
                   const top = (clampedStart - dayStartMin) * PX_PER_MIN
-                  const height = Math.max((clampedEnd - clampedStart) * PX_PER_MIN, 18)
+                  const height = Math.max((clampedEnd - clampedStart) * PX_PER_MIN, isMobile ? 14 : 18)
                   
-                  // Versione compatta per eventi bassi
-                  const compact = height < 55
+                  // Versione compatta per eventi bassi (soglia più bassa su mobile)
+                  const compact = height < (isMobile ? 40 : 55)
 
                   return (
                     <div
@@ -348,15 +359,15 @@ export default function AdminCalendar() {
                       style={{ top, height }}
                       onClick={() => showAppointmentDetail(apt)}
                     >
-                      <div className="h-full p-2 flex flex-col justify-center leading-tight">
+                      <div className="h-full p-1.5 md:p-2 flex flex-col justify-center leading-tight">
                         <div>
-                          <div className="font-semibold text-xs md:text-sm text-white truncate">
+                          <div className="font-semibold text-[10px] md:text-xs lg:text-sm text-white truncate">
                             {apt.client_name}
                             {apt.isMultiplePackage && !compact && (
-                              <Badge variant="info" size="sm" className="ml-2">(Multiplo)</Badge>
+                              <Badge variant="info" size="sm" className="ml-1 md:ml-2 text-[8px] md:text-[10px]">(Multiplo)</Badge>
                             )}
                           </div>
-                          <div className="text-[11px] text-gray-400 truncate">
+                          <div className="text-[9px] md:text-[11px] text-gray-400 truncate">
                             {apt.time} • {apt.service}
                           </div>
                         </div>
