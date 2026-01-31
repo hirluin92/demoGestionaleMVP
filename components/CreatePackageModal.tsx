@@ -322,8 +322,7 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
           {/* Selezione tipo pacchetto */}
           <div>
             <label
-              className="block text-sm font-light mb-2 heading-font"
-              className="text-gold-400"
+              className="block text-sm font-light mb-2 heading-font text-gold-400"
               style={{ letterSpacing: '0.5px' }}
             >
               Tipo Pacchetto
