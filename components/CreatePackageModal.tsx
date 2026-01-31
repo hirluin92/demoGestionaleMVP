@@ -437,9 +437,8 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
             <>
               <div>
                 <label
-                  className="block text-sm font-light mb-2 heading-font"
-                  className="text-gold-400"
-              style={{ letterSpacing: '0.5px' }}
+                  className="block text-sm font-light mb-2 heading-font text-gold-400"
+                  style={{ letterSpacing: '0.5px' }}
                 >
                   Numero Atleti
                 </label>
