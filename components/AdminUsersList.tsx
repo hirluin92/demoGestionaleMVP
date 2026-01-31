@@ -614,7 +614,7 @@ export default function AdminUsersList() {
                     )}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-2 items-center">
                       <Button
                         variant="outline-gold"
                         size="sm"
@@ -647,11 +647,9 @@ export default function AdminUsersList() {
                           handleDeleteUserClick(user.id, user.name)
                         }}
                         disabled={deletingUser === user.id}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10 whitespace-nowrap"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
                       >
-                        <Trash2 className="w-4 h-4 mr-1.5 flex-shrink-0" />
-                        <span className="hidden xl:inline">Elimina</span>
-                        <span className="xl:hidden">Elim.</span>
+                        <Trash2 className="w-4 h-4 flex-shrink-0" />
                       </Button>
                     </div>
                   </td>
