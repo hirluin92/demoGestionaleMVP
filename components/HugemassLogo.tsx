@@ -15,7 +15,7 @@ export default function HugemassLogo({
   className = '' 
 }: HugemassLogoProps) {
   const sizeClasses = {
-    sm: { width: 120, height: 60 },
+    sm: { width: 90, height: 45 },
     md: { width: 180, height: 90 },
     lg: { width: 240, height: 120 },
     xl: { width: 320, height: 160 },

@@ -22,7 +22,7 @@ import Button from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 
 export default function AdminPage() {
-  const { data: session, status } = useSession()
+  const { data: session, status, update } = useSession()
   const router = useRouter()
   useSessionSecurity() // Aggiunge controlli di sicurezza sulla sessione
   const [activeTab, setActiveTab] = useState<'users' | 'packages' | 'calendar'>('users')
@@ -441,7 +441,11 @@ export default function AdminPage() {
         {/* Profile Modal */}
         {showProfileModal && mounted && <ProfileModal
           isOpen={showProfileModal}
-          onClose={() => setShowProfileModal(false)}
+          onClose={async () => {
+            setShowProfileModal(false)
+            // Forza l'aggiornamento della sessione dopo la chiusura del modale
+            await update()
+          }}
           session={session}
         />}
 

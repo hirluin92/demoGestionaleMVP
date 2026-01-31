@@ -61,6 +61,15 @@ export async function GET(request: NextRequest) {
         continue
       }
 
+      // Controlla se l'utente ha abilitato i promemoria
+      if (!booking.user.bookingReminders) {
+        logger.info('Promemoria disabilitato per utente', { 
+          bookingId: booking.id,
+          userId: booking.user.id 
+        })
+        continue
+      }
+
       try {
         await sendWhatsAppMessage(
           booking.user.phone,

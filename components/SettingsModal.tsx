@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Lock, Shield, Bell, Palette } from 'lucide-react'
+import { X, Lock, Bell } from 'lucide-react'
 import Button from '@/components/ui/Button'
 
 interface SettingsModalProps {
@@ -17,11 +17,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     confirmPassword: '',
   })
   const [settings, setSettings] = useState({
-    emailNotifications: true,
     bookingReminders: true,
-    measurementUpdates: true,
-    loginAlerts: true,
-    sessionTimeout: 30,
   })
   const [loading, setLoading] = useState(false)
   const [settingsLoading, setSettingsLoading] = useState(false)
@@ -57,11 +53,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       if (response.ok) {
         const data = await response.json()
         setSettings({
-          emailNotifications: data.emailNotifications ?? true,
           bookingReminders: data.bookingReminders ?? true,
-          measurementUpdates: data.measurementUpdates ?? true,
-          loginAlerts: data.loginAlerts ?? true,
-          sessionTimeout: data.sessionTimeout ?? 30,
         })
       }
     } catch (error) {
@@ -218,8 +210,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <div>
                 <label
                   htmlFor="currentPassword"
-                  className="block text-sm font-light mb-2 heading-font"
-                  className="text-gold-400"
+                  className="block text-sm font-light mb-2 heading-font text-gold-400"
                   style={{ letterSpacing: '0.5px' }}
                 >
                   Password Corrente
@@ -238,8 +229,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <div>
                 <label
                   htmlFor="newPassword"
-                  className="block text-sm font-light mb-2 heading-font"
-                  className="text-gold-400"
+                  className="block text-sm font-light mb-2 heading-font text-gold-400"
                   style={{ letterSpacing: '0.5px' }}
                 >
                   Nuova Password
@@ -262,8 +252,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <div>
                 <label
                   htmlFor="confirmPassword"
-                  className="block text-sm font-light mb-2 heading-font"
-                  className="text-gold-400"
+                  className="block text-sm font-light mb-2 heading-font text-gold-400"
                   style={{ letterSpacing: '0.5px' }}
                 >
                   Conferma Nuova Password
@@ -313,25 +302,6 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-sm font-semibold text-white font-sans">Notifiche Email</label>
-                  <p className="text-xs text-dark-600 font-sans mt-1">Ricevi notifiche via email</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.emailNotifications}
-                    onChange={(e) => {
-                      setSettings({ ...settings, emailNotifications: e.target.checked })
-                      handleSettingsChange()
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-dark-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gold-400 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold-400"></div>
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
                   <label className="text-sm font-semibold text-white font-sans">Promemoria Prenotazioni</label>
                   <p className="text-xs text-dark-600 font-sans mt-1">Ricevi promemoria per le tue prenotazioni</p>
                 </div>
@@ -348,93 +318,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div className="w-11 h-6 bg-dark-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gold-400 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold-400"></div>
                 </label>
               </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-semibold text-white font-sans">Aggiornamenti Misurazioni</label>
-                  <p className="text-xs text-dark-600 font-sans mt-1">Ricevi notifiche quando vengono aggiunte nuove misurazioni</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.measurementUpdates}
-                    onChange={(e) => {
-                      setSettings({ ...settings, measurementUpdates: e.target.checked })
-                      handleSettingsChange()
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-dark-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gold-400 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold-400"></div>
-                </label>
-              </div>
             </div>
           </div>
 
-          {/* Sicurezza */}
-          <div className="p-4 bg-dark-100/50 rounded-lg border border-dark-200/30">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <Shield className="w-5 h-5 text-gold-400" />
-                <h3 className="text-lg font-semibold text-white heading-font">Sicurezza</h3>
-              </div>
-              {settingsSuccess && (
-                <span className="text-xs text-green-400">Salvato!</span>
-              )}
-            </div>
-
-            {settingsError && (
-              <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm mb-4">
-                {settingsError}
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-semibold text-white font-sans">Avvisi di Accesso</label>
-                  <p className="text-xs text-dark-600 font-sans mt-1">Ricevi avvisi per accessi sospetti</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.loginAlerts}
-                    onChange={(e) => {
-                      setSettings({ ...settings, loginAlerts: e.target.checked })
-                      handleSettingsChange()
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-dark-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gold-400 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold-400"></div>
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-white font-sans mb-2">
-                  Timeout Sessione (giorni)
-                </label>
-                <div className="flex items-center space-x-4">
-                  <input
-                    type="number"
-                    min="1"
-                    max="365"
-                    value={settings.sessionTimeout}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value) || 30
-                      setSettings({ ...settings, sessionTimeout: Math.min(Math.max(value, 1), 365) })
-                    }}
-                    onBlur={handleSettingsChange}
-                    className="input-field w-24"
-                  />
-                  <span className="text-sm text-dark-600 font-sans">
-                    La sessione scadrà dopo {settings.sessionTimeout} {settings.sessionTimeout === 1 ? 'giorno' : 'giorni'} di inattività
-                  </span>
-                </div>
-                <p className="text-xs text-dark-600 font-sans mt-2">
-                  Imposta dopo quanti giorni di inattività la sessione deve scadere (1-365 giorni)
-                </p>
-              </div>
-            </div>
-          </div>
 
           <div className="pt-4">
             <Button

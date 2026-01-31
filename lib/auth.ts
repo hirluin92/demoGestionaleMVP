@@ -85,6 +85,29 @@ export const authOptions: NextAuthOptions = {
         }
       }
       
+      // Quando viene chiamato update(), ricarica i dati dal database
+      if (trigger === 'update' && token.id) {
+        try {
+          const updatedUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              role: true,
+            },
+          })
+          
+          if (updatedUser) {
+            token.email = updatedUser.email
+            token.name = updatedUser.name
+            token.role = updatedUser.role
+          }
+        } catch (error) {
+          console.error('[AUTH] Errore aggiornamento token:', error)
+        }
+      }
+      
       // Verifica scadenza token (8 ore)
       const now = Math.floor(Date.now() / 1000)
       const tokenIat = (token.iat as number) || 0

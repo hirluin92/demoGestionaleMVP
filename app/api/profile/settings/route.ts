@@ -9,13 +9,7 @@ export const dynamic = 'force-dynamic'
 
 const updateSettingsSchema = z.object({
   // Notifiche
-  emailNotifications: z.boolean().optional(),
   bookingReminders: z.boolean().optional(),
-  measurementUpdates: z.boolean().optional(),
-  
-  // Sicurezza
-  loginAlerts: z.boolean().optional(),
-  sessionTimeout: z.number().int().min(1).max(365).optional(), // 1-365 giorni
 })
 
 // GET - Recupera le impostazioni dell'utente corrente
@@ -30,11 +24,7 @@ export async function GET(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
-        emailNotifications: true,
         bookingReminders: true,
-        measurementUpdates: true,
-        loginAlerts: true,
-        sessionTimeout: true,
       },
     })
 
@@ -82,31 +72,15 @@ export async function PUT(request: NextRequest) {
     // Prepara i dati per l'aggiornamento
     const updateData: any = {}
     
-    if (validatedData.emailNotifications !== undefined) {
-      updateData.emailNotifications = validatedData.emailNotifications
-    }
     if (validatedData.bookingReminders !== undefined) {
       updateData.bookingReminders = validatedData.bookingReminders
-    }
-    if (validatedData.measurementUpdates !== undefined) {
-      updateData.measurementUpdates = validatedData.measurementUpdates
-    }
-    if (validatedData.loginAlerts !== undefined) {
-      updateData.loginAlerts = validatedData.loginAlerts
-    }
-    if (validatedData.sessionTimeout !== undefined) {
-      updateData.sessionTimeout = validatedData.sessionTimeout
     }
 
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: updateData,
       select: {
-        emailNotifications: true,
         bookingReminders: true,
-        measurementUpdates: true,
-        loginAlerts: true,
-        sessionTimeout: true,
       },
     })
 
