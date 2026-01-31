@@ -466,9 +466,8 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
                 return (
                   <div key={index} className="relative" ref={(el) => { multipleUserDropdownRefs.current[index] = el }}>
                     <label
-                      className="block text-sm font-light mb-2 heading-font"
-                      className="text-gold-400"
-              style={{ letterSpacing: '0.5px' }}
+                      className="block text-sm font-light mb-2 heading-font text-gold-400"
+                      style={{ letterSpacing: '0.5px' }}
                     >
                       Atleta {index + 1}
                     </label>
