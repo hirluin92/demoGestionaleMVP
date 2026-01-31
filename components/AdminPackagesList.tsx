@@ -451,7 +451,7 @@ export default function AdminPackagesList() {
                                       className="text-red-400 hover:text-red-300 p-0.5 h-auto"
                                       aria-label="Elimina pacchetto"
                                     >
-                                      <Trash2 className="w-2.5 h-2.5" />
+                                      <Trash2 className="w-3.5 h-3.5" />
                                     </Button>
                                   </div>
                                 </div>

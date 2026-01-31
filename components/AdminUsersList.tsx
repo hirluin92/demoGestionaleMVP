@@ -509,7 +509,7 @@ export default function AdminUsersList() {
                         disabled={deletingUser === user.id}
                         className="text-red-400 hover:text-red-300 hover:bg-red-400/10 text-[8px] px-1 py-0.5 h-auto"
                       >
-                        <Trash2 className="w-2 h-2" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </div>
