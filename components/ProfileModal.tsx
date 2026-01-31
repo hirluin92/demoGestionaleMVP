@@ -169,7 +169,8 @@ export default function ProfileModal({ isOpen, onClose, session }: ProfileModalP
               <label
                 htmlFor="name"
                 className="block text-sm font-light mb-2 heading-font"
-                style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                className="text-gold-400"
+                style={{ letterSpacing: '0.5px' }}
               >
                 Nome Completo
               </label>
@@ -188,7 +189,8 @@ export default function ProfileModal({ isOpen, onClose, session }: ProfileModalP
               <label
                 htmlFor="email"
                 className="block text-sm font-light mb-2 heading-font"
-                style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                className="text-gold-400"
+                style={{ letterSpacing: '0.5px' }}
               >
                 Email
               </label>
@@ -207,7 +209,8 @@ export default function ProfileModal({ isOpen, onClose, session }: ProfileModalP
               <label
                 htmlFor="phone"
                 className="block text-sm font-light mb-2 heading-font"
-                style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                className="text-gold-400"
+                style={{ letterSpacing: '0.5px' }}
               >
                 Telefono
               </label>

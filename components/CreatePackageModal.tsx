@@ -323,7 +323,8 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
           <div>
             <label
               className="block text-sm font-light mb-2 heading-font"
-              style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+              className="text-gold-400"
+              style={{ letterSpacing: '0.5px' }}
             >
               Tipo Pacchetto
             </label>
@@ -352,7 +353,8 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
             <div>
               <label
                 className="block text-sm font-light mb-2 heading-font"
-                style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                className="text-gold-400"
+              style={{ letterSpacing: '0.5px' }}
               >
                 Cliente
               </label>
@@ -438,7 +440,8 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
               <div>
                 <label
                   className="block text-sm font-light mb-2 heading-font"
-                  style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                  className="text-gold-400"
+              style={{ letterSpacing: '0.5px' }}
                 >
                   Numero Atleti
                 </label>
@@ -467,7 +470,8 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
                   <div key={index} className="relative" ref={(el) => { multipleUserDropdownRefs.current[index] = el }}>
                     <label
                       className="block text-sm font-light mb-2 heading-font"
-                      style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                      className="text-gold-400"
+              style={{ letterSpacing: '0.5px' }}
                     >
                       Atleta {index + 1}
                     </label>
@@ -559,7 +563,8 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
             <label
               htmlFor="totalSessions"
               className="block text-sm font-light mb-2 heading-font"
-              style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+              className="text-gold-400"
+              style={{ letterSpacing: '0.5px' }}
             >
               Numero Sessioni
             </label>
@@ -586,7 +591,8 @@ export default function CreatePackageModal({ onClose, onSuccess }: CreatePackage
             <label
               htmlFor="durationMinutes"
               className="block text-sm font-light mb-2 heading-font"
-              style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+              className="text-gold-400"
+              style={{ letterSpacing: '0.5px' }}
             >
               Durata Sessione (minuti)
             </label>

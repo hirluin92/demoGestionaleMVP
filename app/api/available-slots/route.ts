@@ -9,6 +9,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
+    const isAdmin = searchParams.get('isAdmin') === 'true'
+    const packageId = searchParams.get('packageId') || undefined
+    let isMultiplePackage = searchParams.get('isMultiplePackage') === 'true'
 
     if (!date) {
       return NextResponse.json(
@@ -17,10 +20,35 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Se packageId è fornito, determina se è un pacchetto multiplo
+    if (packageId && !searchParams.has('isMultiplePackage')) {
+      const { prisma } = await import('@/lib/prisma')
+      const packageData = await prisma.package.findUnique({
+        where: { id: packageId },
+        select: {
+          userPackages: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      })
+      isMultiplePackage = (packageData?.userPackages.length ?? 0) > 1
+    }
+
     const selectedDate = new Date(date)
-    logger.debug('Recupero slot disponibili', { date: selectedDate.toISOString() })
+    logger.debug('Recupero slot disponibili', { 
+      date: selectedDate.toISOString(),
+      isAdmin,
+      packageId,
+      isMultiplePackage
+    })
     
-    const slots = await getAvailableSlots(selectedDate)
+    const slots = await getAvailableSlots(selectedDate, {
+      isAdmin,
+      packageId,
+      isMultiplePackage,
+    })
     
     logger.debug('Slot disponibili trovati', { 
       date: selectedDate.toISOString(), 

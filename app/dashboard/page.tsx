@@ -161,13 +161,6 @@ export default function DashboardPage() {
                 <div className="sm:hidden">
                   <HugemassLogo variant="icon" size="sm" />
                 </div>
-                <div>
-                  <h1 className="text-lg md:text-2xl heading-font font-bold">
-                    <span className="gold-text-gradient">
-                      Elite Training
-                    </span>
-                  </h1>
-                </div>
               </div>
               
               {/* Desktop Menu */}
@@ -203,9 +196,9 @@ export default function DashboardPage() {
                 aria-expanded={mobileMenuOpen}
               >
                 {mobileMenuOpen ? (
-                  <X className="w-6 h-6 text-[#E8DCA0]" />
+                  <X className="w-6 h-6 text-[#D3AF37]" />
                 ) : (
-                  <Menu className="w-6 h-6 text-[#E8DCA0]" />
+                  <Menu className="w-6 h-6 text-[#D3AF37]" />
                 )}
               </button>
             </div>
@@ -216,7 +209,7 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   <div className="px-4 py-2 bg-dark-100/50 rounded-lg">
                     <p className="text-sm font-semibold text-white">{session.user.name}</p>
-                    <p className="text-xs text-[#E8DCA0] mt-1">{session.user.email}</p>
+                    <p className="text-xs text-[#D3AF37] mt-1">{session.user.email}</p>
                   </div>
                   <button
                     onClick={() => {
@@ -225,7 +218,7 @@ export default function DashboardPage() {
                     }}
                     className="w-full px-4 py-3 text-left text-sm text-white hover:bg-dark-200/50 transition-colors rounded-lg flex items-center space-x-3"
                   >
-                    <User className="w-4 h-4 text-[#E8DCA0]" />
+                    <User className="w-4 h-4 text-[#D3AF37]" />
                     <span>Profilo</span>
                   </button>
                   <button
@@ -235,7 +228,7 @@ export default function DashboardPage() {
                     }}
                     className="w-full px-4 py-3 text-left text-sm text-white hover:bg-dark-200/50 transition-colors rounded-lg flex items-center space-x-3"
                   >
-                    <Settings className="w-4 h-4 text-[#E8DCA0]" />
+                    <Settings className="w-4 h-4 text-[#D3AF37]" />
                     <span>Impostazioni</span>
                   </button>
                   <Button
@@ -292,52 +285,35 @@ export default function DashboardPage() {
           {activeTab === 'dashboard' && (
             <>
 
-          {/* Stats Cards - Responsive Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-8 md:mb-12 animate-slide-up">
-            {/* Sessioni Disponibili - Gold Highlight */}
-            <Card variant="gold-border" hover className="relative overflow-hidden group">
-              <div className="hidden md:block absolute inset-0 bg-gradient-to-br from-gold-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" aria-hidden="true" />
-              <CardContent className="relative z-10 flex items-center justify-between">
-                <div>
-                  <p className="text-dark-600 text-xs md:text-sm font-semibold mb-1 md:mb-2 tracking-wide uppercase">Sessioni Disponibili</p>
-                  <p className="text-3xl sm:text-4xl md:text-5xl font-display font-bold bg-gradient-to-r from-gold-300 to-gold-500 bg-clip-text text-transparent">
-                    {totalRemainingSessions}
-                  </p>
-                </div>
-                <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-gold-400 to-gold-500 rounded-xl flex items-center justify-center shadow-gold group-hover:scale-110 transition-transform duration-300">
-                  <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-dark-950" />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Pacchetti Attivi */}
-            <Card hover>
-              <CardContent className="flex items-center justify-between">
-                <div>
-                  <p className="text-dark-600 text-xs md:text-sm font-semibold mb-1 md:mb-2 tracking-wide uppercase">Pacchetti Attivi</p>
-                  <p className="text-3xl sm:text-4xl md:text-5xl font-display font-bold text-white">{activePackages.length}</p>
-                </div>
-                <div className="w-12 h-12 md:w-16 md:h-16 bg-dark-100 rounded-xl flex items-center justify-center group-hover:bg-dark-200 transition-colors duration-300">
-                  <Package className="w-6 h-6 md:w-8 md:h-8 text-[#E8DCA0]" />
-                </div>
+          {/* Lista Prenotazioni - Spostata in alto */}
+          <div className="mb-6 md:mb-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <Card variant="darker" as="section" aria-labelledby="bookings-title">
+              <CardHeader>
+                <CardTitle id="bookings-title" className="flex items-center text-base md:text-lg">
+                  <Clock className="w-4 h-4 md:w-5 md:h-5 mr-2 text-[#D3AF37]" />
+                  Prossime Prenotazioni
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <BookingsList key={refreshKey} onCancel={handleBookingSuccess} />
               </CardContent>
             </Card>
           </div>
 
           {/* Pacchetti - Mobile Optimized */}
           {activePackages.length > 0 && (
-            <div className="mb-8 md:mb-12 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <div className="mb-8 md:mb-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
               <Card>
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div>
                       <CardTitle className="flex items-center text-lg md:text-2xl">
-                        <Package className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-[#E8DCA0]" />
+                        <Package className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-[#D3AF37]" />
                         I Tuoi Pacchetti
                       </CardTitle>
                       <CardDescription className="text-xs md:text-sm">Monitora i tuoi progressi</CardDescription>
                     </div>
-                    <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-[#E8DCA0] animate-pulse self-start sm:self-auto" aria-hidden="true" />
+                    <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-[#D3AF37] animate-pulse self-start sm:self-auto" aria-hidden="true" />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -396,68 +372,50 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Form Prenotazione + Lista - Mobile Stack */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            {/* Form */}
-            <div className="lg:col-span-2 order-2 lg:order-1">
-              {totalRemainingSessions > 0 ? (
-                <Card as="section" aria-labelledby="booking-title">
-                  <CardHeader>
-                    <CardTitle id="booking-title" className="flex items-center text-lg md:text-2xl">
-                      <Calendar className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-[#E8DCA0]" />
-                      Prenota una Sessione
-                    </CardTitle>
-                    <CardDescription className="text-xs md:text-sm">Scegli data e orario per la tua prossima sessione</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <BookingForm onSuccess={handleBookingSuccess} packages={activePackages} />
-                  </CardContent>
-                </Card>
-              ) : packages.length > 0 ? (
-                <Card variant="gold-border" className="text-center">
-                  <CardContent className="py-12 md:py-16">
-                    <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-gold-400 to-gold-500 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-gold">
-                      <Package className="w-8 h-8 md:w-10 md:h-10 text-dark-950" />
-                    </div>
-                    <h3 className="text-xl md:text-2xl font-display font-bold text-white mb-2 md:mb-3">
-                      Sessioni Esaurite
-                    </h3>
-                    <p className="text-sm md:text-base text-dark-600 px-4">
-                      Contatta l'amministratore per acquistare un nuovo pacchetto premium
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card variant="gold-border" className="text-center">
-                  <CardContent className="py-12 md:py-16">
-                    <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-gold-400 to-gold-500 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-gold">
-                      <Package className="w-8 h-8 md:w-10 md:h-10 text-dark-950" />
-                    </div>
-                    <h3 className="text-xl md:text-2xl font-display font-bold text-white mb-2 md:mb-3">
-                      Nessun Pacchetto Assegnato
-                    </h3>
-                    <p className="text-sm md:text-base text-dark-600 px-4">
-                      Contatta l'amministratore per ricevere un pacchetto premium
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-            {/* Lista Prenotazioni - Shows first on mobile */}
-            <div className="order-1 lg:order-2">
-              <Card className="lg:sticky lg:top-24" variant="darker" as="section" aria-labelledby="bookings-title">
+          {/* Form Prenotazione */}
+          <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
+            {totalRemainingSessions > 0 ? (
+              <Card as="section" aria-labelledby="booking-title">
                 <CardHeader>
-                  <CardTitle id="bookings-title" className="flex items-center text-base md:text-lg">
-                    <Clock className="w-4 h-4 md:w-5 md:h-5 mr-2 text-[#E8DCA0]" />
-                    Prossime Sessioni
+                  <CardTitle id="booking-title" className="flex items-center text-lg md:text-2xl">
+                    <Calendar className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-[#D3AF37]" />
+                    Prenota una Sessione
                   </CardTitle>
+                  <CardDescription className="text-xs md:text-sm">Scegli data e orario per la tua prossima sessione</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <BookingsList key={refreshKey} onCancel={handleBookingSuccess} />
+                  <BookingForm onSuccess={handleBookingSuccess} packages={activePackages} />
                 </CardContent>
               </Card>
-            </div>
+            ) : packages.length > 0 ? (
+              <Card variant="gold-border" className="text-center">
+                <CardContent className="py-12 md:py-16">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-gold-400 to-gold-500 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-gold">
+                    <Package className="w-8 h-8 md:w-10 md:h-10 text-dark-950" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-display font-bold text-white mb-2 md:mb-3">
+                    Sessioni Esaurite
+                  </h3>
+                  <p className="text-sm md:text-base text-dark-600 px-4">
+                    Contatta l'amministratore per acquistare un nuovo pacchetto premium
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card variant="gold-border" className="text-center">
+                <CardContent className="py-12 md:py-16">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-gold-400 to-gold-500 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-gold">
+                    <Package className="w-8 h-8 md:w-10 md:h-10 text-dark-950" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-display font-bold text-white mb-2 md:mb-3">
+                    Nessun Pacchetto Assegnato
+                  </h3>
+                  <p className="text-sm md:text-base text-dark-600 px-4">
+                    Contatta l'amministratore per ricevere un pacchetto premium
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
             </>
           )}
@@ -467,7 +425,7 @@ export default function DashboardPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center text-lg md:text-2xl heading-font gold-text-gradient">
-                    <Ruler className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-[#E8DCA0]" />
+                    <Ruler className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-[#D3AF37]" />
                     Le Tue Misurazioni
                   </CardTitle>
                   <CardDescription className="text-xs md:text-sm">
@@ -503,7 +461,7 @@ export default function DashboardPage() {
                 }}
                 className="w-full px-4 py-3 text-left text-sm text-white hover:bg-dark-200/50 transition-colors flex items-center space-x-3"
               >
-                <User className="w-4 h-4 text-[#E8DCA0]" />
+                <User className="w-4 h-4 text-[#D3AF37]" />
                 <span>Profilo</span>
               </button>
               <button
@@ -513,7 +471,7 @@ export default function DashboardPage() {
                 }}
                 className="w-full px-4 py-3 text-left text-sm text-white hover:bg-dark-200/50 transition-colors flex items-center space-x-3"
               >
-                <Settings className="w-4 h-4 text-[#E8DCA0]" />
+                <Settings className="w-4 h-4 text-[#D3AF37]" />
                 <span>Impostazioni</span>
               </button>
               <div className="border-t border-dark-200/30 my-1"></div>

@@ -10,17 +10,12 @@ export const dynamic = 'force-dynamic'
 // Range ragionevoli per misure umane
 const MEASUREMENT_RANGES = {
   peso: { min: 30, max: 300 }, // kg
-  altezza: { min: 100, max: 250 }, // cm
-  bodyFat: { min: 0, max: 100 }, // percentuale
-  collo: { min: 20, max: 80 }, // cm
+  braccio: { min: 15, max: 80 }, // cm
   spalle: { min: 80, max: 180 }, // cm
   torace: { min: 60, max: 200 }, // cm
   vita: { min: 40, max: 200 }, // cm
+  gamba: { min: 30, max: 120 }, // cm
   fianchi: { min: 50, max: 200 }, // cm
-  bicipite: { min: 15, max: 80 }, // cm
-  avambraccio: { min: 15, max: 50 }, // cm
-  coscia: { min: 30, max: 120 }, // cm
-  polpaccio: { min: 20, max: 70 }, // cm
 }
 
 const measurementSchema = z.object({
@@ -30,21 +25,13 @@ const measurementSchema = z.object({
     .min(MEASUREMENT_RANGES.peso.min, `Il peso deve essere almeno ${MEASUREMENT_RANGES.peso.min} kg`)
     .max(MEASUREMENT_RANGES.peso.max, `Il peso non può superare ${MEASUREMENT_RANGES.peso.max} kg`)
     .optional().nullable(),
-  altezza: z.number()
-    .min(MEASUREMENT_RANGES.altezza.min, `L'altezza deve essere almeno ${MEASUREMENT_RANGES.altezza.min} cm`)
-    .max(MEASUREMENT_RANGES.altezza.max, `L'altezza non può superare ${MEASUREMENT_RANGES.altezza.max} cm`)
-    .optional().nullable(),
-  bodyFat: z.number()
-    .min(MEASUREMENT_RANGES.bodyFat.min, `La percentuale di grasso corporeo deve essere almeno ${MEASUREMENT_RANGES.bodyFat.min}%`)
-    .max(MEASUREMENT_RANGES.bodyFat.max, `La percentuale di grasso corporeo non può superare ${MEASUREMENT_RANGES.bodyFat.max}%`)
-    .optional().nullable(),
-  collo: z.number()
-    .min(MEASUREMENT_RANGES.collo.min, `La circonferenza del collo deve essere almeno ${MEASUREMENT_RANGES.collo.min} cm`)
-    .max(MEASUREMENT_RANGES.collo.max, `La circonferenza del collo non può superare ${MEASUREMENT_RANGES.collo.max} cm`)
+  braccio: z.number()
+    .min(MEASUREMENT_RANGES.braccio.min, `La circonferenza del braccio deve essere almeno ${MEASUREMENT_RANGES.braccio.min} cm`)
+    .max(MEASUREMENT_RANGES.braccio.max, `La circonferenza del braccio non può superare ${MEASUREMENT_RANGES.braccio.max} cm`)
     .optional().nullable(),
   spalle: z.number()
-    .min(MEASUREMENT_RANGES.spalle.min, `La larghezza delle spalle deve essere almeno ${MEASUREMENT_RANGES.spalle.min} cm`)
-    .max(MEASUREMENT_RANGES.spalle.max, `La larghezza delle spalle non può superare ${MEASUREMENT_RANGES.spalle.max} cm`)
+    .min(MEASUREMENT_RANGES.spalle.min, `La circonferenza delle spalle deve essere almeno ${MEASUREMENT_RANGES.spalle.min} cm`)
+    .max(MEASUREMENT_RANGES.spalle.max, `La circonferenza delle spalle non può superare ${MEASUREMENT_RANGES.spalle.max} cm`)
     .optional().nullable(),
   torace: z.number()
     .min(MEASUREMENT_RANGES.torace.min, `La circonferenza del torace deve essere almeno ${MEASUREMENT_RANGES.torace.min} cm`)
@@ -54,41 +41,13 @@ const measurementSchema = z.object({
     .min(MEASUREMENT_RANGES.vita.min, `La circonferenza della vita deve essere almeno ${MEASUREMENT_RANGES.vita.min} cm`)
     .max(MEASUREMENT_RANGES.vita.max, `La circonferenza della vita non può superare ${MEASUREMENT_RANGES.vita.max} cm`)
     .optional().nullable(),
+  gamba: z.number()
+    .min(MEASUREMENT_RANGES.gamba.min, `La circonferenza della gamba deve essere almeno ${MEASUREMENT_RANGES.gamba.min} cm`)
+    .max(MEASUREMENT_RANGES.gamba.max, `La circonferenza della gamba non può superare ${MEASUREMENT_RANGES.gamba.max} cm`)
+    .optional().nullable(),
   fianchi: z.number()
     .min(MEASUREMENT_RANGES.fianchi.min, `La circonferenza dei fianchi deve essere almeno ${MEASUREMENT_RANGES.fianchi.min} cm`)
     .max(MEASUREMENT_RANGES.fianchi.max, `La circonferenza dei fianchi non può superare ${MEASUREMENT_RANGES.fianchi.max} cm`)
-    .optional().nullable(),
-  bicipiteDx: z.number()
-    .min(MEASUREMENT_RANGES.bicipite.min, `La circonferenza del bicipite destro deve essere almeno ${MEASUREMENT_RANGES.bicipite.min} cm`)
-    .max(MEASUREMENT_RANGES.bicipite.max, `La circonferenza del bicipite destro non può superare ${MEASUREMENT_RANGES.bicipite.max} cm`)
-    .optional().nullable(),
-  bicipiteSx: z.number()
-    .min(MEASUREMENT_RANGES.bicipite.min, `La circonferenza del bicipite sinistro deve essere almeno ${MEASUREMENT_RANGES.bicipite.min} cm`)
-    .max(MEASUREMENT_RANGES.bicipite.max, `La circonferenza del bicipite sinistro non può superare ${MEASUREMENT_RANGES.bicipite.max} cm`)
-    .optional().nullable(),
-  avambraccioDx: z.number()
-    .min(MEASUREMENT_RANGES.avambraccio.min, `La circonferenza dell'avambraccio destro deve essere almeno ${MEASUREMENT_RANGES.avambraccio.min} cm`)
-    .max(MEASUREMENT_RANGES.avambraccio.max, `La circonferenza dell'avambraccio destro non può superare ${MEASUREMENT_RANGES.avambraccio.max} cm`)
-    .optional().nullable(),
-  avambraccioSx: z.number()
-    .min(MEASUREMENT_RANGES.avambraccio.min, `La circonferenza dell'avambraccio sinistro deve essere almeno ${MEASUREMENT_RANGES.avambraccio.min} cm`)
-    .max(MEASUREMENT_RANGES.avambraccio.max, `La circonferenza dell'avambraccio sinistro non può superare ${MEASUREMENT_RANGES.avambraccio.max} cm`)
-    .optional().nullable(),
-  cosciaDx: z.number()
-    .min(MEASUREMENT_RANGES.coscia.min, `La circonferenza della coscia destra deve essere almeno ${MEASUREMENT_RANGES.coscia.min} cm`)
-    .max(MEASUREMENT_RANGES.coscia.max, `La circonferenza della coscia destra non può superare ${MEASUREMENT_RANGES.coscia.max} cm`)
-    .optional().nullable(),
-  cosciaSx: z.number()
-    .min(MEASUREMENT_RANGES.coscia.min, `La circonferenza della coscia sinistra deve essere almeno ${MEASUREMENT_RANGES.coscia.min} cm`)
-    .max(MEASUREMENT_RANGES.coscia.max, `La circonferenza della coscia sinistra non può superare ${MEASUREMENT_RANGES.coscia.max} cm`)
-    .optional().nullable(),
-  polpaccioDx: z.number()
-    .min(MEASUREMENT_RANGES.polpaccio.min, `La circonferenza del polpaccio destro deve essere almeno ${MEASUREMENT_RANGES.polpaccio.min} cm`)
-    .max(MEASUREMENT_RANGES.polpaccio.max, `La circonferenza del polpaccio destro non può superare ${MEASUREMENT_RANGES.polpaccio.max} cm`)
-    .optional().nullable(),
-  polpaccioSx: z.number()
-    .min(MEASUREMENT_RANGES.polpaccio.min, `La circonferenza del polpaccio sinistro deve essere almeno ${MEASUREMENT_RANGES.polpaccio.min} cm`)
-    .max(MEASUREMENT_RANGES.polpaccio.max, `La circonferenza del polpaccio sinistro non può superare ${MEASUREMENT_RANGES.polpaccio.max} cm`)
     .optional().nullable(),
   notes: z.string().optional().nullable(),
 })
@@ -149,21 +108,12 @@ export async function POST(request: NextRequest) {
         userId: validatedData.userId,
         measurementDate,
         peso: validatedData.peso,
-        altezza: validatedData.altezza,
-        bodyFat: validatedData.bodyFat,
-        collo: validatedData.collo,
+        braccio: validatedData.braccio,
         spalle: validatedData.spalle,
         torace: validatedData.torace,
         vita: validatedData.vita,
+        gamba: validatedData.gamba,
         fianchi: validatedData.fianchi,
-        bicipiteDx: validatedData.bicipiteDx,
-        bicipiteSx: validatedData.bicipiteSx,
-        avambraccioDx: validatedData.avambraccioDx,
-        avambraccioSx: validatedData.avambraccioSx,
-        cosciaDx: validatedData.cosciaDx,
-        cosciaSx: validatedData.cosciaSx,
-        polpaccioDx: validatedData.polpaccioDx,
-        polpaccioSx: validatedData.polpaccioSx,
         notes: validatedData.notes,
       },
     })

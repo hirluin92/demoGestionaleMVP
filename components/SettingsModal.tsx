@@ -198,7 +198,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           {/* Cambio Password */}
           <div className="p-4 bg-dark-100/50 rounded-lg border border-dark-200/30">
             <div className="flex items-center space-x-3 mb-4">
-              <Lock className="w-5 h-5 text-[#E8DCA0]" />
+              <Lock className="w-5 h-5 text-gold-400" />
               <h3 className="text-lg font-semibold text-white heading-font">Cambio Password</h3>
             </div>
 
@@ -219,7 +219,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <label
                   htmlFor="currentPassword"
                   className="block text-sm font-light mb-2 heading-font"
-                  style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                  className="text-gold-400"
+                  style={{ letterSpacing: '0.5px' }}
                 >
                   Password Corrente
                 </label>
@@ -238,7 +239,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <label
                   htmlFor="newPassword"
                   className="block text-sm font-light mb-2 heading-font"
-                  style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                  className="text-gold-400"
+                  style={{ letterSpacing: '0.5px' }}
                 >
                   Nuova Password
                 </label>
@@ -261,7 +263,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <label
                   htmlFor="confirmPassword"
                   className="block text-sm font-light mb-2 heading-font"
-                  style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                  className="text-gold-400"
+                  style={{ letterSpacing: '0.5px' }}
                 >
                   Conferma Nuova Password
                 </label>
@@ -293,7 +296,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <div className="p-4 bg-dark-100/50 rounded-lg border border-dark-200/30">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <Bell className="w-5 h-5 text-[#E8DCA0]" />
+                <Bell className="w-5 h-5 text-gold-400" />
                 <h3 className="text-lg font-semibold text-white heading-font">Notifiche</h3>
               </div>
               {settingsSuccess && (
@@ -371,7 +374,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <div className="p-4 bg-dark-100/50 rounded-lg border border-dark-200/30">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <Shield className="w-5 h-5 text-[#E8DCA0]" />
+                <Shield className="w-5 h-5 text-gold-400" />
                 <h3 className="text-lg font-semibold text-white heading-font">Sicurezza</h3>
               </div>
               {settingsSuccess && (

@@ -65,7 +65,7 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
       setAvailableSlots([])
       setSelectedTime('')
     }
-  }, [selectedDate])
+  }, [selectedDate, selectedPackageId])
 
   useEffect(() => {
     // Reset package quando cambia utente
@@ -90,9 +90,22 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
   }
 
   const fetchAvailableSlots = async () => {
+    if (!selectedDate) return
+    
     setLoadingSlots(true)
     try {
-      const response = await fetch(`/api/available-slots?date=${selectedDate}`)
+      // Costruisci i parametri della query
+      const params = new URLSearchParams({
+        date: selectedDate,
+        isAdmin: 'true',
+      })
+      
+      if (selectedPackageId) {
+        params.append('packageId', selectedPackageId)
+        // isMultiplePackage sarà determinato automaticamente dal backend
+      }
+      
+      const response = await fetch(`/api/available-slots?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
         let slots = data.slots
@@ -211,7 +224,7 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
 
           {/* Selezione Cliente */}
           <div>
-            <label className="block text-sm font-light mb-2 heading-font" style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}>
+            <label className="block text-sm font-light mb-2 heading-font text-gold-400" style={{ letterSpacing: '0.5px' }}>
               Cliente
             </label>
             <div className="relative">
@@ -235,7 +248,7 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
           {/* Selezione Pacchetto */}
           {selectedUser && (
             <div>
-              <label className="block text-sm font-light mb-2 heading-font" style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}>
+              <label className="block text-sm font-light mb-2 heading-font text-gold-400" style={{ letterSpacing: '0.5px' }}>
                 Pacchetto
               </label>
               {availablePackages.length === 0 ? (
@@ -270,7 +283,7 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
 
           {/* Selezione Data */}
           <div>
-            <label htmlFor="date" className="block text-sm font-light mb-2 heading-font" style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}>
+            <label htmlFor="date" className="block text-sm font-light mb-2 heading-font text-gold-400" style={{ letterSpacing: '0.5px' }}>
               Data
             </label>
             <Input
@@ -287,7 +300,7 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
           {/* Selezione Orario */}
           {selectedDate && (
             <div>
-              <label className="block text-sm font-light mb-2 heading-font" style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}>
+              <label className="block text-sm font-light mb-2 heading-font text-gold-400" style={{ letterSpacing: '0.5px' }}>
                 Orario
               </label>
               {loadingSlots ? (

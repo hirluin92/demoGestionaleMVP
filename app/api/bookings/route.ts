@@ -371,42 +371,7 @@ export async function POST(request: NextRequest) {
       return newBooking
     })
 
-    // STEP 4: WhatsApp (fuori transazione - non critico)
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    })
-
-    if (user?.phone) {
-      try {
-        await sendWhatsAppMessage(
-          user.phone,
-          formatBookingConfirmationMessage(user.name, bookingDate, time)
-        )
-        logger.info('WhatsApp inviato con successo', { userName: user.name, userId: user.id })
-      } catch (error) {
-        if (isTwilioError(error)) {
-          logger.error('Errore Twilio invio WhatsApp', {
-            userName: user.name,
-            userId: user.id,
-            error: sanitizeError(error),
-            twilioCode: error.code,
-          })
-          if (error.code === 21608) {
-            logger.warn('Numero non autorizzato su Twilio Sandbox', { userId: user.id })
-          } else if (error.code === 21211) {
-            logger.warn('Numero non valido per Twilio', { userId: user.id })
-          }
-        } else {
-          logger.error('Errore generico invio WhatsApp', {
-            userName: user.name,
-            userId: user.id,
-            error: sanitizeError(error),
-          })
-        }
-      }
-    } else {
-      logger.warn('Utente senza numero di telefono configurato', { userId: user?.id || session.user.id })
-    }
+    // STEP 4: WhatsApp rimosso - non serve conferma quando l'utente registra un appuntamento
 
     return NextResponse.json(booking, { status: 201 })
     

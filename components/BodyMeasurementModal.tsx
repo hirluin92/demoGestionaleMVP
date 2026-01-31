@@ -10,21 +10,12 @@ interface BodyMeasurement {
   userId: string
   measurementDate: string
   peso?: number | null
-  altezza?: number | null
-  bodyFat?: number | null
-  collo?: number | null
-  spalle?: number | null
+  braccio?: number | null  // Circonferenza braccio
+  spalle?: number | null  // Circonferenza spalle
   torace?: number | null
   vita?: number | null
+  gamba?: number | null  // Circonferenza gamba
   fianchi?: number | null
-  bicipiteDx?: number | null
-  bicipiteSx?: number | null
-  avambraccioDx?: number | null
-  avambraccioSx?: number | null
-  cosciaDx?: number | null
-  cosciaSx?: number | null
-  polpaccioDx?: number | null
-  polpaccioSx?: number | null
   notes?: string | null
 }
 
@@ -52,24 +43,16 @@ export default function BodyMeasurementModal({
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showWarningModal, setShowWarningModal] = useState(false)
   const [pendingSubmit, setPendingSubmit] = useState(false)
+  const [selectedGraph, setSelectedGraph] = useState<string | null>(null) // Per i micro grafici
 
   const [formData, setFormData] = useState<Partial<BodyMeasurement>>({
     peso: undefined,
-    altezza: undefined,
-    bodyFat: undefined,
-    collo: undefined,
+    braccio: undefined,
     spalle: undefined,
     torace: undefined,
     vita: undefined,
+    gamba: undefined,
     fianchi: undefined,
-    bicipiteDx: undefined,
-    bicipiteSx: undefined,
-    avambraccioDx: undefined,
-    avambraccioSx: undefined,
-    cosciaDx: undefined,
-    cosciaSx: undefined,
-    polpaccioDx: undefined,
-    polpaccioSx: undefined,
     notes: '',
   })
 
@@ -86,21 +69,12 @@ export default function BodyMeasurementModal({
       const latest = measurements[0]
       setFormData({
         peso: latest.peso ?? undefined,
-        altezza: latest.altezza ?? undefined,
-        bodyFat: latest.bodyFat ?? undefined,
-        collo: latest.collo ?? undefined,
+        braccio: latest.braccio ?? undefined,
         spalle: latest.spalle ?? undefined,
         torace: latest.torace ?? undefined,
         vita: latest.vita ?? undefined,
+        gamba: latest.gamba ?? undefined,
         fianchi: latest.fianchi ?? undefined,
-        bicipiteDx: latest.bicipiteDx ?? undefined,
-        bicipiteSx: latest.bicipiteSx ?? undefined,
-        avambraccioDx: latest.avambraccioDx ?? undefined,
-        avambraccioSx: latest.avambraccioSx ?? undefined,
-        cosciaDx: latest.cosciaDx ?? undefined,
-        cosciaSx: latest.cosciaSx ?? undefined,
-        polpaccioDx: latest.polpaccioDx ?? undefined,
-        polpaccioSx: latest.polpaccioSx ?? undefined,
         notes: latest.notes ?? '',
       })
     }
@@ -203,18 +177,41 @@ export default function BodyMeasurementModal({
   }
 
   const handleMuscleClick = (muscleId: string) => {
+    // Se c'è già un grafico aperto per questa parte, chiudilo, altrimenti aprilo
+    if (selectedGraph === muscleId) {
+      setSelectedGraph(null)
+    } else {
+      setSelectedGraph(muscleId)
+    }
+    
     const inputField = document.getElementById(muscleId)
     if (inputField) {
       inputField.focus()
       inputField.scrollIntoView({ behavior: 'smooth', block: 'center' })
       // Visual feedback
       inputField.style.transform = 'scale(1.05)'
-      inputField.style.boxShadow = '0 0 0 4px rgba(232, 220, 160, 0.3), 0 8px 25px rgba(232, 220, 160, 0.3)'
+      inputField.style.boxShadow = '0 0 0 4px rgba(211, 175, 55, 0.3), 0 8px 25px rgba(211, 175, 55, 0.3)'
       setTimeout(() => {
         inputField.style.transform = ''
         inputField.style.boxShadow = ''
       }, 600)
     }
+  }
+
+  // Funzione per generare dati del grafico per una misura specifica
+  const getGraphData = (measurementType: string) => {
+    if (!measurements.length) return []
+    
+    return measurements
+      .filter(m => {
+        const value = m[measurementType as keyof BodyMeasurement] as number | null | undefined
+        return value !== null && value !== undefined
+      })
+      .map(m => ({
+        date: new Date(m.measurementDate),
+        value: m[measurementType as keyof BodyMeasurement] as number,
+      }))
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
   }
 
   const formatDate = (dateString: string) => {
@@ -274,21 +271,6 @@ export default function BodyMeasurementModal({
                 {/* Testa */}
                 <ellipse cx="150" cy="40" rx="25" ry="30" fill="#2a2a2a" stroke="#444" strokeWidth="1" />
 
-                {/* Collo */}
-                <g
-                  className={`muscle-group ${highlightedMuscle === 'collo' ? 'highlighted' : ''}`}
-                  data-muscle="collo"
-                  onClick={() => handleMuscleClick('collo')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <path
-                    d="M 138 70 L 138 85 L 162 85 L 162 70"
-                    fill="#3a3a3a"
-                    stroke="#555"
-                    strokeWidth="1"
-                  />
-                </g>
-
                 {/* Spalle */}
                 <g
                   className={`muscle-group ${highlightedMuscle === 'spalle' ? 'highlighted' : ''}`}
@@ -302,8 +284,8 @@ export default function BodyMeasurementModal({
                     rx="22"
                     ry="28"
                     fill="#3a3a3a"
-                    stroke="#555"
-                    strokeWidth="1.5"
+                    stroke="#D3AF37"
+                    strokeWidth="2"
                     transform="rotate(-15 115 105)"
                   />
                   <ellipse
@@ -312,8 +294,8 @@ export default function BodyMeasurementModal({
                     rx="22"
                     ry="28"
                     fill="#3a3a3a"
-                    stroke="#555"
-                    strokeWidth="1.5"
+                    stroke="#D3AF37"
+                    strokeWidth="2"
                     transform="rotate(15 185 105)"
                   />
                 </g>
@@ -328,16 +310,59 @@ export default function BodyMeasurementModal({
                   <path
                     d="M 130 90 Q 125 110, 130 135 L 145 135 L 150 100 Z"
                     fill="#3a3a3a"
-                    stroke="#555"
-                    strokeWidth="1.5"
+                    stroke="#D3AF37"
+                    strokeWidth="2"
                   />
                   <path
                     d="M 170 90 Q 175 110, 170 135 L 155 135 L 150 100 Z"
                     fill="#3a3a3a"
-                    stroke="#555"
-                    strokeWidth="1.5"
+                    stroke="#D3AF37"
+                    strokeWidth="2"
                   />
                   <line x1="150" y1="100" x2="150" y2="135" stroke="#2a2a2a" strokeWidth="2" />
+                </g>
+
+                {/* Braccio (unificato) */}
+                <g
+                  className={`muscle-group ${highlightedMuscle === 'braccio' ? 'highlighted' : ''}`}
+                  data-muscle="braccio"
+                  onClick={() => handleMuscleClick('braccio')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <ellipse
+                    cx="95"
+                    cy="140"
+                    rx="13"
+                    ry="35"
+                    fill="#3a3a3a"
+                    stroke="#D3AF37"
+                    strokeWidth="2"
+                    transform="rotate(20 95 140)"
+                  />
+                  <ellipse
+                    cx="205"
+                    cy="140"
+                    rx="13"
+                    ry="35"
+                    fill="#3a3a3a"
+                    stroke="#D3AF37"
+                    strokeWidth="2"
+                    transform="rotate(-20 205 140)"
+                  />
+                  <path
+                    d="M 85 175 Q 75 205, 70 240"
+                    stroke="#D3AF37"
+                    strokeWidth="18"
+                    fill="none"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M 215 175 Q 225 205, 230 240"
+                    stroke="#D3AF37"
+                    strokeWidth="18"
+                    fill="none"
+                    strokeLinecap="round"
+                  />
                 </g>
 
                 {/* Addominali/Vita */}
@@ -347,7 +372,7 @@ export default function BodyMeasurementModal({
                   onClick={() => handleMuscleClick('vita')}
                   style={{ cursor: 'pointer' }}
                 >
-                  <rect x="135" y="135" width="30" height="70" rx="5" fill="#3a3a3a" stroke="#555" strokeWidth="1.5" />
+                  <rect x="135" y="135" width="30" height="70" rx="5" fill="#3a3a3a" stroke="#D3AF37" strokeWidth="2" />
                   <line x1="150" y1="135" x2="150" y2="205" stroke="#2a2a2a" strokeWidth="2" />
                   <line x1="135" y1="155" x2="165" y2="155" stroke="#2a2a2a" strokeWidth="1.5" />
                   <line x1="135" y1="170" x2="165" y2="170" stroke="#2a2a2a" strokeWidth="1.5" />
@@ -361,122 +386,24 @@ export default function BodyMeasurementModal({
                   onClick={() => handleMuscleClick('fianchi')}
                   style={{ cursor: 'pointer' }}
                 >
-                  <ellipse cx="150" cy="220" rx="35" ry="22" fill="#3a3a3a" stroke="#555" strokeWidth="1.5" />
+                  <ellipse cx="150" cy="220" rx="35" ry="22" fill="#3a3a3a" stroke="#D3AF37" strokeWidth="2" />
                 </g>
 
-                {/* Bicipiti */}
+                {/* Gamba (unificata) */}
                 <g
-                  className={`muscle-group ${highlightedMuscle === 'bicipite_sx' ? 'highlighted' : ''}`}
-                  data-muscle="bicipite_sx"
-                  onClick={() => handleMuscleClick('bicipiteSx')}
+                  className={`muscle-group ${highlightedMuscle === 'gamba' ? 'highlighted' : ''}`}
+                  data-muscle="gamba"
+                  onClick={() => handleMuscleClick('gamba')}
                   style={{ cursor: 'pointer' }}
                 >
-                  <ellipse
-                    cx="95"
-                    cy="140"
-                    rx="13"
-                    ry="35"
-                    fill="#3a3a3a"
-                    stroke="#555"
-                    strokeWidth="1.5"
-                    transform="rotate(20 95 140)"
-                  />
-                </g>
-                <g
-                  className={`muscle-group ${highlightedMuscle === 'bicipite_dx' ? 'highlighted' : ''}`}
-                  data-muscle="bicipite_dx"
-                  onClick={() => handleMuscleClick('bicipiteDx')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <ellipse
-                    cx="205"
-                    cy="140"
-                    rx="13"
-                    ry="35"
-                    fill="#3a3a3a"
-                    stroke="#555"
-                    strokeWidth="1.5"
-                    transform="rotate(-20 205 140)"
-                  />
-                </g>
-
-                {/* Avambracci */}
-                <g
-                  className={`muscle-group ${highlightedMuscle === 'avambraccio_sx' ? 'highlighted' : ''}`}
-                  data-muscle="avambraccio_sx"
-                  onClick={() => handleMuscleClick('avambraccioSx')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <path
-                    d="M 85 175 Q 75 205, 70 240"
-                    stroke="#555"
-                    strokeWidth="18"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                </g>
-                <g
-                  className={`muscle-group ${highlightedMuscle === 'avambraccio_dx' ? 'highlighted' : ''}`}
-                  data-muscle="avambraccio_dx"
-                  onClick={() => handleMuscleClick('avambraccioDx')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <path
-                    d="M 215 175 Q 225 205, 230 240"
-                    stroke="#555"
-                    strokeWidth="18"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                </g>
-
-                {/* Cosce */}
-                <g
-                  className={`muscle-group ${highlightedMuscle === 'coscia_sx' ? 'highlighted' : ''}`}
-                  data-muscle="coscia_sx"
-                  onClick={() => handleMuscleClick('cosciaSx')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <ellipse cx="138" cy="290" rx="20" ry="50" fill="#3a3a3a" stroke="#555" strokeWidth="1.5" />
-                </g>
-                <g
-                  className={`muscle-group ${highlightedMuscle === 'coscia_dx' ? 'highlighted' : ''}`}
-                  data-muscle="coscia_dx"
-                  onClick={() => handleMuscleClick('cosciaDx')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <ellipse cx="162" cy="290" rx="20" ry="50" fill="#3a3a3a" stroke="#555" strokeWidth="1.5" />
-                </g>
-
-                {/* Polpacci */}
-                <g
-                  className={`muscle-group ${highlightedMuscle === 'polpaccio_sx' ? 'highlighted' : ''}`}
-                  data-muscle="polpaccio_sx"
-                  onClick={() => handleMuscleClick('polpaccioSx')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <ellipse cx="138" cy="390" rx="15" ry="35" fill="#3a3a3a" stroke="#555" strokeWidth="1.5" />
-                </g>
-                <g
-                  className={`muscle-group ${highlightedMuscle === 'polpaccio_dx' ? 'highlighted' : ''}`}
-                  data-muscle="polpaccio_dx"
-                  onClick={() => handleMuscleClick('polpaccioDx')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <ellipse cx="162" cy="390" rx="15" ry="35" fill="#3a3a3a" stroke="#555" strokeWidth="1.5" />
+                  <ellipse cx="138" cy="290" rx="20" ry="50" fill="#3a3a3a" stroke="#D3AF37" strokeWidth="2" />
+                  <ellipse cx="162" cy="290" rx="20" ry="50" fill="#3a3a3a" stroke="#D3AF37" strokeWidth="2" />
+                  <ellipse cx="138" cy="390" rx="15" ry="35" fill="#3a3a3a" stroke="#D3AF37" strokeWidth="2" />
+                  <ellipse cx="162" cy="390" rx="15" ry="35" fill="#3a3a3a" stroke="#D3AF37" strokeWidth="2" />
                 </g>
               </svg>
 
-              {/* Measurement Points */}
-              <div
-                className="measurement-point"
-                style={{ left: '50%', top: '16%' }}
-                data-muscle="collo"
-                data-label="Collo"
-                onClick={() => handleMuscleClick('collo')}
-                onMouseEnter={() => setHighlightedMuscle('collo')}
-                onMouseLeave={() => setHighlightedMuscle(null)}
-              />
+              {/* Measurement Points - Solo parti rilevanti */}
               <div
                 className="measurement-point"
                 style={{ left: '22%', top: '21%' }}
@@ -488,47 +415,20 @@ export default function BodyMeasurementModal({
               />
               <div
                 className="measurement-point"
+                style={{ left: '15%', top: '30%' }}
+                data-muscle="braccio"
+                data-label="Braccio"
+                onClick={() => handleMuscleClick('braccio')}
+                onMouseEnter={() => setHighlightedMuscle('braccio')}
+                onMouseLeave={() => setHighlightedMuscle(null)}
+              />
+              <div
+                className="measurement-point"
                 style={{ left: '50%', top: '25%' }}
                 data-muscle="torace"
                 data-label="Torace"
                 onClick={() => handleMuscleClick('torace')}
                 onMouseEnter={() => setHighlightedMuscle('torace')}
-                onMouseLeave={() => setHighlightedMuscle(null)}
-              />
-              <div
-                className="measurement-point"
-                style={{ left: '15%', top: '30%' }}
-                data-muscle="bicipite_sx"
-                data-label="Bicipite SX"
-                onClick={() => handleMuscleClick('bicipiteSx')}
-                onMouseEnter={() => setHighlightedMuscle('bicipite_sx')}
-                onMouseLeave={() => setHighlightedMuscle(null)}
-              />
-              <div
-                className="measurement-point"
-                style={{ left: '85%', top: '30%' }}
-                data-muscle="bicipite_dx"
-                data-label="Bicipite DX"
-                onClick={() => handleMuscleClick('bicipiteDx')}
-                onMouseEnter={() => setHighlightedMuscle('bicipite_dx')}
-                onMouseLeave={() => setHighlightedMuscle(null)}
-              />
-              <div
-                className="measurement-point"
-                style={{ left: '10%', top: '42%' }}
-                data-muscle="avambraccio_sx"
-                data-label="Avambraccio SX"
-                onClick={() => handleMuscleClick('avambraccioSx')}
-                onMouseEnter={() => setHighlightedMuscle('avambraccio_sx')}
-                onMouseLeave={() => setHighlightedMuscle(null)}
-              />
-              <div
-                className="measurement-point"
-                style={{ left: '90%', top: '42%' }}
-                data-muscle="avambraccio_dx"
-                data-label="Avambraccio DX"
-                onClick={() => handleMuscleClick('avambraccioDx')}
-                onMouseEnter={() => setHighlightedMuscle('avambraccio_dx')}
                 onMouseLeave={() => setHighlightedMuscle(null)}
               />
               <div
@@ -551,41 +451,243 @@ export default function BodyMeasurementModal({
               />
               <div
                 className="measurement-point"
-                style={{ left: '38%', top: '60%' }}
-                data-muscle="coscia_sx"
-                data-label="Coscia SX"
-                onClick={() => handleMuscleClick('cosciaSx')}
-                onMouseEnter={() => setHighlightedMuscle('coscia_sx')}
-                onMouseLeave={() => setHighlightedMuscle(null)}
-              />
-              <div
-                className="measurement-point"
-                style={{ left: '62%', top: '60%' }}
-                data-muscle="coscia_dx"
-                data-label="Coscia DX"
-                onClick={() => handleMuscleClick('cosciaDx')}
-                onMouseEnter={() => setHighlightedMuscle('coscia_dx')}
-                onMouseLeave={() => setHighlightedMuscle(null)}
-              />
-              <div
-                className="measurement-point"
-                style={{ left: '38%', top: '80%' }}
-                data-muscle="polpaccio_sx"
-                data-label="Polpaccio SX"
-                onClick={() => handleMuscleClick('polpaccioSx')}
-                onMouseEnter={() => setHighlightedMuscle('polpaccio_sx')}
-                onMouseLeave={() => setHighlightedMuscle(null)}
-              />
-              <div
-                className="measurement-point"
-                style={{ left: '62%', top: '80%' }}
-                data-muscle="polpaccio_dx"
-                data-label="Polpaccio DX"
-                onClick={() => handleMuscleClick('polpaccioDx')}
-                onMouseEnter={() => setHighlightedMuscle('polpaccio_dx')}
+                style={{ left: '50%', top: '60%' }}
+                data-muscle="gamba"
+                data-label="Gamba"
+                onClick={() => handleMuscleClick('gamba')}
+                onMouseEnter={() => setHighlightedMuscle('gamba')}
                 onMouseLeave={() => setHighlightedMuscle(null)}
               />
             </div>
+
+            {/* Micro Grafico - Appare quando si clicca su una parte del corpo */}
+            {selectedGraph && (
+              <div className="mt-6 p-4 glass-card rounded-lg">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-sm font-bold gold-text-gradient">
+                    {selectedGraph === 'peso' && 'Peso'}
+                    {selectedGraph === 'braccio' && 'Braccio'}
+                    {selectedGraph === 'spalle' && 'Circonferenza Spalle'}
+                    {selectedGraph === 'torace' && 'Torace'}
+                    {selectedGraph === 'vita' && 'Vita'}
+                    {selectedGraph === 'gamba' && 'Gamba'}
+                    {selectedGraph === 'fianchi' && 'Fianchi'}
+                  </h4>
+                  <button
+                    onClick={() => setSelectedGraph(null)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="h-48 relative">
+                  <svg width="100%" height="100%" viewBox="0 0 350 150" className="overflow-visible">
+                    <defs>
+                      <linearGradient id="graphGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#D3AF37" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#D3AF37" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    {(() => {
+                      const graphData = getGraphData(selectedGraph)
+                      if (graphData.length === 0) {
+                        return (
+                          <text
+                            x="175"
+                            y="75"
+                            textAnchor="middle"
+                            className="text-xs fill-gray-400"
+                          >
+                            Nessun dato disponibile
+                          </text>
+                        )
+                      }
+                      
+                      const minValue = Math.min(...graphData.map(d => d.value))
+                      const maxValue = Math.max(...graphData.map(d => d.value))
+                      const dataRange = maxValue - minValue || 1
+                      const paddingLeft = 40
+                      const paddingRight = 20
+                      const paddingTop = 20
+                      const paddingBottom = 30
+                      const width = 350
+                      const height = 150
+                      const graphWidth = width - paddingLeft - paddingRight
+                      const graphHeight = height - paddingTop - paddingBottom
+                      
+                      // Offset per asse X: ridotti per avere punti più vicini
+                      const xStartOffset = 5 // Spazio iniziale minimo
+                      const xEndOffset = 5 // Spazio finale minimo
+                      const effectiveGraphWidth = graphWidth - xStartOffset - xEndOffset
+                      // Calcola lo step: spaziatura più compatta, specialmente per pochi dati
+                      // Per 2 punti: usa ~60px di spaziatura invece di distribuire su tutta la larghezza
+                      const compactSpacing = graphData.length <= 2 ? 60 : 50
+                      const xStep = graphData.length <= 2 
+                        ? compactSpacing 
+                        : effectiveGraphWidth / (graphData.length - 1 || 1)
+                      
+                      // Range esteso per asse Y: copre un range molto più ampio
+                      // Se il range dei dati è piccolo, estendiamo molto di più
+                      const rangeMultiplier = dataRange < 10 ? 5 : dataRange < 50 ? 3 : 2 // Moltiplicatore basato sul range
+                      const extendedRange = dataRange * rangeMultiplier
+                      const centerValue = (minValue + maxValue) / 2
+                      const adjustedMinValue = centerValue - extendedRange / 2
+                      const adjustedMaxValue = centerValue + extendedRange / 2
+                      const adjustedRange = adjustedMaxValue - adjustedMinValue
+                      const yAxisSteps = 5
+                      const yStep = graphHeight / (yAxisSteps - 1)
+                      
+                      const points = graphData.map((d, i) => {
+                        const x = paddingLeft + xStartOffset + i * xStep
+                        const y = paddingTop + graphHeight - ((d.value - adjustedMinValue) / adjustedRange) * graphHeight
+                        return `${x},${y}`
+                      }).join(' ')
+                      
+                      const areaPoints = `${paddingLeft + xStartOffset},${height - paddingBottom} ${points} ${paddingLeft + xStartOffset + effectiveGraphWidth},${height - paddingBottom}`
+                      
+                      return (
+                        <>
+                          {/* Griglia orizzontale (asse Y) */}
+                          {Array.from({ length: yAxisSteps }, (_, i) => {
+                            const y = paddingTop + (yAxisSteps - 1 - i) * yStep
+                            return (
+                              <line
+                                key={`grid-y-${i}`}
+                                x1={paddingLeft}
+                                y1={y}
+                                x2={width - paddingRight}
+                                y2={y}
+                                stroke="#333"
+                                strokeWidth="0.5"
+                                strokeDasharray="2,2"
+                              />
+                            )
+                          })}
+                          
+                          {/* Griglia verticale (asse X) */}
+                          {graphData.map((_, i) => {
+                            const x = paddingLeft + xStartOffset + i * xStep
+                            return (
+                              <line
+                                key={`grid-x-${i}`}
+                                x1={x}
+                                y1={paddingTop}
+                                x2={x}
+                                y2={height - paddingBottom}
+                                stroke="#333"
+                                strokeWidth="0.5"
+                                strokeDasharray="2,2"
+                              />
+                            )
+                          })}
+                          
+                          {/* Area sotto la linea */}
+                          <polyline
+                            points={areaPoints}
+                            fill="url(#graphGradient)"
+                            stroke="none"
+                          />
+                          
+                          {/* Linea del grafico */}
+                          <polyline
+                            points={points}
+                            fill="none"
+                            stroke="#D3AF37"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          
+                          {/* Punti e valori */}
+                          {graphData.map((d, i) => {
+                            const x = paddingLeft + xStartOffset + i * xStep
+                            const y = paddingTop + graphHeight - ((d.value - adjustedMinValue) / adjustedRange) * graphHeight
+                            return (
+                              <g key={i}>
+                                <circle
+                                  cx={x}
+                                  cy={y}
+                                  r="4"
+                                  fill="#D3AF37"
+                                  stroke="#0a0a0a"
+                                  strokeWidth="2"
+                                />
+                                <text
+                                  x={x}
+                                  y={y - 10}
+                                  textAnchor="middle"
+                                  className="text-[8px] fill-[#D3AF37]"
+                                >
+                                  {d.value.toFixed(1)}
+                                </text>
+                              </g>
+                            )
+                          })}
+                          
+                          {/* Etichette asse Y (valori) */}
+                          {Array.from({ length: yAxisSteps }, (_, i) => {
+                            const y = paddingTop + (yAxisSteps - 1 - i) * yStep
+                            const value = adjustedMinValue + (adjustedRange / (yAxisSteps - 1)) * i
+                            return (
+                              <text
+                                key={`label-y-${i}`}
+                                x={paddingLeft - 5}
+                                y={y + 4}
+                                textAnchor="end"
+                                className="text-[9px] fill-gray-500"
+                              >
+                                {value.toFixed(1)}
+                              </text>
+                            )
+                          })}
+                          
+                          {/* Etichette asse X (date) */}
+                          {graphData.map((d, i) => {
+                            const x = paddingLeft + xStartOffset + i * xStep
+                            // Mostra solo alcuni punti per non sovraffollare
+                            if (i === 0 || i === graphData.length - 1 || (graphData.length > 4 && i % Math.ceil(graphData.length / 4) === 0)) {
+                              return (
+                                <text
+                                  key={`label-x-${i}`}
+                                  x={x}
+                                  y={height - paddingBottom + 15}
+                                  textAnchor="middle"
+                                  className="text-[8px] fill-gray-500"
+                                  transform={`rotate(-45 ${x} ${height - paddingBottom + 15})`}
+                                >
+                                  {new Date(d.date).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })}
+                                </text>
+                              )
+                            }
+                            return null
+                          })}
+                          
+                          {/* Linea asse Y */}
+                          <line
+                            x1={paddingLeft}
+                            y1={paddingTop}
+                            x2={paddingLeft}
+                            y2={height - paddingBottom}
+                            stroke="#666"
+                            strokeWidth="1"
+                          />
+                          
+                          {/* Linea asse X */}
+                          <line
+                            x1={paddingLeft}
+                            y1={height - paddingBottom}
+                            x2={width - paddingRight}
+                            y2={height - paddingBottom}
+                            stroke="#666"
+                            strokeWidth="1"
+                          />
+                        </>
+                      )
+                    })()}
+                  </svg>
+                </div>
+              </div>
+            )}
 
             {latestMeasurement && (
               <div className="mt-6 p-4 glass-card rounded-lg">
@@ -596,7 +698,7 @@ export default function BodyMeasurementModal({
                     : 'Nessuna'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  💡 Clicca sulla silhouette o sui punti per inserire le misure
+                  💡 Clicca sulla silhouette o sui punti per vedere il grafico della misura
                 </p>
               </div>
             )}
@@ -608,128 +710,125 @@ export default function BodyMeasurementModal({
               Nuova Misurazione
             </h3>
             <form onSubmit={handleSubmit} className="space-y-4 pb-20 md:pb-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="peso"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Peso (kg)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="peso"
-                    className="input-field w-full"
-                    placeholder="75.5"
-                    value={formData.peso ?? ''}
-                    onChange={(e) => handleInputChange('peso', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="altezza"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Altezza (cm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="altezza"
-                    className="input-field w-full"
-                    placeholder="175"
-                    value={formData.altezza ?? ''}
-                    onChange={(e) => handleInputChange('altezza', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
+              <div>
+                <label
+                  htmlFor="peso"
+                  className="block text-sm font-light mb-2 heading-font"
+                  style={{ letterSpacing: '0.5px', color: '#D3AF37' }}
+                >
+                  Peso (kg)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  id="peso"
+                  className="input-field w-full"
+                  placeholder="75.5"
+                  value={formData.peso ?? ''}
+                  onChange={(e) => handleInputChange('peso', e.target.value ? parseFloat(e.target.value) : null)}
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="collo"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Collo (cm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="collo"
-                    className="input-field w-full"
-                    placeholder="38"
-                    value={formData.collo ?? ''}
-                    onChange={(e) => handleInputChange('collo', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="spalle"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Spalle (cm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="spalle"
-                    className="input-field w-full"
-                    placeholder="115"
-                    value={formData.spalle ?? ''}
-                    onChange={(e) => handleInputChange('spalle', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
+              <div>
+                <label
+                  htmlFor="braccio"
+                  className="block text-sm font-light mb-2 heading-font"
+                  style={{ letterSpacing: '0.5px', color: '#D3AF37' }}
+                >
+                  Braccio (cm)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  id="braccio"
+                  className="input-field w-full"
+                  placeholder="35"
+                  value={formData.braccio ?? ''}
+                  onChange={(e) => handleInputChange('braccio', e.target.value ? parseFloat(e.target.value) : null)}
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="torace"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Torace (cm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="torace"
-                    className="input-field w-full"
-                    placeholder="98"
-                    value={formData.torace ?? ''}
-                    onChange={(e) => handleInputChange('torace', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="vita"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Vita (cm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="vita"
-                    className="input-field w-full"
-                    placeholder="85"
-                    value={formData.vita ?? ''}
-                    onChange={(e) => handleInputChange('vita', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
+              <div>
+                <label
+                  htmlFor="spalle"
+                  className="block text-sm font-light mb-2 heading-font"
+                  style={{ letterSpacing: '0.5px', color: '#D3AF37' }}
+                >
+                  Circonferenza Spalle (cm)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  id="spalle"
+                  className="input-field w-full"
+                  placeholder="115"
+                  value={formData.spalle ?? ''}
+                  onChange={(e) => handleInputChange('spalle', e.target.value ? parseFloat(e.target.value) : null)}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="torace"
+                  className="block text-sm font-light mb-2 heading-font"
+                  style={{ letterSpacing: '0.5px', color: '#D3AF37' }}
+                >
+                  Torace (cm)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  id="torace"
+                  className="input-field w-full"
+                  placeholder="98"
+                  value={formData.torace ?? ''}
+                  onChange={(e) => handleInputChange('torace', e.target.value ? parseFloat(e.target.value) : null)}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="vita"
+                  className="block text-sm font-light mb-2 heading-font"
+                  style={{ letterSpacing: '0.5px', color: '#D3AF37' }}
+                >
+                  Vita (cm)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  id="vita"
+                  className="input-field w-full"
+                  placeholder="85"
+                  value={formData.vita ?? ''}
+                  onChange={(e) => handleInputChange('vita', e.target.value ? parseFloat(e.target.value) : null)}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="gamba"
+                  className="block text-sm font-light mb-2 heading-font"
+                  style={{ letterSpacing: '0.5px', color: '#D3AF37' }}
+                >
+                  Gamba (cm)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  id="gamba"
+                  className="input-field w-full"
+                  placeholder="58"
+                  value={formData.gamba ?? ''}
+                  onChange={(e) => handleInputChange('gamba', e.target.value ? parseFloat(e.target.value) : null)}
+                />
               </div>
 
               <div>
                 <label
                   htmlFor="fianchi"
                   className="block text-sm font-light mb-2 heading-font"
-                  style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                  style={{ letterSpacing: '0.5px', color: '#D3AF37' }}
                 >
                   Fianchi (cm)
                 </label>
@@ -744,186 +843,11 @@ export default function BodyMeasurementModal({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="bicipiteDx"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Bicipite DX (cm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="bicipiteDx"
-                    className="input-field w-full"
-                    placeholder="35"
-                    value={formData.bicipiteDx ?? ''}
-                    onChange={(e) => handleInputChange('bicipiteDx', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="bicipiteSx"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Bicipite SX (cm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="bicipiteSx"
-                    className="input-field w-full"
-                    placeholder="34.5"
-                    value={formData.bicipiteSx ?? ''}
-                    onChange={(e) => handleInputChange('bicipiteSx', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="avambraccioDx"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Avambraccio DX (cm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="avambraccioDx"
-                    className="input-field w-full"
-                    placeholder="28"
-                    value={formData.avambraccioDx ?? ''}
-                    onChange={(e) => handleInputChange('avambraccioDx', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="avambraccioSx"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Avambraccio SX (cm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="avambraccioSx"
-                    className="input-field w-full"
-                    placeholder="27.5"
-                    value={formData.avambraccioSx ?? ''}
-                    onChange={(e) => handleInputChange('avambraccioSx', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="cosciaDx"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Coscia DX (cm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="cosciaDx"
-                    className="input-field w-full"
-                    placeholder="58"
-                    value={formData.cosciaDx ?? ''}
-                    onChange={(e) => handleInputChange('cosciaDx', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="cosciaSx"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Coscia SX (cm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="cosciaSx"
-                    className="input-field w-full"
-                    placeholder="57.5"
-                    value={formData.cosciaSx ?? ''}
-                    onChange={(e) => handleInputChange('cosciaSx', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="polpaccioDx"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Polpaccio DX (cm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="polpaccioDx"
-                    className="input-field w-full"
-                    placeholder="38"
-                    value={formData.polpaccioDx ?? ''}
-                    onChange={(e) => handleInputChange('polpaccioDx', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="polpaccioSx"
-                    className="block text-sm font-light mb-2 heading-font"
-                    style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                  >
-                    Polpaccio SX (cm)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    id="polpaccioSx"
-                    className="input-field w-full"
-                    placeholder="37.5"
-                    value={formData.polpaccioSx ?? ''}
-                    onChange={(e) => handleInputChange('polpaccioSx', e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="bodyFat"
-                  className="block text-sm font-light mb-2 heading-font"
-                  style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
-                >
-                  Body Fat % (opzionale)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  id="bodyFat"
-                  className="input-field w-full"
-                  placeholder="15.5"
-                  value={formData.bodyFat ?? ''}
-                  onChange={(e) => handleInputChange('bodyFat', e.target.value ? parseFloat(e.target.value) : null)}
-                />
-              </div>
-
               <div>
                 <label
                   htmlFor="notes"
                   className="block text-sm font-light mb-2 heading-font"
-                  style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                  style={{ letterSpacing: '0.5px', color: '#D3AF37' }}
                 >
                   Note (opzionale)
                 </label>
@@ -959,7 +883,7 @@ export default function BodyMeasurementModal({
                           {m.measurementDate ? formatDate(m.measurementDate) : 'N/A'}
                         </span>
                         <span className="text-xs text-gray-400">
-                          {m.peso || '-'}kg • {m.altezza || '-'}cm
+                          {m.peso || '-'}kg
                         </span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-xs text-gray-400">
@@ -967,10 +891,7 @@ export default function BodyMeasurementModal({
                         <div>Vita: {m.vita || '-'}cm</div>
                         <div>Fianchi: {m.fianchi || '-'}cm</div>
                       </div>
-                      {m.bodyFat && (
-                        <div className="text-xs text-gray-400 mt-1">Body Fat: {m.bodyFat}%</div>
-                      )}
-                      <div className="text-xs text-[#E8DCA0] mt-2 text-center">
+                      <div className="text-xs text-[#D3AF37] mt-2 text-center">
                         👆 Clicca per dettagli completi
                       </div>
                     </div>
@@ -1019,90 +940,28 @@ export default function BodyMeasurementModal({
                   <p className="text-lg font-semibold">{selectedMeasurement.peso || '-'} kg</p>
                 </div>
                 <div className="glass-card rounded-lg p-4">
-                  <p className="text-sm text-gray-400 mb-1">Altezza</p>
-                  <p className="text-lg font-semibold">{selectedMeasurement.altezza || '-'} cm</p>
+                  <p className="text-sm text-gray-400 mb-1">Braccio</p>
+                  <p className="text-lg font-semibold">{selectedMeasurement.braccio || '-'} cm</p>
                 </div>
-                {selectedMeasurement.bodyFat && (
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Body Fat</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.bodyFat}%</p>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <h3 className="text-lg font-bold mb-3 gold-text-gradient heading-font">
-                  Circonferenze Torso
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Collo</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.collo || '-'} cm</p>
-                  </div>
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Spalle</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.spalle || '-'} cm</p>
-                  </div>
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Torace</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.torace || '-'} cm</p>
-                  </div>
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Vita</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.vita || '-'} cm</p>
-                  </div>
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Fianchi</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.fianchi || '-'} cm</p>
-                  </div>
+                <div className="glass-card rounded-lg p-4">
+                  <p className="text-sm text-gray-400 mb-1">Circonferenza Spalle</p>
+                  <p className="text-lg font-semibold">{selectedMeasurement.spalle || '-'} cm</p>
                 </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-bold mb-3 gold-text-gradient heading-font">
-                  Circonferenze Braccia
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Bicipite DX</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.bicipiteDx || '-'} cm</p>
-                  </div>
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Bicipite SX</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.bicipiteSx || '-'} cm</p>
-                  </div>
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Avambraccio DX</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.avambraccioDx || '-'} cm</p>
-                  </div>
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Avambraccio SX</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.avambraccioSx || '-'} cm</p>
-                  </div>
+                <div className="glass-card rounded-lg p-4">
+                  <p className="text-sm text-gray-400 mb-1">Torace</p>
+                  <p className="text-lg font-semibold">{selectedMeasurement.torace || '-'} cm</p>
                 </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-bold mb-3 gold-text-gradient heading-font">
-                  Circonferenze Gambe
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Coscia DX</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.cosciaDx || '-'} cm</p>
-                  </div>
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Coscia SX</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.cosciaSx || '-'} cm</p>
-                  </div>
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Polpaccio DX</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.polpaccioDx || '-'} cm</p>
-                  </div>
-                  <div className="glass-card rounded-lg p-4">
-                    <p className="text-sm text-gray-400 mb-1">Polpaccio SX</p>
-                    <p className="text-lg font-semibold">{selectedMeasurement.polpaccioSx || '-'} cm</p>
-                  </div>
+                <div className="glass-card rounded-lg p-4">
+                  <p className="text-sm text-gray-400 mb-1">Vita</p>
+                  <p className="text-lg font-semibold">{selectedMeasurement.vita || '-'} cm</p>
+                </div>
+                <div className="glass-card rounded-lg p-4">
+                  <p className="text-sm text-gray-400 mb-1">Gamba</p>
+                  <p className="text-lg font-semibold">{selectedMeasurement.gamba || '-'} cm</p>
+                </div>
+                <div className="glass-card rounded-lg p-4">
+                  <p className="text-sm text-gray-400 mb-1">Fianchi</p>
+                  <p className="text-lg font-semibold">{selectedMeasurement.fianchi || '-'} cm</p>
                 </div>
               </div>
 

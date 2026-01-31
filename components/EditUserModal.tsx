@@ -129,7 +129,8 @@ export default function EditUserModal({
             <label
               htmlFor="name"
               className="block text-sm font-light mb-2 heading-font"
-              style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+              className="text-gold-400"
+              style={{ letterSpacing: '0.5px' }}
             >
               Nome Completo
             </label>
@@ -148,7 +149,8 @@ export default function EditUserModal({
             <label
               htmlFor="email"
               className="block text-sm font-light mb-2 heading-font"
-              style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+              className="text-gold-400"
+              style={{ letterSpacing: '0.5px' }}
             >
               Email
             </label>
@@ -167,7 +169,8 @@ export default function EditUserModal({
             <label
               htmlFor="phone"
               className="block text-sm font-light mb-2 heading-font"
-              style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+              className="text-gold-400"
+              style={{ letterSpacing: '0.5px' }}
             >
               Telefono
             </label>
@@ -185,7 +188,8 @@ export default function EditUserModal({
             <label
               htmlFor="collaborationStartDate"
               className="block text-sm font-light mb-2 heading-font"
-              style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+              className="text-gold-400"
+              style={{ letterSpacing: '0.5px' }}
             >
               Data Inizio Collaborazione
             </label>

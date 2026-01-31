@@ -239,17 +239,36 @@ export async function checkEventExists(eventId: string): Promise<boolean> {
  * Gets available time slots for a given date
  * 
  * @param date - Date to check availability
+ * @param options - Optional parameters for admin special rules
+ * @param options.isAdmin - Whether the user is an admin
+ * @param options.packageId - Package ID being booked (for admin special rule)
+ * @param options.isMultiplePackage - Whether the package is a multiple package
  * @returns Array of available time slots in HH:mm format
  */
-export async function getAvailableSlots(date: Date) {
+export async function getAvailableSlots(
+  date: Date,
+  options?: {
+    isAdmin?: boolean
+    packageId?: string
+    isMultiplePackage?: boolean
+  }
+) {
   const { prisma } = await import('./prisma')
   
-  // Genera tutti gli slot possibili (ogni 30 minuti dalle 8:00 alle 20:00)
+  // Genera tutti gli slot possibili con nuova logica:
+  // - Dalle 6 alle 14: divisione di ora in ora (6, 7, 8, ecc.)
+  // - Elimina 14:00-15:30 (pausa pranzo)
+  // - Dalle 15:30 in poi: divisione a partire dalle 15:30 di un'ora in un'ora (15:30, 16:30, 17:30, ecc.)
   const allSlots: string[] = []
-  for (let hour = 8; hour < 20; hour++) {
-    for (let minute = 0; minute < 60; minute += 30) {
-      allSlots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`)
-    }
+  
+  // Dalle 6 alle 14: ogni ora
+  for (let hour = 6; hour < 14; hour++) {
+    allSlots.push(`${hour.toString().padStart(2, '0')}:00`)
+  }
+  
+  // Dalle 15:30 in poi: ogni ora a partire da 15:30 (15:30, 16:30, 17:30, ecc.)
+  for (let hour = 15; hour < 22; hour++) {
+    allSlots.push(`${hour.toString().padStart(2, '0')}:30`)
   }
 
   // STEP 1: Controlla prenotazioni nel database (fonte di verità principale)
@@ -261,6 +280,7 @@ export async function getAvailableSlots(date: Date) {
   endOfDay.setHours(23, 59, 59, 999)
 
   // Query per trovare tutte le prenotazioni confermate per quella data con durata
+  // Per la regola speciale admin, abbiamo bisogno anche di sapere se i pacchetti sono multipli
   const dbBookings = await prisma.booking.findMany({
     where: {
       status: 'CONFIRMED',
@@ -275,12 +295,19 @@ export async function getAvailableSlots(date: Date) {
       package: {
         select: {
           durationMinutes: true,
+          id: true,
+          userPackages: {
+            select: {
+              userId: true,
+            },
+          },
         },
       },
     },
   })
 
   // Calcola slot occupati considerando la durata di ogni prenotazione
+  // Ora gli slot sono ogni ora, quindi una prenotazione occupa lo slot se inizia a quell'ora
   const occupiedSlotsSet = new Set<string>()
   
   dbBookings
@@ -295,32 +322,9 @@ export async function getAvailableSlots(date: Date) {
     })
     .forEach(booking => {
       const [startHour, startMinute] = booking.time.split(':').map(Number)
-      const durationMinutes = booking.package.durationMinutes || 60 // Default 60 minuti
-      
-      // Calcola tutti gli slot occupati da questa prenotazione
-      // Una prenotazione che inizia alle 10:00 e dura 60 minuti occupa 10:00 e 10:30 (non 11:00)
-      let currentMinute = startMinute
-      let currentHour = startHour
-      const endTime = new Date(0, 0, 0, startHour, startMinute)
-      endTime.setMinutes(endTime.getMinutes() + durationMinutes)
-      const endHour = endTime.getHours()
-      const endMinute = endTime.getMinutes()
-      
-      // Aggiungi slot ogni 30 minuti dalla start alla end (esclusa la fine)
-      while (
-        currentHour < endHour || 
-        (currentHour === endHour && currentMinute < endMinute)
-      ) {
-        const slotTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`
-        occupiedSlotsSet.add(slotTime)
-        
-        // Avanza di 30 minuti
-        currentMinute += 30
-        if (currentMinute >= 60) {
-          currentMinute = 0
-          currentHour += 1
-        }
-      }
+      const slotTime = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`
+      // Aggiungi lo slot di inizio della prenotazione
+      occupiedSlotsSet.add(slotTime)
     })
   
   const occupiedSlotsFromDB = Array.from(occupiedSlotsSet)
@@ -365,6 +369,9 @@ export async function getAvailableSlots(date: Date) {
   // Assumiamo una durata standard di 60 minuti per verificare disponibilità
   // (la durata effettiva sarà verificata al momento della prenotazione)
   const defaultDurationMinutes = 60
+  const isAdmin = options?.isAdmin ?? false
+  const packageId = options?.packageId
+  const isMultiplePackage = options?.isMultiplePackage ?? false
   
   let availableSlots = allSlots.filter(slot => {
     const [slotHour, slotMinute] = slot.split(':').map(Number)
@@ -374,8 +381,8 @@ export async function getAvailableSlots(date: Date) {
     const slotEnd = new Date(slotStart)
     slotEnd.setMinutes(slotEnd.getMinutes() + defaultDurationMinutes)
     
-    // Verifica se questo slot si sovrappone con prenotazioni esistenti
-    const hasOverlap = dbBookings.some(booking => {
+    // Trova tutte le prenotazioni che si sovrappongono con questo slot
+    const overlappingBookings = dbBookings.filter(booking => {
       const bookingDate = new Date(booking.date)
       const selectedDate = new Date(date)
       
@@ -398,8 +405,89 @@ export async function getAvailableSlots(date: Date) {
       return slotStart.getTime() < bookingEnd.getTime() && slotEnd.getTime() > bookingStart.getTime()
     })
     
-    // Lo slot è disponibile se non c'è sovrapposizione E non è già occupato
-    return !hasOverlap && !allOccupiedSlots.includes(slot)
+    // Se non ci sono sovrapposizioni, lo slot è disponibile
+    if (overlappingBookings.length === 0) {
+      const isLunchBreak = (slotHour === 14 && slotMinute === 0) || 
+                          (slotHour === 14 && slotMinute === 30) ||
+                          (slotHour === 15 && slotMinute === 0)
+      return !isLunchBreak && !allOccupiedSlots.includes(slot)
+    }
+    
+    // Se ci sono sovrapposizioni, applica la regola speciale per admin
+    if (isAdmin) {
+      // REGOLA SPECIALE: Admin può prenotare 2 pacchetti singoli diversi alla stessa ora
+      const multiplePackageOverlaps = overlappingBookings.filter(booking => {
+        return booking.package.userPackages.length > 1
+      })
+      
+      // NON permettere se ci sono pacchetti multipli sovrapposti
+      if (multiplePackageOverlaps.length > 0) {
+        return false
+      }
+      
+      // Se abbiamo il packageId, possiamo fare controlli più specifici
+      if (packageId) {
+        const samePackageOverlaps = overlappingBookings.filter(booking => {
+          const bookingIsMultiple = booking.package.userPackages.length > 1
+          const isSamePackage = booking.package.id === packageId
+          return !bookingIsMultiple && isSamePackage
+        })
+        
+        const differentSinglePackageOverlaps = overlappingBookings.filter(booking => {
+          const bookingIsMultiple = booking.package.userPackages.length > 1
+          const isDifferentPackage = booking.package.id !== packageId
+          return !bookingIsMultiple && isDifferentPackage
+        })
+        
+        // NON permettere se ci sono pacchetti singoli dello stesso pacchetto sovrapposti
+        if (samePackageOverlaps.length > 0) {
+          return false
+        }
+        
+        // Se il pacchetto selezionato è multiplo, non permettere sovrapposizioni
+        if (isMultiplePackage) {
+          return false
+        }
+        
+        // Permettere fino a 2 pacchetti singoli di pacchetti diversi
+        if (differentSinglePackageOverlaps.length >= 2) {
+          return false
+        }
+        
+        // Se c'è 0 o 1 pacchetto singolo di pacchetti diversi, permettere
+        // NON controllare allOccupiedSlots qui perché la regola speciale dell'admin
+        // permette sovrapposizioni di pacchetti singoli diversi
+        const isLunchBreak = (slotHour === 14 && slotMinute === 0) || 
+                            (slotHour === 14 && slotMinute === 30) ||
+                            (slotHour === 15 && slotMinute === 0)
+        return !isLunchBreak
+      } else {
+        // Se non abbiamo il packageId, assumiamo che potrebbe essere un pacchetto singolo
+        // e permettiamo fino a 1 prenotazione di pacchetto singolo sovrapposta
+        const singlePackageOverlaps = overlappingBookings.filter(booking => {
+          return booking.package.userPackages.length === 1
+        })
+        
+        // Permettere fino a 1 pacchetto singolo sovrapposto (l'admin può aggiungerne un altro)
+        if (singlePackageOverlaps.length > 1) {
+          return false
+        }
+        
+        // Se c'è 0 o 1 pacchetto singolo sovrapposto, permettere
+        // NON controllare allOccupiedSlots qui perché la regola speciale dell'admin
+        // permette sovrapposizioni di pacchetti singoli diversi
+        const isLunchBreak = (slotHour === 14 && slotMinute === 0) || 
+                            (slotHour === 14 && slotMinute === 30) ||
+                            (slotHour === 15 && slotMinute === 0)
+        return !isLunchBreak
+      }
+    }
+    
+    // Per utenti normali o pacchetti multipli, non permettere sovrapposizioni
+    const isLunchBreak = (slotHour === 14 && slotMinute === 0) || 
+                        (slotHour === 14 && slotMinute === 30) ||
+                        (slotHour === 15 && slotMinute === 0)
+    return !isLunchBreak && !allOccupiedSlots.includes(slot)
   })
 
   // Se la data è oggi, filtra anche gli orari passati

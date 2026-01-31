@@ -2,8 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+/* Import Google Fonts - Russo One */
+@import url('https://fonts.googleapis.com/css2?family=Russo+One&display=swap');
+
+/* ============================================
+   VARIABILI CSS CENTRALIZZATE
+   Modifica qui per cambiare font e colori in tutta l'app
+   ============================================ */
+:root {
+  /* Font principale */
+  --font-primary: var(--font-russo-one), 'Russo One', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Colore oro principale */
+  --color-gold-main: #D3AF37;
+  --color-gold-light: #E5C55A;
+  --color-gold-dark: #B8942A;
+  
+  /* Varianti colore oro per opacità */
+  --color-gold-main-rgb: 211, 175, 55;
+  --color-gold-light-rgb: 229, 197, 90;
+  --color-gold-dark-rgb: 184, 148, 42;
+}
 
 /* Rispetta preferenze utente per animazioni */
 @media (prefers-reduced-motion: reduce) {
@@ -29,21 +48,14 @@
     text-rendering: optimizeLegibility;
   }
   
-  /* Font principale - Outfit per tutto il testo */
-  body, p, span, div, button, input, textarea, select, label, a, li, td, th {
-    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Font universale - Usa variabile CSS centralizzata */
+  body, p, span, div, button, input, textarea, select, label, a, li, td, th, h1, h2, h3, h4, h5, h6, .heading-font {
+    font-family: var(--font-primary);
   }
   
-  /* Font titoli - Cormorant Garamond solo per titoli */
-  h1, h2, h3, h4, h5, h6, .heading-font {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-  }
-  
-  /* Assicura che font-sans usi Outfit */
+  /* Assicura che font-sans usi la variabile CSS */
   .font-sans {
-    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-family: var(--font-primary) !important;
   }
   
   *:focus-visible {
@@ -51,10 +63,10 @@
   }
 }
 
-/* Selection color */
+/* Selection color - Usa variabile CSS */
 ::selection {
-  background-color: rgba(232, 220, 160, 0.3);
-  color: #E8DCA0;
+  background-color: rgba(var(--color-gold-main-rgb), 0.3);
+  color: var(--color-gold-main);
 }
 
 /* Parallax Background Layers */
@@ -194,7 +206,7 @@
 
 /* Gold Gradient */
 .gold-gradient {
-  background: linear-gradient(135deg, #E8DCA0 0%, #F5ECC8 25%, #E8DCA0 50%, #D4C896 75%, #E8DCA0 100%);
+  background: linear-gradient(135deg, var(--color-gold-main) 0%, var(--color-gold-light) 25%, var(--color-gold-main) 50%, var(--color-gold-dark) 75%, var(--color-gold-main) 100%);
   background-size: 200% 200%;
   animation: shimmer 3s ease-in-out infinite;
 }
@@ -205,7 +217,7 @@
 }
 
 .gold-text-gradient {
-  background: linear-gradient(135deg, #E8DCA0 0%, #F5ECC8 25%, #E8DCA0 50%, #D4C896 75%, #E8DCA0 100%);
+  background: linear-gradient(135deg, var(--color-gold-main) 0%, var(--color-gold-light) 25%, var(--color-gold-main) 50%, var(--color-gold-dark) 75%, var(--color-gold-main) 100%);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -259,7 +271,7 @@
 
 /* Status Badges */
 .status-badge {
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-primary);
   padding: 6px 14px;
   border-radius: 20px;
   font-size: 11px;
@@ -302,14 +314,14 @@
 
 /* Button Styles */
 .btn-gold {
-  background: linear-gradient(135deg, #E8DCA0 0%, #F5ECC8 50%, #E8DCA0 100%);
+  background: linear-gradient(135deg, #D3AF37 0%, #E5C55A 50%, #D3AF37 100%);
   background-size: 200% 200%;
   color: #000;
   font-weight: 700;
   transition: all 0.3s ease;
   border: none;
   box-shadow: 
-    0 4px 25px rgba(232, 220, 160, 0.4),
+    0 4px 25px rgba(211, 175, 55, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
     inset 0 -1px 0 rgba(0, 0, 0, 0.2);
   position: relative;
@@ -332,9 +344,9 @@
   transform: translateY(-2px);
   background-position: 100% 50%;
   box-shadow: 
-    0 6px 30px rgba(232, 220, 160, 0.5),
+    0 6px 30px rgba(211, 175, 55, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 0 30px rgba(232, 220, 160, 0.25);
+    0 0 30px rgba(211, 175, 55, 0.25);
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
@@ -365,17 +377,17 @@
   box-shadow: 
     inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
     0 2px 10px rgba(0, 0, 0, 0.2);
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-primary);
 }
 
 .input-field:focus {
   outline: none;
-  border-color: rgba(232, 220, 160, 0.5);
+  border-color: rgba(211, 175, 55, 0.5);
   background: rgba(255, 255, 255, 0.1);
   box-shadow: 
-    0 0 0 4px rgba(232, 220, 160, 0.12),
+    0 0 0 4px rgba(211, 175, 55, 0.12),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
-    0 8px 25px rgba(232, 220, 160, 0.2);
+    0 8px 25px rgba(211, 175, 55, 0.2);
   transform: translateY(-2px);
 }
 
@@ -443,28 +455,28 @@ select option {
   width: 26px;
   left: 4px;
   bottom: 3px;
-  background: linear-gradient(135deg, #E8DCA0 0%, #F5ECC8 50%, #E8DCA0 100%);
+  background: linear-gradient(135deg, #D3AF37 0%, #E5C55A 50%, #D3AF37 100%);
   transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
   border-radius: 50%;
   box-shadow: 
-    0 2px 8px rgba(232, 220, 160, 0.4),
+    0 2px 8px rgba(211, 175, 55, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 0 15px rgba(232, 220, 160, 0.3);
+    0 0 15px rgba(211, 175, 55, 0.3);
 }
 
 input:checked + .toggle-slider {
-  background: rgba(232, 220, 160, 0.15);
+  background: rgba(211, 175, 55, 0.15);
   box-shadow: 
     inset 0 2px 4px rgba(0, 0, 0, 0.2),
-    0 0 20px rgba(232, 220, 160, 0.25);
+    0 0 20px rgba(211, 175, 55, 0.25);
 }
 
 input:checked + .toggle-slider:before {
   transform: translateX(30px);
   box-shadow: 
-    0 2px 12px rgba(232, 220, 160, 0.6),
+    0 2px 12px rgba(211, 175, 55, 0.6),
     inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 0 25px rgba(232, 220, 160, 0.5);
+    0 0 25px rgba(211, 175, 55, 0.5);
 }
 
 /* Appointment Card */
@@ -485,7 +497,7 @@ input:checked + .toggle-slider:before {
 /* Loading Spinner */
 .loading-spinner {
   border: 3px solid rgba(230, 220, 170, 0.2);
-  border-top: 3px solid #E8DCA0;
+  border-top: 3px solid #D3AF37;
   border-radius: 50%;
   width: 20px;
   height: 20px;
@@ -555,7 +567,7 @@ button.tab-button,
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   color: #999 !important;
   font-weight: 600 !important;
-  font-family: 'Cormorant Garamond', Georgia, serif !important;
+  font-family: 'Russo One', -apple-system, BlinkMacSystemFont, sans-serif !important;
   letter-spacing: 0.5px !important;
   transition: all 0.3s ease !important;
   cursor: pointer !important;
@@ -578,10 +590,10 @@ button.tab-button:hover,
 
 button.tab-button.active,
 .tab-button.active {
-  background: rgba(232, 220, 160, 0.2) !important;
-  border-color: rgba(232, 220, 160, 0.4) !important;
-  color: #E8DCA0 !important;
-  box-shadow: 0 0 20px rgba(232, 220, 160, 0.15) !important;
+  background: rgba(211, 175, 55, 0.2) !important;
+  border-color: rgba(211, 175, 55, 0.4) !important;
+  color: #D3AF37 !important;
+  box-shadow: 0 0 20px rgba(211, 175, 55, 0.15) !important;
 }
 
 /* Calendar Styles - Compact Design */
@@ -705,8 +717,8 @@ button.tab-button.active,
 }
 
 .calendar-day.today {
-  border: 2px solid #E8DCA0;
-  box-shadow: 0 0 15px rgba(232, 220, 160, 0.2);
+  border: 2px solid #D3AF37;
+  box-shadow: 0 0 15px rgba(211, 175, 55, 0.2);
 }
 
 .calendar-day-number {
@@ -719,7 +731,7 @@ button.tab-button.active,
   position: absolute;
   bottom: 3px;
   right: 3px;
-  background: linear-gradient(135deg, #E8DCA0 0%, #F5ECC8 100%);
+  background: linear-gradient(135deg, #D3AF37 0%, #E5C55A 100%);
   color: #000;
   font-size: 8px;
   font-weight: 700;
@@ -744,8 +756,8 @@ button.tab-button.active,
 }
 
 .calendar-view-btn.active {
-  background: rgba(232, 220, 160, 0.2);
-  color: #E8DCA0;
+  background: rgba(211, 175, 55, 0.2);
+  color: #D3AF37;
 }
 
 .calendar-view-btn:hover {
@@ -769,14 +781,14 @@ button.tab-button.active,
 }
 
 .time-slot.has-appointment {
-  background: rgba(232, 220, 160, 0.1);
-  border-color: rgba(232, 220, 160, 0.3);
+  background: rgba(211, 175, 55, 0.1);
+  border-color: rgba(211, 175, 55, 0.3);
   min-height: 60px;
 }
 
 .appointment-block {
-  background: linear-gradient(135deg, rgba(232, 220, 160, 0.25) 0%, rgba(245, 236, 200, 0.15) 100%);
-  border: 1px solid rgba(232, 220, 160, 0.4);
+  background: linear-gradient(135deg, rgba(211, 175, 55, 0.25) 0%, rgba(229, 197, 90, 0.15) 100%);
+  border: 1px solid rgba(211, 175, 55, 0.4);
   border-radius: 6px;
   padding: 6px;
   margin: 2px 0;
@@ -787,7 +799,7 @@ button.tab-button.active,
 
 .appointment-block:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(232, 220, 160, 0.3);
+  box-shadow: 0 4px 12px rgba(211, 175, 55, 0.3);
 }
 
 .time-label {
@@ -833,7 +845,7 @@ button.tab-button.active,
 }
 
 .toast.info {
-  background: rgba(232, 220, 160, 0.9);
+  background: rgba(211, 175, 55, 0.9);
 }
 
 /* Modal Overlay */
@@ -860,7 +872,7 @@ button.tab-button.active,
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at 50% 50%, rgba(232, 220, 160, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle at 50% 50%, rgba(211, 175, 55, 0.08) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -922,8 +934,8 @@ button.tab-button.active,
 .muscle-group.highlighted ellipse,
 .muscle-group.highlighted path,
 .muscle-group.highlighted rect {
-  fill: #E8DCA0 !important;
-  stroke: #F5ECC8 !important;
+  fill: #D3AF37 !important;
+  stroke: #E5C55A !important;
   stroke-width: 2 !important;
 }
 
@@ -931,18 +943,18 @@ button.tab-button.active,
   position: absolute;
   width: 12px;
   height: 12px;
-  background: linear-gradient(135deg, #E8DCA0 0%, #F5ECC8 100%);
+  background: linear-gradient(135deg, #D3AF37 0%, #E5C55A 100%);
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 0 15px rgba(232, 220, 160, 0.5);
+  box-shadow: 0 0 15px rgba(211, 175, 55, 0.5);
   z-index: 10;
 }
 
 .measurement-point:hover {
   transform: scale(1.5);
-  box-shadow: 0 0 25px rgba(232, 220, 160, 0.8);
+  box-shadow: 0 0 25px rgba(211, 175, 55, 0.8);
 }
 
 .measurement-point::after {
@@ -952,7 +964,7 @@ button.tab-button.active,
   top: 50%;
   transform: translateY(-50%);
   background: rgba(0, 0, 0, 0.9);
-  color: #E8DCA0;
+  color: #D3AF37;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 11px;
@@ -978,10 +990,10 @@ button.tab-button.active,
 }
 
 .history-line {
-  stroke: #E8DCA0;
+  stroke: #D3AF37;
   stroke-width: 2;
   fill: none;
-  filter: drop-shadow(0 0 4px rgba(232, 220, 160, 0.5));
+  filter: drop-shadow(0 0 4px rgba(211, 175, 55, 0.5));
 }
 
 /* Utilities */

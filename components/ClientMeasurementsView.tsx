@@ -69,7 +69,7 @@ export default function ClientMeasurementsView() {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <div className="inline-block w-8 h-8 border-4 border-dark-200 border-t-[#E8DCA0] rounded-full animate-spin"></div>
+        <div className="inline-block w-8 h-8 border-4 border-dark-200 border-t-gold-400 rounded-full animate-spin"></div>
         <p className="mt-4 text-dark-600">Caricamento misurazioni...</p>
       </div>
     )
@@ -113,7 +113,7 @@ export default function ClientMeasurementsView() {
               {m.bodyFat && (
                 <div className="text-xs text-gray-400 mt-1">Body Fat: {m.bodyFat}%</div>
               )}
-              <div className="text-xs text-[#E8DCA0] mt-2 text-center">
+              <div className="text-xs text-gold-400 mt-2 text-center">
                 👆 Clicca per dettagli completi
               </div>
             </div>

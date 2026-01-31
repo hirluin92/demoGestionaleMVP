@@ -177,7 +177,8 @@ export default function EditAppointmentModal({
             <label
               htmlFor="date"
               className="block text-sm font-light mb-2 heading-font"
-              style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+              className="text-gold-400"
+              style={{ letterSpacing: '0.5px' }}
             >
               Data
             </label>
@@ -201,7 +202,8 @@ export default function EditAppointmentModal({
               <label
                 htmlFor="time"
                 className="block text-sm font-light mb-2 heading-font"
-                style={{ letterSpacing: '0.5px', color: '#E8DCA0' }}
+                className="text-gold-400"
+              style={{ letterSpacing: '0.5px' }}
               >
                 Ora
               </label>

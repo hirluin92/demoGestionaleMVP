@@ -26,7 +26,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     
     const variants = {
       gold: 'btn-gold text-black font-bold',
-      'outline-gold': 'border-2 border-[#E8DCA0] text-[#E8DCA0] hover:bg-[#E8DCA0]/10 backdrop-blur-sm',
+      'outline-gold': 'border-2 border-gold-400 text-gold-400 hover:bg-gold-400/10 backdrop-blur-sm',
       dark: 'bg-dark-100 hover:bg-dark-200 text-white shadow-dark hover:shadow-dark-lg',
       ghost: 'hover:bg-dark-100/50 text-dark-700 hover:text-dark-800',
       danger: 'bg-gradient-to-r from-accent-danger to-red-500 hover:from-red-500 hover:to-red-600 text-white shadow-lg',

@@ -25,7 +25,7 @@ export function Card({
   const variants = {
     dark: 'glass-card',
     darker: 'bg-dark-950 border border-dark-100/20',
-    'gold-border': 'glass-card border-2 border-[#E8DCA0]/30 shadow-gold',
+    'gold-border': 'glass-card border-2 border-gold-400/30 shadow-gold',
   }
   
   const hoverClass = hover 

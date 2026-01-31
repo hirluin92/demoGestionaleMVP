@@ -274,14 +274,26 @@ export default function AdminCalendar() {
     const dateStr = format(currentDay, 'yyyy-MM-dd')
     const dayAppointments = allAppointments.filter(a => a.date === dateStr)
 
-    const startHour = 6
-    const endHour = 22
-    const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour)
+    // Genera le ore disponibili: 6-13 ogni ora, poi 15:30, 16:30, 17:30, ecc.
+    const hours: Array<{ hour: number; minute: number }> = []
+    // Dalle 6 alle 13: ogni ora
+    for (let h = 6; h < 14; h++) {
+      hours.push({ hour: h, minute: 0 })
+    }
+    // Dalle 15:30 in poi: ogni ora a partire da 15:30
+    for (let h = 15; h < 22; h++) {
+      hours.push({ hour: h, minute: 30 })
+    }
 
     const HOUR_HEIGHT = isMobile ? 40 : 60
     const PX_PER_MIN = HOUR_HEIGHT / 60
-    const dayStartMin = startHour * 60
-    const totalMinutes = (endHour - startHour) * 60
+    const dayStartMin = 6 * 60 // Inizia alle 6:00
+    // Calcola l'altezza totale: dalle 6 alle 13 (7 ore) + pausa pranzo (1.5 ore) + dalle 15:30 alle 21:30 (6 ore)
+    const morningHours = 7 // 6-13
+    const lunchBreak = 1.5 // 14:00-15:30
+    const afternoonHours = 6 // 15:30-21:30
+    const totalHours = morningHours + lunchBreak + afternoonHours
+    const totalMinutes = totalHours * 60
     const timelineHeight = totalMinutes * PX_PER_MIN
 
     const minutesSinceMidnight = (hhmm: string) => {
@@ -296,7 +308,7 @@ export default function AdminCalendar() {
           <h3 className="text-lg font-bold gold-text-gradient heading-font mb-1">
             {dayAppointments.length} Appuntament{dayAppointments.length !== 1 ? 'i' : 'o'}
           </h3>
-          <p className="text-xs text-gray-400">Orario: 06:00 - 22:00</p>
+            <p className="text-xs text-gray-400">Orario: 06:00 - 13:00, 15:30 - 21:30</p>
         </div>
 
         {/* UNICO SCROLL CONTAINER - ore + timeline insieme */}
@@ -305,18 +317,18 @@ export default function AdminCalendar() {
           style={{ height: '70vh' }}
         >
           <div className="grid grid-cols-12 gap-2">
-            {/* Colonna etichette ore */}
-            <div className="col-span-2 md:col-span-1">
-              {hours.slice(0, -1).map((h) => (
-                <div
-                  key={h}
-                  className="time-label flex items-start text-[10px] md:text-xs"
-                  style={{ height: HOUR_HEIGHT }}
-                >
-                  {String(h).padStart(2, '0')}:00
-                </div>
-              ))}
-            </div>
+              {/* Colonna etichette ore */}
+              <div className="col-span-2 md:col-span-1">
+                {hours.slice(0, -1).map((h, idx) => (
+                  <div
+                    key={`${h.hour}-${h.minute}`}
+                    className="time-label flex items-start text-[10px] md:text-xs"
+                    style={{ height: HOUR_HEIGHT }}
+                  >
+                    {String(h.hour).padStart(2, '0')}:{String(h.minute).padStart(2, '0')}
+                  </div>
+                ))}
+              </div>
 
             {/* Colonna timeline */}
             <div className="col-span-10 md:col-span-11">
@@ -324,57 +336,127 @@ export default function AdminCalendar() {
                 className="relative time-slot"
                 style={{ height: timelineHeight }}
               >
-                {/* Linee orarie */}
-                {hours.slice(0, -1).map((h, idx) => (
-                  <div
-                    key={h}
-                    className="absolute left-0 right-0 border-t border-white/10 z-0"
-                    style={{ top: idx * HOUR_HEIGHT }}
-                  />
-                ))}
+                  {/* Linee orarie */}
+                  {hours.slice(0, -1).map((h, idx) => {
+                    const hourMinutes = h.hour * 60 + h.minute
+                    const top = (hourMinutes - dayStartMin) * PX_PER_MIN
+                    return (
+                      <div
+                        key={`${h.hour}-${h.minute}`}
+                        className="absolute left-0 right-0 border-t border-white/10 z-0"
+                        style={{ top }}
+                      />
+                    )
+                  })}
 
-                {/* Eventi assoluti */}
-                {dayAppointments.map((apt) => {
-                  const startMin = minutesSinceMidnight(apt.time)
-                  const duration = apt.durationMinutes || 60
-                  const endMin = startMin + duration
+                {/* Eventi assoluti - raggruppati per ora */}
+                {(() => {
+                  // Filtra appuntamenti escludendo la pausa pranzo
+                  const filteredAppointments = dayAppointments.filter((apt) => {
+                    const startMin = minutesSinceMidnight(apt.time)
+                    const lunchBreakStart = 14 * 60 // 14:00
+                    const lunchBreakEnd = 15 * 60 + 30 // 15:30
+                    return !(startMin >= lunchBreakStart && startMin < lunchBreakEnd)
+                  })
 
-                  // clamp dentro range visibile
-                  const clampedStart = Math.max(startMin, dayStartMin)
-                  const clampedEnd = Math.min(endMin, dayStartMin + totalMinutes)
+                  // Raggruppa appuntamenti per ora
+                  const appointmentsByTime: Record<string, AppointmentData[]> = {}
+                  filteredAppointments.forEach((apt) => {
+                    if (!appointmentsByTime[apt.time]) {
+                      appointmentsByTime[apt.time] = []
+                    }
+                    appointmentsByTime[apt.time].push(apt)
+                  })
 
-                  const top = (clampedStart - dayStartMin) * PX_PER_MIN
-                  const height = Math.max((clampedEnd - clampedStart) * PX_PER_MIN, isMobile ? 14 : 18)
-                  
-                  // Versione compatta per eventi bassi (soglia più bassa su mobile)
-                  const compact = height < (isMobile ? 40 : 55)
+                  // Renderizza gli appuntamenti
+                  return Object.entries(appointmentsByTime).flatMap(([time, apts]) => {
+                    // Se ci sono 2 appuntamenti singoli (non multipli) alla stessa ora, renderizzali affiancati
+                    const singleAppointments = apts.filter(apt => !apt.isMultiplePackage)
+                    const hasTwoSingles = singleAppointments.length === 2 && apts.length === 2
 
-                  return (
-                    <div
-                      key={apt.id}
-                      className={`appointment-block cursor-pointer absolute left-2 right-2 z-10 overflow-hidden
-                        bg-[#0b0b0b]/90 border border-gold-400/25 shadow-lg shadow-black/40
-                        rounded-xl backdrop-blur-sm
-                        ${apt.isPast ? 'grayscale brightness-75' : ''}`}
-                      style={{ top, height }}
-                      onClick={() => showAppointmentDetail(apt)}
-                    >
-                      <div className="h-full p-1.5 md:p-2 flex flex-col justify-center leading-tight">
-                        <div>
-                          <div className="font-semibold text-[10px] md:text-xs lg:text-sm text-white truncate">
-                            {apt.client_name}
-                            {apt.isMultiplePackage && !compact && (
-                              <Badge variant="info" size="sm" className="ml-1 md:ml-2 text-[8px] md:text-[10px]">(Multiplo)</Badge>
-                            )}
-                          </div>
-                          <div className="text-[9px] md:text-[11px] text-gray-400 truncate">
-                            {apt.time} • {apt.service}
+                    return apts.map((apt, index) => {
+                      const startMin = minutesSinceMidnight(apt.time)
+                      const duration = apt.durationMinutes || 60
+                      const endMin = startMin + duration
+
+                      // clamp dentro range visibile (considerando la pausa pranzo)
+                      const lunchBreakStart = 14 * 60 // 14:00
+                      const lunchBreakEnd = 15 * 60 + 30 // 15:30
+                      if (startMin >= lunchBreakStart && startMin < lunchBreakEnd) {
+                        return null // Non mostrare appuntamenti nella pausa pranzo
+                      }
+                      
+                      const clampedStart = Math.max(startMin, dayStartMin)
+                      // Se l'appuntamento si estende nella pausa pranzo, taglialo
+                      let clampedEnd = Math.min(endMin, dayStartMin + totalMinutes)
+                      if (clampedStart < lunchBreakStart && clampedEnd > lunchBreakStart) {
+                        clampedEnd = lunchBreakStart // Taglia alla pausa pranzo
+                      }
+
+                      const top = (clampedStart - dayStartMin) * PX_PER_MIN
+                      const height = Math.max((clampedEnd - clampedStart) * PX_PER_MIN, isMobile ? 14 : 18)
+                      
+                      // Versione compatta per eventi bassi (soglia più bassa su mobile)
+                      const compact = height < (isMobile ? 40 : 55)
+
+                      // Calcola posizione e larghezza per appuntamenti affiancati
+                      let left = '0.5rem' // left-2
+                      let right = '0.5rem' // right-2
+                      let width = 'auto'
+
+                      if (hasTwoSingles) {
+                        // Ogni appuntamento occupa metà dello spazio, con un piccolo gap tra loro
+                        const gap = '0.25rem' // gap tra i due
+                        const totalGap = `calc(${gap} * 1)` // gap tra i due
+                        const halfWidth = `calc(50% - ${gap} / 2)`
+                        
+                        if (index === 0) {
+                          // Primo appuntamento: sinistra
+                          left = '0.5rem'
+                          right = 'auto'
+                          width = halfWidth
+                        } else {
+                          // Secondo appuntamento: destra
+                          left = 'auto'
+                          right = '0.5rem'
+                          width = halfWidth
+                        }
+                      }
+
+                      return (
+                        <div
+                          key={apt.id}
+                          className={`appointment-block cursor-pointer absolute z-10 overflow-hidden
+                            bg-[#0b0b0b]/90 border border-gold-400/25 shadow-lg shadow-black/40
+                            rounded-xl backdrop-blur-sm
+                            ${apt.isPast ? 'grayscale brightness-75' : ''}`}
+                          style={{ 
+                            top, 
+                            height,
+                            left: hasTwoSingles ? (index === 0 ? '0.5rem' : 'auto') : '0.5rem',
+                            right: hasTwoSingles ? (index === 0 ? 'auto' : '0.5rem') : '0.5rem',
+                            width: hasTwoSingles ? `calc(50% - 0.625rem)` : 'auto'
+                          }}
+                          onClick={() => showAppointmentDetail(apt)}
+                        >
+                          <div className="h-full p-1.5 md:p-2 flex flex-col justify-center leading-tight">
+                            <div>
+                              <div className="font-semibold text-[10px] md:text-xs lg:text-sm text-white truncate">
+                                {apt.client_name}
+                                {apt.isMultiplePackage && !compact && (
+                                  <Badge variant="info" size="sm" className="ml-1 md:ml-2 text-[8px] md:text-[10px]">(Multiplo)</Badge>
+                                )}
+                              </div>
+                              <div className="text-[9px] md:text-[11px] text-gray-400 truncate">
+                                {apt.time} • {apt.service}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  )
-                })}
+                      )
+                    })
+                  })
+                })()}
               </div>
             </div>
           </div>
@@ -416,7 +498,7 @@ export default function AdminCalendar() {
             variant="ghost"
             size="sm"
             onClick={goToToday}
-            className="text-[#E8DCA0] hover:text-[#F5ECC8] text-xs md:text-sm px-2 md:px-3"
+            className="text-gold-400 hover:text-gold-300 text-xs md:text-sm px-2 md:px-3"
           >
             Oggi
           </Button>
@@ -458,7 +540,7 @@ export default function AdminCalendar() {
       <div>
         {loading ? (
           <div className="text-center py-12">
-            <div className="inline-block w-8 h-8 border-4 border-dark-200 border-t-[#E8DCA0] rounded-full animate-spin"></div>
+            <div className="inline-block w-8 h-8 border-4 border-dark-200 border-t-gold-400 rounded-full animate-spin"></div>
             <p className="mt-4 text-dark-600">Caricamento calendario...</p>
           </div>
         ) : (

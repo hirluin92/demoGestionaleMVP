@@ -237,13 +237,20 @@ export async function POST(request: NextRequest) {
         package: {
           select: {
             durationMinutes: true,
+            id: true,
+            userPackages: {
+              select: {
+                userId: true,
+              },
+            },
           },
         },
       },
     })
 
     // Verifica sovrapposizioni
-    const hasOverlap = existingBookings.some(existing => {
+    // REGOLA SPECIALE: L'admin può prenotare 2 lezioni di pacchetti singoli diversi alla stessa ora
+    const overlappingBookings = existingBookings.filter(existing => {
       const existingDate = new Date(existing.date)
       const [existingHour, existingMinute] = existing.time.split(':').map(Number)
       
@@ -269,11 +276,63 @@ export async function POST(request: NextRequest) {
       return newStart.getTime() < existingEnd.getTime() && newEnd.getTime() > existingStart.getTime()
     })
 
-    if (hasOverlap) {
-      return NextResponse.json(
-        { error: 'Questo orario si sovrappone con una prenotazione esistente' },
-        { status: 409 }
-      )
+    // Se ci sono sovrapposizioni, verifica se sono tutte di pacchetti singoli diversi
+    if (overlappingBookings.length > 0) {
+      // Verifica se la nuova prenotazione è per un pacchetto singolo
+      const isNewBookingSingle = !isMultiplePackage
+      
+      // Separa le sovrapposizioni per tipo
+      const multiplePackageOverlaps = overlappingBookings.filter(existing => {
+        return existing.package.userPackages.length > 1
+      })
+      
+      const samePackageOverlaps = overlappingBookings.filter(existing => {
+        const existingIsMultiple = existing.package.userPackages.length > 1
+        const isSamePackage = existing.package.id === packageId
+        return !existingIsMultiple && isSamePackage
+      })
+      
+      const differentSinglePackageOverlaps = overlappingBookings.filter(existing => {
+        const existingIsMultiple = existing.package.userPackages.length > 1
+        const isDifferentPackage = existing.package.id !== packageId
+        return !existingIsMultiple && isDifferentPackage
+      })
+
+      // Se la nuova prenotazione è per un pacchetto singolo
+      if (isNewBookingSingle) {
+        // NON permettere se ci sono pacchetti multipli sovrapposti
+        if (multiplePackageOverlaps.length > 0) {
+          return NextResponse.json(
+            { error: 'Questo orario si sovrappone con una prenotazione di pacchetto multiplo' },
+            { status: 409 }
+          )
+        }
+        
+        // NON permettere se ci sono pacchetti singoli dello stesso pacchetto sovrapposti
+        if (samePackageOverlaps.length > 0) {
+          return NextResponse.json(
+            { error: 'Questo orario si sovrappone con una prenotazione dello stesso pacchetto' },
+            { status: 409 }
+          )
+        }
+        
+        // Permettere fino a 2 pacchetti singoli di pacchetti diversi
+        if (differentSinglePackageOverlaps.length >= 2) {
+          return NextResponse.json(
+            { error: 'Questo orario è già occupato da 2 prenotazioni di pacchetti singoli diversi' },
+            { status: 409 }
+          )
+        }
+        
+        // Se c'è 0 o 1 pacchetto singolo di pacchetti diversi, permettere
+        // (sarà la prima o la seconda prenotazione di pacchetti singoli diversi)
+      } else {
+        // Per pacchetti multipli, non permettere sovrapposizioni
+        return NextResponse.json(
+          { error: 'Questo orario si sovrappone con una prenotazione esistente' },
+          { status: 409 }
+        )
+      }
     }
 
     // Crea Google Calendar event (opzionale)

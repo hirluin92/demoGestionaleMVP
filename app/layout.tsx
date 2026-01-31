@@ -1,27 +1,17 @@
 import type { Metadata } from 'next'
-import { Outfit } from 'next/font/google'
-import { Cormorant_Garamond } from 'next/font/google'
+import { Russo_One } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 import { ParallaxBackground } from '@/components/ParallaxBackground'
 import { Particles } from '@/components/Particles'
 
-const outfit = Outfit({ 
-  subsets: ['latin'],
+const russoOne = Russo_One({ 
+  subsets: ['latin', 'cyrillic'],
   display: 'swap',
-  variable: '--font-outfit',
+  variable: '--font-russo-one',
   preload: true,
   fallback: ['-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-  weight: ['300', '400', '500', '600', '700', '800'],
-})
-
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-cormorant',
-  preload: true,
-  fallback: ['Georgia', 'serif'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400'],
 })
 
 export const metadata: Metadata = {
@@ -35,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="it" className={`${outfit.variable} ${cormorant.variable} h-full`}>
+    <html lang="it" className={`${russoOne.variable} h-full`}>
       <head>
         {/* Preconnect per performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />

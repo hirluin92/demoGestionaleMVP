@@ -108,21 +108,12 @@ model BodyMeasurement {
   userId          String
   measurementDate DateTime @default(now())
   peso            Float?
-  altezza         Float?
-  bodyFat         Float?
-  collo           Float?
-  spalle          Float?
+  braccio         Float?  // Circonferenza braccio
+  spalle          Float?  // Circonferenza spalle
   torace          Float?
   vita            Float?
+  gamba           Float?  // Circonferenza gamba
   fianchi         Float?
-  bicipiteDx      Float?
-  bicipiteSx      Float?
-  avambraccioDx   Float?
-  avambraccioSx   Float?
-  cosciaDx        Float?
-  cosciaSx        Float?
-  polpaccioDx     Float?
-  polpaccioSx     Float?
   notes           String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

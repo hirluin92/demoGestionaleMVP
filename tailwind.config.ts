@@ -9,18 +9,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Gold/Oro palette - Canva Design System
+        // Gold/Oro palette - Usa variabili CSS per centralizzazione
         gold: {
-          50: '#F5ECC8',
-          100: '#F5ECC8',
-          200: '#E8DCA0',
-          300: '#E8DCA0',  // Gold principale Canva
-          400: '#E8DCA0',  // Gold principale Canva
-          500: '#D4C896',  // Gold scuro Canva
-          600: '#D4C896',
-          700: '#D4C896',
-          800: '#D4C896',
-          900: '#D4C896',
+          50: 'var(--color-gold-light)',
+          100: 'var(--color-gold-light)',
+          200: 'var(--color-gold-main)',
+          300: 'var(--color-gold-main)',  // Gold principale
+          400: 'var(--color-gold-main)',  // Gold principale
+          500: 'var(--color-gold-dark)',  // Gold scuro
+          600: 'var(--color-gold-dark)',
+          700: 'var(--color-gold-dark)',
+          800: 'var(--color-gold-dark)',
+          900: 'var(--color-gold-dark)',
         },
         // Black palette - Nero puro, non marrone
         dark: {
@@ -45,10 +45,10 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Outfit', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        display: ['Cormorant Garamond', 'Georgia', 'serif'],
-        heading: ['Cormorant Garamond', 'Georgia', 'serif'],
-        mono: ['JetBrains Mono', 'Consolas', 'monospace'],
+        sans: ['var(--font-primary)'],
+        display: ['var(--font-primary)'],
+        heading: ['var(--font-primary)'],
+        mono: ['var(--font-primary)', 'Consolas', 'monospace'],
       },
       fontSize: {
         // Mobile-first responsive sizes
@@ -63,18 +63,18 @@ const config: Config = {
         '5xl': ['3rem', { lineHeight: '1' }],
       },
       boxShadow: {
-        'gold': '0 0 20px rgba(255, 215, 0, 0.3)',
-        'gold-lg': '0 0 40px rgba(255, 215, 0, 0.4)',
+        'gold': '0 0 20px rgba(var(--color-gold-main-rgb), 0.3)',
+        'gold-lg': '0 0 40px rgba(var(--color-gold-main-rgb), 0.4)',
         'dark': '0 4px 6px -1px rgba(0, 0, 0, 0.5)',
         'dark-lg': '0 20px 25px -5px rgba(0, 0, 0, 0.6)',
-        'inner-gold': 'inset 0 2px 4px 0 rgba(255, 215, 0, 0.15)',
-        'glow': '0 0 15px rgba(255, 215, 0, 0.5)',
+        'inner-gold': 'inset 0 2px 4px 0 rgba(var(--color-gold-main-rgb), 0.15)',
+        'glow': '0 0 15px rgba(var(--color-gold-main-rgb), 0.5)',
       },
       backgroundImage: {
-        'gradient-gold': 'linear-gradient(135deg, #ffd700 0%, #ffc107 100%)',
+        'gradient-gold': 'linear-gradient(135deg, var(--color-gold-main) 0%, var(--color-gold-dark) 100%)',
         'gradient-dark': 'linear-gradient(135deg, #000000 0%, #0a0a0a 100%)',
-        'gradient-radial': 'radial-gradient(circle at center, #ffd700, transparent 70%)',
-        'shimmer': 'linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent)',
+        'gradient-radial': 'radial-gradient(circle at center, var(--color-gold-main), transparent 70%)',
+        'shimmer': 'linear-gradient(90deg, transparent, rgba(var(--color-gold-main-rgb), 0.2), transparent)',
       },
       animation: {
         'fade-in': 'fadeIn 0.6s ease-out',
@@ -111,8 +111,8 @@ const config: Config = {
           '50%': { opacity: '0.7' },
         },
         glow: {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)' },
-          '50%': { boxShadow: '0 0 30px rgba(255, 215, 0, 0.5)' },
+          '0%, 100%': { boxShadow: '0 0 20px rgba(var(--color-gold-main-rgb), 0.3)' },
+          '50%': { boxShadow: '0 0 30px rgba(var(--color-gold-main-rgb), 0.5)' },
         },
       },
     },
