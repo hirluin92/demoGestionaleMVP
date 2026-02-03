@@ -243,7 +243,7 @@ export default function AdminCalendar() {
               {appointmentsByDate[selectedDate].map(apt => (
                 <div
                   key={apt.id}
-                  className={`glass-card rounded-lg p-2 md:p-2 cursor-pointer transition-all duration-300 ${
+                  className={`glass-card rounded-lg p-2 md:p-2 cursor-pointer transition-smooth ${
                     apt.isPast 
                       ? 'opacity-60 border-dark-400/30 hover:border-dark-400/50' 
                       : 'hover:border-gold-400/50'
@@ -427,8 +427,8 @@ export default function AdminCalendar() {
                         <div
                           key={apt.id}
                           className={`appointment-block cursor-pointer absolute z-10 overflow-hidden
-                            bg-[#0b0b0b]/90 border border-gold-400/25 shadow-lg shadow-black/40
-                            rounded-xl backdrop-blur-sm
+                            bg-[#0b0b0b]/90 border border-gold-400/25 shadow-card backdrop-blur-sm
+                            rounded-xl
                             ${apt.isPast ? 'grayscale brightness-75' : ''}`}
                           style={{ 
                             top, 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Package, User, Mail, Phone, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
+import { Label } from '@/components/ui/Label'
 import Button from '@/components/ui/Button'
 import DeleteConfirmModal from '@/components/DeleteConfirmModal'
 
@@ -97,99 +98,86 @@ export default function AdminPackagesList() {
       // Filtra solo i pacchetti assegnati a più di un utente
       filtered = packages.filter(pkg => pkg.userPackages.length > 1)
     } else {
-      // Filtra per numero di sessioni (24, 48, 80)
       filtered = packages.filter(pkg => pkg.totalSessions === selectedPackageType)
     }
 
-    const grouped: Record<string, UserWithPackage> = {}
+    // Raggruppa per utente
+    const userMap = new Map<string, UserWithPackage>()
 
-    // Itera su tutti i pacchetti e le loro relazioni userPackages
     filtered.forEach(pkg => {
-      // Se è un pacchetto multiplo, crea un singolo record con tutti gli atleti
       if (pkg.userPackages.length > 1) {
-        // Crea un record unico per il pacchetto multiplo
-        const packageKey = `package-${pkg.id}`
-        if (!grouped[packageKey]) {
-          // Usa il primo utente come "rappresentante" per il record
-          const firstUser = pkg.userPackages[0].user
-          grouped[packageKey] = {
+        // Pacchetto multiplo: crea un record unico con tutti gli atleti
+        const athletes = pkg.userPackages.map(up => ({
+          id: up.user.id,
+          name: up.user.name,
+          email: up.user.email,
+          phone: up.user.phone,
+          usedSessions: up.usedSessions,
+          remaining: pkg.totalSessions - up.usedSessions
+        }))
+
+        // Calcola la somma totale delle sessioni usate da tutti gli atleti
+        const totalUsedSessions = athletes.reduce((sum, athlete) => sum + athlete.usedSessions, 0)
+
+        const key = `multi-${pkg.id}`
+        if (!userMap.has(key)) {
+          userMap.set(key, {
             user: {
-              ...firstUser,
-              // Modifica il nome per mostrare tutti gli atleti
-              name: pkg.userPackages.map(up => up.user.name).join(' - '),
+              id: key,
+              name: athletes.map(a => a.name).join(' - '), // Nomi separati da " - "
+              email: athletes[0].email,
+              phone: athletes[0].phone
             },
-            packages: []
-          }
-        }
-        // Aggiungi il pacchetto con le informazioni aggregate
-        if (!grouped[packageKey].packages.find(p => p.id === pkg.id)) {
-          // Per i pacchetti multipli, mostra le sessioni totali e quelle usate aggregate
-          const totalUsed = pkg.userPackages.reduce((sum, up) => sum + up.usedSessions, 0)
-          grouped[packageKey].packages.push({
-            id: pkg.id,
-            name: pkg.name,
-            totalSessions: pkg.totalSessions,
-            usedSessions: totalUsed, // Somma delle sessioni usate da tutti gli atleti
-            remaining: pkg.totalSessions - totalUsed,
-            isActive: pkg.isActive,
-            // Aggiungi informazioni sugli atleti
-            athletes: pkg.userPackages.map(up => ({
-              id: up.user.id,
-              name: up.user.name,
-              email: up.user.email,
-              phone: up.user.phone,
-              usedSessions: up.usedSessions,
-              remaining: pkg.totalSessions - up.usedSessions,
-            })),
-          })
-        }
-      } else {
-        // Per pacchetti singoli, mantieni la logica originale
-        pkg.userPackages.forEach(userPackage => {
-          const userId = userPackage.user.id
-          if (!grouped[userId]) {
-            grouped[userId] = {
-              user: userPackage.user,
-              packages: []
-            }
-          }
-          // Aggiungi il pacchetto all'utente (evita duplicati)
-          if (!grouped[userId].packages.find(p => p.id === pkg.id)) {
-            grouped[userId].packages.push({
+            packages: [{
               id: pkg.id,
               name: pkg.name,
               totalSessions: pkg.totalSessions,
-              usedSessions: userPackage.usedSessions,
-              remaining: pkg.totalSessions - userPackage.usedSessions,
-              isActive: pkg.isActive
+              usedSessions: totalUsedSessions, // Usa la somma calcolata
+              remaining: pkg.totalSessions - totalUsedSessions,
+              isActive: pkg.isActive,
+              athletes
+            }]
+          })
+        }
+      } else {
+        // Pacchetto singolo
+        pkg.userPackages.forEach(up => {
+          if (!userMap.has(up.userId)) {
+            userMap.set(up.userId, {
+              user: {
+                id: up.user.id,
+                name: up.user.name,
+                email: up.user.email,
+                phone: up.user.phone
+              },
+              packages: []
             })
           }
+          const userData = userMap.get(up.userId)!
+          userData.packages.push({
+            id: pkg.id,
+            name: pkg.name,
+            totalSessions: pkg.totalSessions,
+            usedSessions: up.usedSessions,
+            remaining: pkg.totalSessions - up.usedSessions,
+            isActive: pkg.isActive
+          })
         })
       }
     })
 
-    // Converti in array e ordina gli utenti
-    const usersArray = Object.values(grouped)
-    
-    usersArray.sort((a, b) => {
-      let comparison = 0
-      
-      if (sortBy === 'userName') {
-        // Ordina per nome utente
-        comparison = a.user.name.localeCompare(b.user.name, 'it', { sensitivity: 'base' })
-      } else if (sortBy === 'totalSessions') {
-        // Ordina per numero totale di sessioni (somma di tutti i pacchetti dell'utente)
-        const totalA = a.packages.reduce((sum, pkg) => sum + pkg.totalSessions, 0)
-        const totalB = b.packages.reduce((sum, pkg) => sum + pkg.totalSessions, 0)
-        comparison = totalA - totalB
-      }
-      
-      return sortOrder === 'asc' ? comparison : -comparison
-    })
+    const usersArray = Array.from(userMap.values())
 
-    // Ordina anche i pacchetti dentro ogni utente per numero sessioni (opzionale, per consistenza)
-    usersArray.forEach(userData => {
-      userData.packages.sort((a, b) => a.totalSessions - b.totalSessions)
+    // Ordina
+    usersArray.sort((a, b) => {
+      if (sortBy === 'userName') {
+        const comparison = a.user.name.localeCompare(b.user.name)
+        return sortOrder === 'asc' ? comparison : -comparison
+      } else {
+        const aTotal = a.packages.reduce((sum, p) => sum + p.totalSessions, 0)
+        const bTotal = b.packages.reduce((sum, p) => sum + p.totalSessions, 0)
+        return sortOrder === 'asc' ? aTotal - bTotal : bTotal - aTotal
+      }
     })
 
     return usersArray
@@ -198,7 +186,7 @@ export default function AdminPackagesList() {
   if (loading) {
     return (
       <div className="text-center py-8">
-        <div className="inline-block w-8 h-8 border-4 border-dark-200 border-t-gold-400 rounded-full animate-spin"></div>
+        <div className="spinner-gold w-12 h-12 mx-auto mb-4"></div>
         <p className="mt-4 text-dark-600">Caricamento pacchetti...</p>
       </div>
     )
@@ -206,10 +194,12 @@ export default function AdminPackagesList() {
 
   if (packages.length === 0) {
     return (
-      <div className="text-center py-12">
-        <Package className="w-12 h-12 text-dark-500 mx-auto mb-4" />
-        <p className="text-dark-600 font-semibold">Nessun pacchetto creato</p>
-        <p className="text-sm text-dark-500 mt-2">Crea il primo pacchetto utilizzando il pulsante sopra</p>
+      <div className="empty-state">
+        <div className="empty-state-icon">
+          <Package className="w-10 h-10 text-[#D3AF37]" />
+        </div>
+        <h3 className="empty-state-title">Nessun pacchetto creato</h3>
+        <p className="empty-state-description">Crea il primo pacchetto utilizzando il pulsante sopra</p>
       </div>
     )
   }
@@ -257,9 +247,9 @@ export default function AdminPackagesList() {
       <div className="flex flex-col gap-2 md:gap-3">
         {/* Selezione tipo pacchetto */}
         <div className="flex flex-col sm:flex-row gap-1.5 md:gap-2 items-start sm:items-center">
-          <label className="text-xs md:text-sm font-semibold text-dark-600 whitespace-nowrap">
-            Filtra per tipo pacchetto:
-          </label>
+          <Label className="text-xs md:text-sm whitespace-nowrap">
+            Filtra per tipo pacchetto
+          </Label>
           <div className="flex flex-wrap gap-1 md:gap-1.5">
             <Button
               variant={selectedPackageType === 'all' ? 'gold' : 'outline-gold'}
@@ -293,9 +283,9 @@ export default function AdminPackagesList() {
 
         {/* Ordinamento */}
         <div className="flex flex-col sm:flex-row gap-1.5 md:gap-2 items-start sm:items-center">
-          <label className="text-xs md:text-sm font-semibold text-dark-600 whitespace-nowrap">
-            Ordina utenti per:
-          </label>
+          <Label className="text-xs md:text-sm whitespace-nowrap">
+            Ordina utenti per
+          </Label>
           <div className="flex items-center gap-1 md:gap-1.5 flex-nowrap">
             <Button
               variant={sortBy === 'userName' ? 'gold' : 'outline-gold'}
@@ -338,7 +328,7 @@ export default function AdminPackagesList() {
                 const firstPackage = userData.packages[0]
                 const isMultiple = firstPackage?.athletes && firstPackage.athletes.length > 0
                 const packageType = isMultiple ? 'MULTIPLO' : 'SINGOLO'
-                // Per pacchetti multipli, estrai i nomi degli atleti
+                // Per pacchetti multipli, estrai i nomi degli atleti per mostrarli uno sotto l'altro
                 const athleteNames = isMultiple && firstPackage?.athletes 
                   ? firstPackage.athletes.map(a => a.name)
                   : [userData.user.name]
@@ -346,7 +336,8 @@ export default function AdminPackagesList() {
                 return (
                   <div
                     key={userData.user.id}
-                    className="bg-dark-100/50 backdrop-blur-sm border border-dark-200/30 rounded-md p-2 hover:border-gold-400/50 transition-all duration-300"
+                    data-animate
+                    className="bg-dark-100/50 backdrop-blur-sm border border-dark-200/30 rounded-xl p-2 hover:border-gold-400/50 transition-smooth hover:shadow-card-hover"
                   >
                     <div className="flex items-center space-x-1.5">
                       {/* Icona ultra piccola */}
@@ -358,15 +349,13 @@ export default function AdminPackagesList() {
                       
                       {/* Contenuto principale - testi ultra ridotti */}
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-bold text-white mb-0.5 truncate leading-tight">{athleteNames[0]}</h4>
-                        
-                        {/* Secondo atleta (se multiplo) o spazio vuoto */}
-                        <div className="space-y-0">
-                          {athleteNames.length > 1 ? (
-                            <h4 className="text-xs font-bold text-white truncate leading-tight">{athleteNames[1]}</h4>
-                          ) : (
-                            <div className="h-[18px]"></div> // Mantiene l'altezza consistente (stessa altezza di text-xs)
-                          )}
+                        {/* Nomi uno sotto l'altro */}
+                        <div className="space-y-0.5">
+                          {athleteNames.map((name, index) => (
+                            <h4 key={index} className="text-xs font-bold text-white truncate leading-tight">
+                              {name}
+                            </h4>
+                          ))}
                         </div>
                       </div>
                       
@@ -381,7 +370,7 @@ export default function AdminPackagesList() {
                               size="sm"
                               className="text-[6px] px-0.5 py-0 leading-none h-auto scale-90"
                             >
-                              {firstPackage.totalSessions} lezioni • {packageType}
+                              {firstPackage.totalSessions} • {packageType}
                             </Badge>
                           )}
                         </div>
@@ -404,18 +393,23 @@ export default function AdminPackagesList() {
                     {/* Sezione espansa con dettagli - dimensioni ultra ridotte */}
                     {expandedUser === userData.user.id && (
                       <div className="mt-1.5 pt-1.5 border-t border-dark-200/30 space-y-1.5">
-                        {/* Email (nella sezione espansa) */}
-                        <div className="flex items-center space-x-1 text-[9px] text-dark-600">
-                          <Mail className="w-2.5 h-2.5 flex-shrink-0" />
-                          <a href={`mailto:${userData.user.email}`} className="underline truncate leading-tight">{userData.user.email}</a>
-                        </div>
-                        
-                        {/* Telefono (nella sezione espansa) */}
-                        {userData.user.phone && (
-                          <div className="flex items-center space-x-1 text-[9px] text-dark-600">
-                            <Phone className="w-2.5 h-2.5 flex-shrink-0" />
-                            <a href={`tel:${userData.user.phone}`} className="underline truncate leading-tight">{userData.user.phone}</a>
-                          </div>
+                        {/* Email e telefono solo per pacchetti singoli (non multipli) */}
+                        {userData.packages.length > 0 && userData.packages.every(pkg => !pkg.athletes || pkg.athletes.length === 0) && (
+                          <>
+                            {/* Email (nella sezione espansa) */}
+                            <div className="flex items-center space-x-1 text-[9px] text-dark-600">
+                              <Mail className="w-2.5 h-2.5 flex-shrink-0" />
+                              <a href={`mailto:${userData.user.email}`} className="underline truncate leading-tight">{userData.user.email}</a>
+                            </div>
+                            
+                            {/* Telefono (nella sezione espansa) */}
+                            {userData.user.phone && (
+                              <div className="flex items-center space-x-1 text-[9px] text-dark-600">
+                                <Phone className="w-2.5 h-2.5 flex-shrink-0" />
+                                <a href={`tel:${userData.user.phone}`} className="underline truncate leading-tight">{userData.user.phone}</a>
+                              </div>
+                            )}
+                          </>
                         )}
                         
                         {/* Lista pacchetti */}
@@ -470,9 +464,6 @@ export default function AdminPackagesList() {
                                         {athlete.phone && (
                                           <div className="text-[8px] text-dark-600">{athlete.phone}</div>
                                         )}
-                                        <Badge variant={athlete.remaining > 0 ? 'gold' : 'danger'} size="sm" className="text-[8px] px-0.5 py-0 h-auto mt-0.5">
-                                          {athlete.remaining} / {pkg.totalSessions} rimaste
-                                        </Badge>
                                       </div>
                                     ))}
                                   </div>
@@ -514,6 +505,7 @@ export default function AdminPackagesList() {
                 {usersByPackageType.map((userData) => (
                   <div
                     key={userData.user.id}
+                    data-animate
                     className="glass-card rounded-xl p-4 sm:p-6 hover:border-gold-400/50 transition-all duration-300"
                   >
                     {/* Header utente */}
@@ -524,18 +516,21 @@ export default function AdminPackagesList() {
                         </div>
                         <div className="min-w-0">
                           <h4 className="text-base sm:text-lg font-bold text-white truncate">{userData.user.name}</h4>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
-                            <div className="flex items-center space-x-1 text-sm text-dark-600">
-                              <Mail className="w-4 h-4 flex-shrink-0" />
-                              <span className="truncate">{userData.user.email}</span>
-                            </div>
-                            {userData.user.phone && (
+                          {/* Email e telefono solo per pacchetti singoli (non multipli) */}
+                          {userData.packages.length > 0 && userData.packages.every(pkg => !pkg.athletes || pkg.athletes.length === 0) && (
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
                               <div className="flex items-center space-x-1 text-sm text-dark-600">
-                                <Phone className="w-4 h-4 flex-shrink-0" />
-                                <span>{userData.user.phone}</span>
+                                <Mail className="w-4 h-4 flex-shrink-0" />
+                                <span className="truncate">{userData.user.email}</span>
                               </div>
-                            )}
-                          </div>
+                              {userData.user.phone && (
+                                <div className="flex items-center space-x-1 text-sm text-dark-600">
+                                  <Phone className="w-4 h-4 flex-shrink-0" />
+                                  <span>{userData.user.phone}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <Badge variant="info" size="sm" className="w-fit">
@@ -592,20 +587,13 @@ export default function AdminPackagesList() {
                                 {pkg.athletes.map((athlete) => (
                                   <div
                                     key={athlete.id}
-                                    className="bg-dark-200/50 rounded-lg p-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                                    className="bg-dark-200/50 rounded-lg p-2"
                                   >
-                                    <div className="flex-1">
-                                      <div className="font-semibold text-white text-sm">{athlete.name}</div>
-                                      <div className="text-xs text-dark-600">{athlete.email}</div>
-                                      {athlete.phone && (
-                                        <div className="text-xs text-dark-600">{athlete.phone}</div>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant={athlete.remaining > 0 ? 'gold' : 'danger'} size="sm">
-                                        {athlete.remaining} / {pkg.totalSessions} rimaste
-                                      </Badge>
-                                    </div>
+                                    <div className="font-semibold text-white text-sm">{athlete.name}</div>
+                                    <div className="text-xs text-dark-600">{athlete.email}</div>
+                                    {athlete.phone && (
+                                      <div className="text-xs text-dark-600">{athlete.phone}</div>
+                                    )}
                                   </div>
                                 ))}
                               </div>

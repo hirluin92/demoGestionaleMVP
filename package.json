@@ -25,7 +25,8 @@
     "check:calendar": "tsx scripts/check-google-calendar-sync.ts",
     "check:token": "tsx scripts/check-google-token.ts",
     "check:whatsapp": "tsx scripts/check-whatsapp-user.ts",
-    "list:users": "tsx scripts/list-users-whatsapp.ts"
+    "list:users": "tsx scripts/list-users-whatsapp.ts",
+    "clean:demo": "tsx scripts/clean-db-for-demo.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",
@@ -43,6 +44,9 @@
     "@vercel/kv": "^1.0.0",
     "resend": "^4.8.0",
     "tailwind-merge": "^2.5.2",
+    "three": "^0.169.0",
+    "@react-three/fiber": "^8.17.10",
+    "@react-three/drei": "^9.114.3",
     "twilio": "^5.3.5",
     "zod": "^3.23.8"
   },

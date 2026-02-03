@@ -112,7 +112,7 @@ export default function BookingsList({ onCancel, showCountOnly }: BookingsListPr
   if (loading) {
     return (
       <div className="text-center py-8">
-        <div className="inline-block w-8 h-8 border-4 border-dark-200 border-t-gold-400 rounded-full animate-spin"></div>
+        <div className="spinner-gold w-12 h-12 mx-auto mb-4"></div>
         <p className="mt-4 text-dark-600">Caricamento prenotazioni...</p>
       </div>
     )
@@ -120,10 +120,12 @@ export default function BookingsList({ onCancel, showCountOnly }: BookingsListPr
 
   if (bookings.length === 0) {
     return (
-      <div className="text-center py-12">
-        <Calendar className="w-12 h-12 text-dark-500 mx-auto mb-4" />
-        <p className="text-dark-600 font-semibold">Nessuna prenotazione</p>
-        <p className="text-sm text-dark-500 mt-2">Prenota la tua prima sessione utilizzando il form sopra</p>
+      <div className="empty-state">
+        <div className="empty-state-icon">
+          <Calendar className="w-10 h-10 text-[#D3AF37]" />
+        </div>
+        <h3 className="empty-state-title">Nessuna prenotazione</h3>
+        <p className="empty-state-description">Prenota la tua prima sessione utilizzando il form sopra</p>
       </div>
     )
   }
@@ -177,7 +179,7 @@ export default function BookingsList({ onCancel, showCountOnly }: BookingsListPr
             Prossime Prenotazioni
           </h4>
           <div className="space-y-3">
-            {upcomingBookings.map((booking) => {
+            {upcomingBookings.map((booking, index) => {
               const bookingDate = new Date(booking.date)
               const [hours, minutes] = booking.time.split(':').map(Number)
               bookingDate.setHours(hours, minutes, 0, 0)
@@ -190,10 +192,11 @@ export default function BookingsList({ onCancel, showCountOnly }: BookingsListPr
               return (
                 <div
                   key={booking.id}
-                  className={`bg-dark-100/50 backdrop-blur-sm border-2 rounded-xl p-4 md:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all duration-300 group ${
+                  data-animate
+                  className={`bg-dark-100/50 backdrop-blur-sm border-2 rounded-xl p-4 md:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-smooth group shadow-card ${
                     isPast 
                       ? 'opacity-60 border-dark-400/30 hover:border-dark-400/50' 
-                      : 'border-dark-200/30 hover:border-gold-400/50'
+                      : 'border-dark-200/30 hover:border-gold-400/50 hover:shadow-card-hover hover:scale-[1.02]'
                   }`}
                 >
                   <div className="flex items-center space-x-4 flex-1">

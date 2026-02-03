@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useSessionSecurity } from '@/hooks/useSessionSecurity'
+import { useScrollAnimation } from '@/hooks/useScrollAnimation'
 import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { signOut } from 'next-auth/react'
@@ -27,6 +28,7 @@ import ProfileModal from '@/components/ProfileModal'
 import SettingsModal from '@/components/SettingsModal'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
+import { Label } from '@/components/ui/Label'
 import { Badge } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import HugemassLogo from '@/components/HugemassLogo'
@@ -43,6 +45,7 @@ export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   useSessionSecurity() // Aggiunge controlli di sicurezza sulla sessione
+  useScrollAnimation() // Attiva animazioni scroll
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -150,7 +153,7 @@ export default function DashboardPage() {
       <div className="min-h-screen relative overflow-hidden">
         
         {/* Header Premium - Mobile Optimized */}
-        <nav className="glass-card border-b border-opacity-20 sticky top-0 z-50">
+        <nav className="glass-card border-b border-opacity-20 sticky top-0 z-50 rounded-none">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16 md:h-20">
               {/* Logo */}
@@ -286,7 +289,7 @@ export default function DashboardPage() {
             <>
 
           {/* Lista Prenotazioni - Spostata in alto */}
-          <div className="mb-6 md:mb-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="mb-6 md:mb-8">
             <Card variant="darker" as="section" aria-labelledby="bookings-title">
               <CardHeader>
                 <CardTitle id="bookings-title" className="flex items-center text-base md:text-lg">
@@ -302,7 +305,7 @@ export default function DashboardPage() {
 
           {/* Pacchetti - Mobile Optimized */}
           {activePackages.length > 0 && (
-            <div className="mb-8 md:mb-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <div className="mb-8 md:mb-12">
               <Card>
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -325,7 +328,8 @@ export default function DashboardPage() {
                       
                       return (
                         <div 
-                          key={pkg.id} 
+                          key={pkg.id}
+                          data-animate
                           className="relative p-4 md:p-6 rounded-xl bg-gradient-to-br from-dark-100/50 to-dark-200/30 border-2 border-dark-200/30 hover:border-gold-400/50 transition-all duration-300 group overflow-hidden"
                         >
                           {/* Glow effect - hidden on mobile for performance */}
@@ -373,7 +377,7 @@ export default function DashboardPage() {
           )}
 
           {/* Form Prenotazione */}
-          <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
+          <div>
             {totalRemainingSessions > 0 ? (
               <Card as="section" aria-labelledby="booking-title">
                 <CardHeader>
@@ -421,7 +425,7 @@ export default function DashboardPage() {
           )}
 
           {activeTab === 'measurements' && (
-            <div className="animate-fade-in">
+            <div>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center text-lg md:text-2xl heading-font gold-text-gradient">

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma, withRetry } from '@/lib/prisma'
 import { logger, sanitizeError } from '@/lib/logger'
 import { z } from 'zod'
 
@@ -24,25 +24,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
-    const packages = await prisma.package.findMany({
-      include: {
-        userPackages: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                phone: true,
+    const packages = await withRetry(() =>
+      prisma.package.findMany({
+        include: {
+          userPackages: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  phone: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+        orderBy: {
+          createdAt: 'desc',
+        },
+      })
+    )
 
     return NextResponse.json(packages)
   } catch (error) {
@@ -67,9 +69,11 @@ export async function POST(request: NextRequest) {
     const { userIds, name, totalSessions, durationMinutes } = createPackageSchema.parse(body)
 
     // Verifica che tutti gli utenti esistano
-    const users = await prisma.user.findMany({
-      where: { id: { in: userIds } },
-    })
+    const users = await withRetry(() =>
+      prisma.user.findMany({
+        where: { id: { in: userIds } },
+      })
+    )
 
     if (users.length !== userIds.length) {
       return NextResponse.json(
@@ -79,22 +83,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Verifica che nessun utente abbia già un pacchetto attivo
-    const usersWithActivePackages = await prisma.userPackage.findMany({
-      where: {
-        userId: { in: userIds },
-        package: {
-          isActive: true,
-        },
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
+    const usersWithActivePackages = await withRetry(() =>
+      prisma.userPackage.findMany({
+        where: {
+          userId: { in: userIds },
+          package: {
+            isActive: true,
           },
         },
-      },
-    })
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      })
+    )
 
     if (usersWithActivePackages.length > 0) {
       const usersWithPackages = usersWithActivePackages.map(up => up.user.name || up.user.email).join(', ')
@@ -115,36 +121,38 @@ export async function POST(request: NextRequest) {
     const packageName = name || (userIds.length > 1 ? 'Multiplo' : 'Singolo')
     
     // Crea il pacchetto (senza userId per la relazione uno-a-molti)
-    const packageData = await prisma.package.create({
-      data: {
-        name: packageName,
-        totalSessions,
-        durationMinutes: durationMinutes || 60, // Default 60 minuti se non specificato
-        usedSessions: 0,
-        isActive: true,
-        // Crea le relazioni molti-a-molti
-        userPackages: {
-          create: userIds.map(userId => ({
-            userId,
-            usedSessions: 0,
-          })),
+    const packageData = await withRetry(() =>
+      prisma.package.create({
+        data: {
+          name: packageName,
+          totalSessions,
+          durationMinutes: durationMinutes || 60, // Default 60 minuti se non specificato
+          usedSessions: 0,
+          isActive: true,
+          // Crea le relazioni molti-a-molti
+          userPackages: {
+            create: userIds.map(userId => ({
+              userId,
+              usedSessions: 0,
+            })),
+          },
         },
-      },
-      include: {
-        userPackages: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                phone: true,
+        include: {
+          userPackages: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  phone: true,
+                },
               },
             },
           },
         },
-      },
-    })
+      })
+    )
 
     return NextResponse.json(packageData, { status: 201 })
   } catch (error) {

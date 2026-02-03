@@ -22,14 +22,14 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     'aria-label': ariaLabel,
     ...props 
   }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-950 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group gpu-accelerated font-sans'
+    const baseStyles = 'inline-flex items-center justify-center font-semibold rounded-lg transition-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-950 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group gpu-accelerated font-sans'
     
     const variants = {
-      gold: 'btn-gold text-black font-bold',
-      'outline-gold': 'border-2 border-gold-400 text-gold-400 hover:bg-gold-400/10 backdrop-blur-sm',
-      dark: 'bg-dark-100 hover:bg-dark-200 text-white shadow-dark hover:shadow-dark-lg',
-      ghost: 'hover:bg-dark-100/50 text-dark-700 hover:text-dark-800',
-      danger: 'bg-gradient-to-r from-accent-danger to-red-500 hover:from-red-500 hover:to-red-600 text-white shadow-lg',
+      gold: 'btn-gold text-black font-bold hover:scale-105 hover:shadow-gold-glow',
+      'outline-gold': 'border-2 border-gold-400 text-gold-400 hover:bg-gold-400/10 hover:border-gold-300 hover:shadow-gold-glow backdrop-blur-sm',
+      dark: 'bg-dark-100 hover:bg-dark-200 text-white shadow-card hover:shadow-card-hover hover:scale-105',
+      ghost: 'hover:bg-dark-100/50 text-dark-700 hover:text-dark-800 hover:scale-105',
+      danger: 'bg-gradient-to-r from-accent-danger to-red-500 hover:from-red-500 hover:to-red-600 text-white shadow-lg hover:scale-105',
     }
     
     const sizes = {

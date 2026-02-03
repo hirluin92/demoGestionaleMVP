@@ -84,15 +84,15 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6" aria-label="Form di accesso">
             {error && (
               <div 
-                className="bg-accent-danger/10 border-2 border-accent-danger/30 rounded-xl p-4 backdrop-blur-sm"
+                className="alert-error"
                 role="alert"
                 aria-live="assertive"
               >
                 <div className="flex items-center">
-                  <svg className="w-5 h-5 text-accent-danger mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <svg className="w-6 h-6 text-red-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
-                  <p className="text-sm font-semibold text-accent-danger">{error}</p>
+                  <p className="text-sm font-semibold text-red-300">{error}</p>
                 </div>
               </div>
             )}

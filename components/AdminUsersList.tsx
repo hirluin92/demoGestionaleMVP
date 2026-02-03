@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { User, Phone, Mail, Edit, Trash2, X, ChevronDown, ChevronUp, Calendar, Ruler } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
+import { Label } from '@/components/ui/Label'
 import Button from '@/components/ui/Button'
 import BodyMeasurementModal from '@/components/BodyMeasurementModal'
 import EditUserModal from '@/components/EditUserModal'
@@ -213,7 +214,7 @@ export default function AdminUsersList() {
   if (loading) {
     return (
       <div className="text-center py-8">
-        <div className="inline-block w-8 h-8 border-4 border-dark-200 border-t-gold-400 rounded-full animate-spin"></div>
+        <div className="spinner-gold w-12 h-12 mx-auto mb-4"></div>
         <p className="mt-4 text-dark-600">Caricamento clienti...</p>
       </div>
     )
@@ -234,9 +235,9 @@ export default function AdminUsersList() {
     <div className="w-full space-y-2 md:space-y-3">
       {/* Barra di ricerca */}
       <div className="flex flex-col sm:flex-row gap-1.5 md:gap-2 items-start sm:items-center">
-        <label className="text-xs md:text-sm font-semibold text-dark-600 whitespace-nowrap">
-          Cerca cliente:
-        </label>
+        <Label className="text-xs md:text-sm whitespace-nowrap">
+          Cerca cliente
+        </Label>
         <div className="relative flex-1 max-w-xs">
           <input
             type="text"
@@ -261,9 +262,9 @@ export default function AdminUsersList() {
       <div className="flex flex-col gap-2 md:gap-3">
         {/* Filtro per Pacchetto */}
         <div className="flex flex-col sm:flex-row gap-1.5 md:gap-2 items-start sm:items-center">
-          <label className="text-xs md:text-sm font-semibold text-dark-600 whitespace-nowrap">
-            Filtra per pacchetto:
-          </label>
+          <Label className="text-xs md:text-sm whitespace-nowrap">
+            Filtra per pacchetto
+          </Label>
           <div className="relative flex-1 max-w-xs">
             <select
               value={selectedPackageId}
@@ -353,7 +354,8 @@ export default function AdminUsersList() {
             return (
               <div
                 key={user.id}
-                className="bg-dark-100/50 backdrop-blur-sm border border-dark-200/30 rounded-md p-2 hover:border-gold-400/50 transition-all duration-300"
+                data-animate
+                className="bg-dark-100/50 backdrop-blur-sm border border-dark-200/30 rounded-xl p-2 hover:border-gold-400/50 transition-smooth hover:shadow-card-hover"
               >
                 <div className="flex items-center space-x-1.5">
                   {/* Icona ultra piccola */}
@@ -549,7 +551,8 @@ export default function AdminUsersList() {
               {filteredUsers.map((user) => (
                 <tr
                   key={user.id}
-                  className="hover:bg-dark-100/30 transition-colors"
+                  data-animate
+                  className="table-row"
                 >
                   <td className="px-4 xl:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">

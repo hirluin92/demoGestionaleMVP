@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useSessionSecurity } from '@/hooks/useSessionSecurity'
+import { useScrollAnimation } from '@/hooks/useScrollAnimation'
 import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { signOut } from 'next-auth/react'
@@ -18,6 +19,7 @@ import ProfileModal from '@/components/ProfileModal'
 import SettingsModal from '@/components/SettingsModal'
 // import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
+import { Label } from '@/components/ui/Label'
 import Button from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 
@@ -25,6 +27,7 @@ export default function AdminPage() {
   const { data: session, status, update } = useSession()
   const router = useRouter()
   useSessionSecurity() // Aggiunge controlli di sicurezza sulla sessione
+  useScrollAnimation() // Attiva animazioni scroll
   const [activeTab, setActiveTab] = useState<'users' | 'packages' | 'calendar'>('users')
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [showCreatePackage, setShowCreatePackage] = useState(false)
@@ -104,7 +107,7 @@ export default function AdminPage() {
     <div className="min-h-screen relative">
         
         {/* Header Premium */}
-        <nav className="glass-card border-b border-opacity-20 sticky top-0 z-50 overflow-visible">
+        <nav className="glass-card border-b border-opacity-20 sticky top-0 z-50 overflow-visible rounded-none">
           <div className="max-w-[98%] xl:max-w-[95%] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16 md:h-20">
               {/* Logo */}

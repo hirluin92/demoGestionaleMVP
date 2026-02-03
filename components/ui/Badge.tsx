@@ -15,7 +15,7 @@ export function Badge({
   ...props 
 }: BadgeProps) {
   const variants = {
-    gold: 'status-badge status-confirmed',
+    gold: 'status-badge status-completed',
     success: 'status-badge status-confirmed',
     warning: 'status-badge status-pending',
     danger: 'status-badge status-cancelled',

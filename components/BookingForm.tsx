@@ -154,15 +154,15 @@ export default function BookingForm({ packages, onSuccess }: BookingFormProps) {
       {/* Success Message */}
       {success && (
         <div 
-          className="bg-gradient-to-r from-gold-400/10 to-gold-500/10 border-2 border-gold-400/50 rounded-xl p-4 animate-scale-in backdrop-blur-sm"
+          className="alert-success"
           role="status"
           aria-live="polite"
         >
           <div className="flex items-start">
-            <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-gold-400 mr-3 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <CheckCircle2 className="w-6 h-6 text-green-400 mr-3 flex-shrink-0 mt-0.5" aria-hidden="true" />
             <div>
-              <p className="font-bold text-gold-300 text-sm md:text-base">Prenotazione Confermata!</p>
-              <p className="text-xs md:text-sm text-gold-500 mt-1">Riceverai una conferma via WhatsApp</p>
+              <p className="font-bold text-green-300 text-sm md:text-base">Prenotazione Confermata!</p>
+              <p className="text-xs md:text-sm text-green-400/80 mt-1">Riceverai una conferma via WhatsApp</p>
             </div>
           </div>
         </div>
@@ -171,15 +171,15 @@ export default function BookingForm({ packages, onSuccess }: BookingFormProps) {
       {/* Error Message */}
       {error && (
         <div 
-          className="bg-accent-danger/10 border-2 border-accent-danger/30 rounded-xl p-4 animate-scale-in backdrop-blur-sm"
+          className="alert-error"
           role="alert"
           aria-live="assertive"
         >
           <div className="flex items-start">
-            <svg className="w-5 h-5 md:w-6 md:h-6 text-accent-danger mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+            <svg className="w-6 h-6 text-red-400 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
-            <p className="text-xs md:text-sm font-semibold text-accent-danger">{error}</p>
+            <p className="text-sm md:text-base font-semibold text-red-300">{error}</p>
           </div>
         </div>
       )}
@@ -250,7 +250,7 @@ export default function BookingForm({ packages, onSuccess }: BookingFormProps) {
                   aria-checked={selectedTime === slot}
                   onClick={() => setSelectedTime(slot)}
                   className={`
-                    px-3 py-2.5 md:px-4 md:py-3.5 rounded-xl font-bold text-xs md:text-sm transition-all duration-300 relative overflow-hidden group
+                    px-3 py-2.5 md:px-4 md:py-3.5 rounded-xl font-bold text-xs md:text-sm transition-smooth relative overflow-hidden group
                     ${selectedTime === slot
                       ? 'bg-gradient-to-r from-gold-400 to-gold-500 text-dark-950 shadow-gold scale-105 ring-2 ring-gold-400 ring-offset-2 ring-offset-dark-950'
                       : 'bg-dark-100/50 text-dark-600 border-2 border-dark-200/30 hover:border-gold-400/50 hover:text-gold-400 hover:scale-105'
