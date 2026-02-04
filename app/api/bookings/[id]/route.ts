@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { deleteCalendarEvent } from '@/lib/google-calendar'
 import { logger, sanitizeError } from '@/lib/logger'
-import { sendWhatsAppMessage } from '@/lib/whatsapp'
+import { sendWhatsAppMessage, formatFreeSlotNotificationMessage } from '@/lib/whatsapp'
 
 // Forza rendering dinamico (usa headers per autenticazione)
 export const dynamic = 'force-dynamic'
@@ -225,65 +225,89 @@ export async function DELETE(
       // Non bloccare - la notifica all'admin non è critica
     }
 
-    // STEP 6: Per pacchetti singoli, verifica se ci sono altri appuntamenti alla stessa ora e notificali
-    if (!isMultiplePackage) {
-      try {
-        // Cerca altri appuntamenti alla stessa data e ora (per la regola speciale admin)
-        const sameTimeBookings = await prisma.booking.findMany({
-          where: {
-            date: booking.date,
-            time: booking.time,
-            status: 'CONFIRMED',
-            id: { not: booking.id }, // Escludi quello appena cancellato
+    // STEP 6: Notifica tutti i clienti con appuntamenti successivi nello stesso giorno
+    try {
+      // Calcola l'orario della prenotazione disdetta in minuti per il confronto
+      const [cancelledHours, cancelledMinutes] = booking.time.split(':').map(Number)
+      const cancelledTimeInMinutes = cancelledHours * 60 + cancelledMinutes
+
+      // Cerca tutti gli appuntamenti dello stesso giorno con orario successivo
+      const startOfDay = new Date(booking.date)
+      startOfDay.setHours(0, 0, 0, 0)
+      const endOfDay = new Date(booking.date)
+      endOfDay.setHours(23, 59, 59, 999)
+
+      const sameDayBookings = await prisma.booking.findMany({
+        where: {
+          date: {
+            gte: startOfDay,
+            lte: endOfDay,
           },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                phone: true,
-              },
+          status: 'CONFIRMED',
+          id: { not: booking.id }, // Escludi quello appena cancellato
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              bookingReminders: true,
             },
-            package: {
-              include: {
-                userPackages: {
-                  select: {
-                    userId: true,
-                  },
+          },
+          package: {
+            include: {
+              userPackages: {
+                select: {
+                  userId: true,
                 },
               },
             },
           },
-        })
+        },
+      })
 
-        // Notifica solo gli altri appuntamenti singoli (non multipli) alla stessa ora
-        const otherSingleBookings = sameTimeBookings.filter(b => {
-          return b.package.userPackages.length === 1
-        })
+      // Filtra solo gli appuntamenti con orario successivo
+      const laterBookings = sameDayBookings.filter(b => {
+        const [hours, minutes] = b.time.split(':').map(Number)
+        const bookingTimeInMinutes = hours * 60 + minutes
+        return bookingTimeInMinutes > cancelledTimeInMinutes
+      })
 
-        for (const otherBooking of otherSingleBookings) {
-          if (otherBooking.user.phone) {
-            try {
-              const message = `📢 Notifica Disdetta\n\nCiao ${otherBooking.user.name},\n\n${booking.user.name} ha disdetto l'appuntamento:\n📅 ${formattedDate}\n🕐 ${booking.time}\n\nIl tuo appuntamento rimane confermato.`
-              await sendWhatsAppMessage(otherBooking.user.phone, message)
-              logger.info('WhatsApp notifica disdetta inviata ad altro atleta', { 
-                to: otherBooking.user.name, 
-                userId: otherBooking.user.id 
-              })
-            } catch (error) {
-              logger.error('Errore invio WhatsApp notifica disdetta ad altro atleta', {
-                userId: otherBooking.user.id,
-                error: sanitizeError(error),
-              })
-            }
-          }
+      // Notifica tutti i clienti con appuntamenti successivi
+      for (const laterBooking of laterBookings) {
+        // Salta se l'utente non ha il telefono o ha disabilitato i promemoria
+        if (!laterBooking.user.phone || !laterBooking.user.bookingReminders) {
+          continue
         }
-      } catch (error) {
-        logger.error('Errore ricerca altri appuntamenti alla stessa ora', {
-          error: sanitizeError(error),
-        })
-        // Non bloccare - questa notifica non è critica
+
+        try {
+          const message = formatFreeSlotNotificationMessage(
+            laterBooking.user.name,
+            bookingDate,
+            booking.time,
+            laterBooking.time
+          )
+          await sendWhatsAppMessage(laterBooking.user.phone, message)
+          logger.info('WhatsApp notifica slot libero inviata', { 
+            to: laterBooking.user.name, 
+            userId: laterBooking.user.id,
+            freeSlot: booking.time,
+            currentBooking: laterBooking.time
+          })
+        } catch (error) {
+          logger.error('Errore invio WhatsApp notifica slot libero', {
+            userId: laterBooking.user.id,
+            error: sanitizeError(error),
+          })
+          // Continua con gli altri clienti anche se uno fallisce
+        }
       }
+    } catch (error) {
+      logger.error('Errore ricerca appuntamenti successivi per notifica slot libero', {
+        error: sanitizeError(error),
+      })
+      // Non bloccare - questa notifica non è critica
     }
 
     logger.info('Prenotazione cancellata con successo', { bookingId: params.id })

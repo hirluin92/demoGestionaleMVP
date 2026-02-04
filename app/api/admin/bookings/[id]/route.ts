@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { deleteCalendarEvent, updateCalendarEvent, createCalendarEvent } from '@/lib/google-calendar'
-import { sendWhatsAppMessage, formatBookingModificationMessage, formatBookingCancellationMessage } from '@/lib/whatsapp'
+import { sendWhatsAppMessage, formatBookingModificationMessage, formatBookingCancellationMessage, formatFreeSlotNotificationMessage } from '@/lib/whatsapp'
 import { isTwilioError } from '@/lib/errors'
 import { logger, sanitizeError } from '@/lib/logger'
 import { z } from 'zod'
@@ -188,6 +188,98 @@ export async function DELETE(
         error: sanitizeError(error) 
       })
       // Non bloccare la risposta - le notifiche non sono critiche
+    }
+
+    // STEP 5: Notifica tutti i clienti con appuntamenti successivi nello stesso giorno
+    try {
+      // Calcola l'orario della prenotazione disdetta in minuti per il confronto
+      const [cancelledHours, cancelledMinutes] = booking.time.split(':').map(Number)
+      const cancelledTimeInMinutes = cancelledHours * 60 + cancelledMinutes
+
+      // Cerca tutti gli appuntamenti dello stesso giorno con orario successivo
+      const startOfDay = new Date(booking.date)
+      startOfDay.setHours(0, 0, 0, 0)
+      const endOfDay = new Date(booking.date)
+      endOfDay.setHours(23, 59, 59, 999)
+
+      const sameDayBookings = await prisma.booking.findMany({
+        where: {
+          date: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+          status: 'CONFIRMED',
+          id: { not: booking.id }, // Escludi quello appena cancellato
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              bookingReminders: true,
+            },
+          },
+          package: {
+            include: {
+              userPackages: {
+                select: {
+                  userId: true,
+                },
+              },
+            },
+          },
+        },
+      })
+
+      // Filtra solo gli appuntamenti con orario successivo
+      const laterBookings = sameDayBookings.filter(b => {
+        const [hours, minutes] = b.time.split(':').map(Number)
+        const bookingTimeInMinutes = hours * 60 + minutes
+        return bookingTimeInMinutes > cancelledTimeInMinutes
+      })
+
+      // Notifica tutti i clienti con appuntamenti successivi
+      for (const laterBooking of laterBookings) {
+        // Salta se l'utente non ha il telefono o ha disabilitato i promemoria
+        if (!laterBooking.user.phone || !laterBooking.user.bookingReminders) {
+          continue
+        }
+
+        try {
+          const formattedDate = bookingDate.toLocaleDateString('it-IT', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
+
+          const message = formatFreeSlotNotificationMessage(
+            laterBooking.user.name,
+            bookingDate,
+            booking.time,
+            laterBooking.time
+          )
+          await sendWhatsAppMessage(laterBooking.user.phone, message)
+          logger.info('WhatsApp notifica slot libero inviata', { 
+            to: laterBooking.user.name, 
+            userId: laterBooking.user.id,
+            freeSlot: booking.time,
+            currentBooking: laterBooking.time
+          })
+        } catch (error) {
+          logger.error('Errore invio WhatsApp notifica slot libero', {
+            userId: laterBooking.user.id,
+            error: sanitizeError(error),
+          })
+          // Continua con gli altri clienti anche se uno fallisce
+        }
+      }
+    } catch (error) {
+      logger.error('Errore ricerca appuntamenti successivi per notifica slot libero', {
+        error: sanitizeError(error),
+      })
+      // Non bloccare - questa notifica non è critica
     }
 
     logger.info('Prenotazione disdetta con successo', { bookingId: params.id })

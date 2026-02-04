@@ -210,3 +210,28 @@ export function formatBookingCancellationMessage(
 
   return `❌ Appuntamento disdetto\n\nCiao ${clientName},\n\nIl tuo appuntamento è stato disdetto:\n📅 ${formattedDate}\n🕐 ${time}\n\nLa sessione è stata restituita al tuo pacchetto.\n\nPer prenotare un nuovo appuntamento, accedi alla tua area riservata.`
 }
+
+/**
+ * Formats a free slot notification message for clients with later appointments
+ * 
+ * @param clientName - Name of the client
+ * @param date - Booking date
+ * @param freeSlotTime - Time of the free slot in HH:mm format
+ * @param currentBookingTime - Current booking time in HH:mm format
+ * @returns Formatted WhatsApp message
+ */
+export function formatFreeSlotNotificationMessage(
+  clientName: string,
+  date: Date,
+  freeSlotTime: string,
+  currentBookingTime: string
+) {
+  const formattedDate = date.toLocaleDateString('it-IT', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+
+  return `🎯 Slot Libero Disponibile!\n\nCiao ${clientName},\n\nUno slot si è liberato oggi:\n📅 ${formattedDate}\n🕐 ${freeSlotTime}\n\nIl tuo appuntamento attuale è alle ${currentBookingTime}.\n\nVuoi anticipare? Accedi alla tua area riservata per modificare la prenotazione! 💪`
+}
