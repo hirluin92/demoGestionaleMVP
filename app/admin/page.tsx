@@ -162,7 +162,7 @@ export default function AdminPage() {
 
             {/* Mobile Menu Dropdown */}
             {mobileMenuOpen && (
-              <div className="md:hidden py-4 border-t border-dark-200/30 animate-slide-down">
+              <div className="md:hidden py-4 border-t border-dark-200/30 animate-slide-down max-h-[calc(100vh-80px)] overflow-y-auto">
                 <div className="space-y-3">
                   <div className="px-4 py-3 bg-dark-100/50 rounded-lg">
                     <div className="flex items-center space-x-3">
@@ -194,6 +194,16 @@ export default function AdminPage() {
                   >
                     <Settings className="w-4 h-4 text-[#E8DCA0]" />
                     <span>Impostazioni</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      setActiveTab('archive')
+                    }}
+                    className="w-full px-4 py-3 text-left text-sm text-white hover:bg-dark-200/50 transition-colors rounded-lg flex items-center space-x-3"
+                  >
+                    <Archive className="w-4 h-4 text-[#E8DCA0]" />
+                    <span>Archivio</span>
                   </button>
                   <Button
                     variant="outline-gold"
