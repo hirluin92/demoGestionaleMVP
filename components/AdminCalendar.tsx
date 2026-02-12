@@ -322,16 +322,20 @@ export default function AdminCalendar() {
         >
           <div className="grid grid-cols-12 gap-2">
               {/* Colonna etichette ore */}
-              <div className="col-span-2 md:col-span-1">
-                {hours.map((h, idx) => (
-                  <div
-                    key={`${h.hour}-${h.minute}`}
-                    className="time-label flex items-start text-[10px] md:text-xs"
-                    style={{ height: HOUR_HEIGHT }}
-                  >
-                    {String(h.hour).padStart(2, '0')}:{String(h.minute).padStart(2, '0')}
-                  </div>
-                ))}
+              <div className="col-span-2 md:col-span-1 relative" style={{ height: timelineHeight }}>
+                {hours.map((h, idx) => {
+                  const hourMinutes = h.hour * 60 + h.minute
+                  const top = (hourMinutes - dayStartMin) * PX_PER_MIN
+                  return (
+                    <div
+                      key={`${h.hour}-${h.minute}`}
+                      className="time-label flex items-start text-[10px] md:text-xs absolute"
+                      style={{ top, height: HOUR_HEIGHT }}
+                    >
+                      {String(h.hour).padStart(2, '0')}:{String(h.minute).padStart(2, '0')}
+                    </div>
+                  )
+                })}
               </div>
 
             {/* Colonna timeline */}
@@ -631,16 +635,20 @@ export default function AdminCalendar() {
         >
           <div className="grid grid-cols-8 gap-2">
             {/* Colonna etichette ore */}
-            <div className="col-span-1">
-              {hours.map((h, idx) => (
-                <div
-                  key={`${h.hour}-${h.minute}`}
-                  className="time-label flex items-start text-[10px] md:text-xs"
-                  style={{ height: HOUR_HEIGHT }}
-                >
-                  {String(h.hour).padStart(2, '0')}:{String(h.minute).padStart(2, '0')}
-                </div>
-              ))}
+            <div className="col-span-1 relative" style={{ height: timelineHeight }}>
+              {hours.map((h, idx) => {
+                const hourMinutes = h.hour * 60 + h.minute
+                const top = (hourMinutes - dayStartMin) * PX_PER_MIN
+                return (
+                  <div
+                    key={`${h.hour}-${h.minute}`}
+                    className="time-label flex items-start text-[10px] md:text-xs absolute"
+                    style={{ top, height: HOUR_HEIGHT }}
+                  >
+                    {String(h.hour).padStart(2, '0')}:{String(h.minute).padStart(2, '0')}
+                  </div>
+                )
+              })}
             </div>
 
             {/* Colonne giorni con timeline */}
