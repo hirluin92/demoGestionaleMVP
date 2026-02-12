@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { format, addDays } from 'date-fns'
+import { it } from 'date-fns/locale'
 import { X, Calendar as CalendarIcon, Clock, User, ChevronDown } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -145,6 +147,15 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
   }) || []
 
   const today = new Date().toISOString().split('T')[0]
+  
+  // Genera array di date disponibili (prossimi 60 giorni)
+  const availableDates = Array.from({ length: 60 }, (_, i) => {
+    const date = addDays(new Date(), i)
+    return {
+      value: date.toISOString().split('T')[0],
+      label: format(date, 'd MMM yyyy', { locale: it })
+    }
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -286,15 +297,23 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
             <label htmlFor="date" className="block text-sm font-light mb-2 heading-font text-gold-400" style={{ letterSpacing: '0.5px' }}>
               Data
             </label>
-            <Input
-              type="date"
-              id="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              min={today}
-              required
-              className="w-full"
-            />
+            <div className="relative">
+              <select
+                id="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="input-field w-full appearance-none pr-10"
+                required
+              >
+                <option value="">Seleziona una data</option>
+                {availableDates.map((date) => (
+                  <option key={date.value} value={date.value}>
+                    {date.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500 pointer-events-none" aria-hidden="true" />
+            </div>
           </div>
 
           {/* Selezione Orario */}
