@@ -295,12 +295,9 @@ export default function AdminCalendar() {
     const HOUR_HEIGHT = isMobile ? 40 : 60
     const PX_PER_MIN = HOUR_HEIGHT / 60
     const dayStartMin = 6 * 60 // Inizia alle 6:00
-    // Calcola l'altezza totale: dalle 6 alle 13 (7 ore) + pausa pranzo (1.5 ore) + dalle 15:30 alle 21:30 (6 ore)
-    const morningHours = 7 // 6-13
-    const lunchBreak = 1.5 // 14:00-15:30
-    const afternoonHours = 6 // 15:30-21:30
-    const totalHours = morningHours + lunchBreak + afternoonHours
-    const totalMinutes = totalHours * 60
+    const dayEndMin = 22 * 60 + 30 // Termina alle 22:30
+    // Calcola l'altezza totale: dalle 6:00 alle 22:30
+    const totalMinutes = dayEndMin - dayStartMin
     const timelineHeight = totalMinutes * PX_PER_MIN
 
     const minutesSinceMidnight = (hhmm: string) => {
@@ -326,7 +323,7 @@ export default function AdminCalendar() {
           <div className="grid grid-cols-12 gap-2">
               {/* Colonna etichette ore */}
               <div className="col-span-2 md:col-span-1">
-                {hours.slice(0, -1).map((h, idx) => (
+                {hours.map((h, idx) => (
                   <div
                     key={`${h.hour}-${h.minute}`}
                     className="time-label flex items-start text-[10px] md:text-xs"
@@ -421,7 +418,7 @@ export default function AdminCalendar() {
                 }}
               >
                   {/* Linee orarie */}
-                  {hours.slice(0, -1).map((h, idx) => {
+                  {hours.map((h, idx) => {
                     const hourMinutes = h.hour * 60 + h.minute
                     const top = (hourMinutes - dayStartMin) * PX_PER_MIN
                     return (
@@ -619,11 +616,8 @@ export default function AdminCalendar() {
                 <div className={`text-xs font-semibold mb-1 ${isToday ? 'text-gold-400' : 'text-gray-400'}`}>
                   {dayName}
                 </div>
-                <div className={`text-sm font-bold mb-1 ${isToday ? 'text-gold-400' : 'text-white'}`}>
+                <div className={`text-sm font-bold ${isToday ? 'text-gold-400' : 'text-white'}`}>
                   {format(day, 'd')}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {dayAppointments.length} appuntament{dayAppointments.length !== 1 ? 'i' : 'o'}
                 </div>
               </div>
             )
@@ -638,7 +632,7 @@ export default function AdminCalendar() {
           <div className="grid grid-cols-8 gap-2">
             {/* Colonna etichette ore */}
             <div className="col-span-1">
-              {hours.slice(0, -1).map((h, idx) => (
+              {hours.map((h, idx) => (
                 <div
                   key={`${h.hour}-${h.minute}`}
                   className="time-label flex items-start text-[10px] md:text-xs"
@@ -738,7 +732,7 @@ export default function AdminCalendar() {
                     }}
                   >
                     {/* Linee orarie */}
-                    {hours.slice(0, -1).map((h, idx) => {
+                    {hours.map((h, idx) => {
                       const hourMinutes = h.hour * 60 + h.minute
                       const top = (hourMinutes - dayStartMin) * PX_PER_MIN
                       return (
