@@ -282,16 +282,15 @@ export default function AdminUsersList({ archiveMode = false }: AdminUsersListPr
             <>
               <p className="text-dark-600 font-semibold">Nessun cliente corrisponde ai filtri selezionati</p>
               <p className="text-sm text-dark-500 mt-2">
-                {searchTerm || selectedPackageId 
-                  ? 'Prova a modificare la ricerca o i filtri per vedere più clienti'
+                {searchTerm
+                  ? 'Prova a modificare la ricerca per vedere più clienti'
                   : 'Nessun cliente trovato con i criteri selezionati'}
               </p>
-              {(selectedPackageId || searchTerm) && (
+              {searchTerm && (
                 <Button
                   variant="outline-gold"
                   size="sm"
                   onClick={() => {
-                    setSelectedPackageId('')
                     setSearchTerm('')
                   }}
                   className="mt-4"
