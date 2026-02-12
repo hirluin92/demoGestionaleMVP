@@ -135,7 +135,6 @@ function AnatomyModel({
       }}
       onClick={(e) => {
         e.stopPropagation()
-        e.preventDefault()
         const hit = mapMeshNameToMeasurement(e.object.name)
         if (!hit) return
         onSelect(hit.key)
