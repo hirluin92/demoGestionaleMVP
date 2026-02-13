@@ -174,10 +174,6 @@ export default function BookingsList({ onCancel, showCountOnly }: BookingsListPr
     <div className="space-y-6">
       {upcomingBookings.length > 0 && (
         <div>
-          <h4 className="font-display font-bold text-white mb-4 text-lg md:text-xl flex items-center">
-            <Calendar className="w-5 h-5 md:w-6 md:h-6 text-gold-400 mr-2" />
-            Prossime Prenotazioni
-          </h4>
           <div className="space-y-3">
             {upcomingBookings.map((booking, index) => {
               const bookingDate = new Date(booking.date)
