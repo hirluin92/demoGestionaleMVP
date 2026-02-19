@@ -253,7 +253,7 @@ export default function BodyMeasurementModal({
 
         <div className="grid md:grid-cols-2 gap-8">
           {/* Left: Body Silhouette */}
-          <div>
+          <div className="w-full overflow-x-hidden">
             <h3 className="text-xl font-bold mb-4 gold-text-gradient heading-font">
               Visualizzazione Corporea
             </h3>
@@ -295,10 +295,12 @@ export default function BodyMeasurementModal({
               <span className="text-xs text-gray-400">Clicca i muscoli sul modello</span>
             </div>
             
-            <AnatomyPickerSVG 
-              selected={selectedGraph as 'peso' | 'altezza' | 'massaGrassa' | 'braccio' | 'spalle' | 'torace' | 'vita' | 'gamba' | 'fianchi' | null} 
-              onSelect={handleMuscleClick} 
-            />
+            <div className="w-full overflow-x-hidden">
+              <AnatomyPickerSVG 
+                selected={selectedGraph as 'peso' | 'altezza' | 'massaGrassa' | 'braccio' | 'spalle' | 'torace' | 'vita' | 'gamba' | 'fianchi' | null} 
+                onSelect={handleMuscleClick} 
+              />
+            </div>
 
             {/* Micro Grafico - Appare quando si clicca su una parte del corpo */}
             {selectedGraph && (

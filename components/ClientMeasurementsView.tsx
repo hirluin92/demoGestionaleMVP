@@ -219,7 +219,7 @@ export default function ClientMeasurementsView() {
           </div>
 
           {mounted && (
-            <div className="relative">
+            <div className="relative w-full overflow-x-hidden">
               <AnatomyPickerSVG selected={selectedGraph} onSelect={handleMuscleClick} />
             </div>
           )}

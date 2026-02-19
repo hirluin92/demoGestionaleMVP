@@ -146,7 +146,7 @@ export default function AnatomyPickerSVG({ selected, onSelect }: AnatomyPickerSV
   }, [selected, onSelect])
 
   return (
-    <div ref={rootRef} className="wrap" style={{ display: 'flex', gap: '40px', alignItems: 'flex-start' }}>
+    <div ref={rootRef} className="wrap">
       <style jsx>{`
         * {
           box-sizing: border-box;
@@ -157,11 +157,39 @@ export default function AnatomyPickerSVG({ selected, onSelect }: AnatomyPickerSV
           display: flex;
           gap: 40px;
           align-items: flex-start;
+          flex-wrap: wrap;
+          width: 100%;
+          max-width: 100%;
+          overflow-x: hidden;
+        }
+        @media (max-width: 768px) {
+          .wrap {
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+          }
         }
         .fig {
           display: flex;
           flex-direction: column;
           align-items: center;
+          width: 100%;
+          max-width: 100%;
+        }
+        .svg-responsive {
+          width: 220px;
+          height: auto;
+          max-width: 100%;
+        }
+        @media (max-width: 768px) {
+          .fig {
+            width: 100%;
+            max-width: 100%;
+          }
+          .svg-responsive {
+            width: 100%;
+            max-width: 280px;
+          }
         }
         .tip {
           height: 24px;
@@ -218,6 +246,13 @@ export default function AnatomyPickerSVG({ selected, onSelect }: AnatomyPickerSV
           gap: 5px;
           min-width: 160px;
         }
+        @media (max-width: 768px) {
+          .list {
+            padding-top: 0;
+            width: 100%;
+            min-width: auto;
+          }
+        }
         .list-title {
           font-size: 9px;
           letter-spacing: 0.28em;
@@ -250,9 +285,9 @@ export default function AnatomyPickerSVG({ selected, onSelect }: AnatomyPickerSV
           background: rgba(211, 175, 55, 0.09);
         }
       `}</style>
-      <div className="fig" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div className="fig">
         <div ref={tipRef} className="tip" id="tip"></div>
-        <svg id="svg" viewBox="0 0 200 520" style={{ width: '220px', height: 'auto' }} xmlns="http://www.w3.org/2000/svg">
+        <svg id="svg" viewBox="0 0 200 520" className="svg-responsive" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <radialGradient id="sk" cx="38%" cy="22%" r="72%">
               <stop offset="0%" stopColor="#3c3326" />
@@ -544,7 +579,7 @@ export default function AnatomyPickerSVG({ selected, onSelect }: AnatomyPickerSV
         </div>
       </div>
 
-      <div className="list" style={{ paddingTop: '36px', display: 'flex', flexDirection: 'column', gap: '5px', minWidth: '160px' }}>
+      <div className="list">
         <div className="list-title">Seleziona area</div>
         <button className="btn" data-key="spalle" data-label="Spalle">
           Spalle
