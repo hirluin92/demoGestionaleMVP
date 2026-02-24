@@ -665,7 +665,7 @@ button.tab-button.active,
 
 /* Calendar Styles - Compact Design */
 .calendar-container {
-  max-width: 800px;
+  max-width: 100%;
   margin: 0 auto;
   width: 100%;
 }
@@ -712,34 +712,85 @@ button.tab-button.active,
 @media (max-width: 768px) {
   .calendar-container {
     max-width: 100%;
-    padding: 0 8px;
+    padding: 0 4px;
+    overflow-x: auto;
+  }
+  
+  .calendar-header {
+    gap: 2px;
+    min-width: 100%;
   }
   
   .calendar-header-day {
-    font-size: 10px;
-    padding: 6px 2px;
+    font-size: 9px;
+    padding: 4px 1px;
+    font-weight: 500;
+  }
+  
+  .calendar-grid {
+    gap: 2px;
+    min-width: 100%;
   }
   
   .calendar-day {
-    padding: 4px;
-    min-height: 40px;
+    aspect-ratio: auto;
+    min-height: 50px;
+    padding: 2px;
+    border-radius: 4px;
+    justify-content: flex-start;
+    align-items: flex-start;
   }
   
   .calendar-day-number {
-    font-size: 11px !important;
+    font-size: 10px !important;
+    margin-bottom: 2px;
+  }
+  
+  .month-event-pill {
+    font-size: 7px !important;
+    padding: 1px 2px !important;
+    margin-bottom: 1px !important;
+    line-height: 1.2 !important;
   }
   
   .calendar-day-count {
-    width: 12px !important;
-    height: 12px !important;
-    font-size: 7px !important;
-    bottom: 2px !important;
-    right: 2px !important;
+    width: 10px !important;
+    height: 10px !important;
+    font-size: 6px !important;
+    bottom: 1px !important;
+    right: 1px !important;
   }
   
   .time-label {
+    font-size: 9px !important;
+    min-width: 35px;
+  }
+  
+  .today-circle {
+    width: 20px !important;
+    height: 20px !important;
     font-size: 10px !important;
-    min-width: 45px;
+  }
+  
+  /* Vista giornaliera e settimanale su mobile */
+  .calendar-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Appuntamenti su mobile */
+  .appointment-block {
+    font-size: 8px !important;
+    padding: 2px 4px !important;
+  }
+  
+  /* Timeline su mobile */
+  .time-slot {
+    min-width: 100%;
+  }
+  
+  /* Header vista settimanale su mobile */
+  .calendar-header-day {
+    white-space: nowrap;
   }
   
   .time-slot {
@@ -792,6 +843,31 @@ button.tab-button.active,
   font-size: 13px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
+}
+
+.calendar-day-number.today-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #D3AF37;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.month-event-pill {
+  display: block;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-weight: 500;
+  line-height: 1.2;
+  transition: opacity 0.2s;
+}
+
+.month-event-pill:hover {
+  opacity: 0.8;
 }
 
 .calendar-day-count {

@@ -1,589 +1,766 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { format, addDays, subDays, startOfMonth, endOfMonth, getDay, parseISO, addMonths, subMonths, startOfDay, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval } from 'date-fns'
+import { useState, useEffect, useRef } from 'react'
+import {
+  format, addDays, addMonths, addWeeks, subDays, subMonths, subWeeks,
+  startOfDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
+  eachDayOfInterval, getDay, parseISO
+} from 'date-fns'
 import { it } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import AppointmentDetailModal from '@/components/AppointmentDetailModal'
+import AdminBookingModal from '@/components/AdminBookingModal'
 
+// ============================================================================
+// TIPI
+// ============================================================================
 interface Booking {
   id: string
-  date: string // ISO string
-  time: string // "HH:mm"
+  date: string
+  time: string
   status: string
-  user: {
-    id: string
-    name: string
-    email: string
-    phone: string | null
-  }
+  user: { id: string; name: string; email: string; phone: string | null }
   package: {
-    id: string
-    name: string
-    durationMinutes: number
-    isMultiple?: boolean
-    athletes?: Array<{
-      id: string
-      name: string
-      email: string
-      phone: string | null
-    }>
+    id: string; name: string; durationMinutes: number; isMultiple?: boolean
+    athletes?: Array<{ id: string; name: string; email: string; phone: string | null }>
   }
 }
 
-type CalendarView = 'month' | 'day' | 'week'
+type CalendarView = 'month' | 'week' | 'day'
 
-interface AppointmentData {
+interface AptData {
   id: string
   client_name: string
   client_email: string
   phone: string | null
-  date: string // YYYY-MM-DD
-  time: string // HH:MM
+  date: string        // 'yyyy-MM-dd'
+  time: string        // 'HH:mm'
   service: string
   status: string
-  notes?: string
-  isPast?: boolean // Flag per appuntamenti passati
-  userId?: string // User ID per modifica
-  packageId?: string // Package ID per modifica
-  durationMinutes: number // Durata in minuti
-  isMultiplePackage?: boolean // Flag per pacchetti multipli
+  isPast: boolean
+  userId: string
+  packageId: string
+  durationMinutes: number
+  isMultiplePackage: boolean
 }
 
+// ============================================================================
+// COSTANTI TIMELINE
+// Tutte le posizioni derivano da queste. Non usare altri valori.
+// ============================================================================
+const SLOT_MIN    = 30          // minuti per slot
+const DAY_START   = 6 * 60      // 360 min = 06:00
+const DAY_END     = 23 * 60     // 1380 min = 23:00
+const LUNCH_START = 14 * 60     // 840 = 14:00
+const LUNCH_END   = 15 * 60 + 30 // 930 = 15:30
+const TOTAL_SLOTS = (DAY_END - DAY_START) / SLOT_MIN  // 34
+
+// ============================================================================
+// FUNZIONI PURE DI COORDINATA — unica fonte di verità
+// ============================================================================
+
+/** minuti → pixel: minToY(420, 30) = 60px */
+function minToY(minutes: number, slotH: number): number {
+  return ((minutes - DAY_START) / SLOT_MIN) * slotH
+}
+
+/** pixel → minuti (floor = slot corrente): yToMin(89, 30) = 420 (07:00) */
+function yToMin(y: number, slotH: number): number {
+  return Math.floor(y / slotH) * SLOT_MIN + DAY_START
+}
+
+/** Snappa al più vicino multiplo di SLOT_MIN */
+function snapMin(raw: number): number {
+  return Math.round(raw / SLOT_MIN) * SLOT_MIN
+}
+
+/** Minuti → 'HH:mm' */
+function minsToTime(m: number): string {
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+}
+
+/** 'HH:mm' → minuti */
+function timeToMins(t: string): number {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
+/** Y → orario snappato e bookable (salta pausa pranzo, clamp 06:00-21:30) */
+function yToBookableTime(y: number, slotH: number): string {
+  let snapped = snapMin(yToMin(y, slotH))
+  if (snapped >= LUNCH_START && snapped < LUNCH_END) snapped = LUNCH_END
+  snapped = Math.max(DAY_START, Math.min(snapped, 21 * 60 + 30))
+  return minsToTime(snapped)
+}
+
+/** Y → orario snappato per hover (null se fuori range o in pausa pranzo) */
+function yToHoverTime(y: number, slotH: number): string | null {
+  const snapped = snapMin(yToMin(y, slotH))
+  if (snapped < DAY_START || snapped >= DAY_END) return null
+  if (snapped >= LUNCH_START && snapped < LUNCH_END) return null
+  return minsToTime(snapped)
+}
+
+/** true se l'orario è già passato */
+function isPastTime(dateStr: string, timeStr: string): boolean {
+  return new Date(`${dateStr}T${timeStr}:00`) < new Date()
+}
+
+// ============================================================================
+// Timeline — gestisce hover isolato per colonna
+// ============================================================================
+function Timeline({
+  slotH, dateStr, onClick, onDragOver, onDrop, children,
+}: {
+  slotH: number
+  dateStr: string
+  onClick: (e: React.MouseEvent<HTMLDivElement>) => void
+  onDragOver: (e: React.DragEvent<HTMLDivElement>) => void
+  onDrop: (e: React.DragEvent<HTMLDivElement>) => void
+  children: React.ReactNode
+}) {
+  const totalH = TOTAL_SLOTS * slotH
+  const [hoverY, setHoverY] = useState<number | null>(null)
+  const [hoverLabel, setHoverLabel] = useState('')
+
+  return (
+    <div
+      className="relative"
+      style={{ height: totalH }}
+      onClick={onClick}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onMouseMove={e => {
+        if ((e.target as HTMLElement).closest('.apt-block, .resize-handle')) {
+          setHoverY(null); return
+        }
+        const rect = e.currentTarget.getBoundingClientRect()
+        const rawY = e.clientY - rect.top
+        const time = yToHoverTime(rawY, slotH)
+        if (!time || isPastTime(dateStr, time)) { setHoverY(null); return }
+        const snappedMins = snapMin(yToMin(rawY, slotH))
+        setHoverY(minToY(snappedMins, slotH))
+        setHoverLabel(time)
+      }}
+      onMouseLeave={() => setHoverY(null)}
+    >
+      {hoverY !== null && (
+        <div
+          className="absolute left-0 right-0 pointer-events-none z-[5]"
+          style={{
+            top: hoverY, height: slotH,
+            background: 'rgba(255,255,255,0.04)',
+            borderTop: '1px solid rgba(212,175,55,0.35)',
+          }}
+        >
+          <span className="absolute right-1 top-0.5 text-[9px] text-gold-400/70 font-mono select-none">
+            {hoverLabel}
+          </span>
+        </div>
+      )}
+      {children}
+    </div>
+  )
+}
+
+// ============================================================================
+// GridLines — linee orizzontali della griglia
+// ============================================================================
+function GridLines({ slotH }: { slotH: number }) {
+  return (
+    <>
+      {Array.from({ length: TOTAL_SLOTS + 1 }, (_, i) => {
+        const absMin = DAY_START + i * SLOT_MIN
+        const isHour = absMin % 60 === 0
+        return (
+          <div
+            key={i}
+            className="absolute left-0 right-0"
+            style={{
+              top: i * slotH,
+              height: 0,
+              borderTop: isHour
+                ? '1px solid rgba(255,255,255,0.12)'
+                : '1px solid rgba(255,255,255,0.05)',
+            }}
+          />
+        )
+      })}
+    </>
+  )
+}
+
+// ============================================================================
+// HourLabels — etichette ore nella colonna sinistra
+// ============================================================================
+function HourLabels({ slotH }: { slotH: number }) {
+  const totalH = TOTAL_SLOTS * slotH
+  const hours: number[] = []
+  for (let min = DAY_START; min < DAY_END; min += 60) hours.push(min)
+
+  return (
+    <div className="relative" style={{ height: totalH }}>
+      {hours.map(absMin => {
+        const top = minToY(absMin, slotH)
+        return (
+          <div
+            key={absMin}
+            // top coincide con la linea marcata corrispondente
+            // items-start + pt-px → il testo inizia sulla linea
+            // height = slotH*2 → spazio per non sovrapporre l'etichetta successiva
+            className="absolute right-0 left-0 flex items-start text-[10px] text-gray-500 select-none pr-1 pt-px"
+            style={{ top, height: slotH * 2 }}
+          >
+            {String(absMin / 60).padStart(2, '0')}:00
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ============================================================================
+// LunchBreak — fascia pausa pranzo
+// ============================================================================
+function LunchBreak({ slotH }: { slotH: number }) {
+  const top    = minToY(LUNCH_START, slotH)
+  const height = minToY(LUNCH_END, slotH) - top
+  return (
+    <div
+      className="absolute left-0 right-0 pointer-events-none z-[1]"
+      style={{
+        top, height,
+        background: 'repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(255,255,255,0.01) 4px,rgba(255,255,255,0.01) 8px)',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+      }}
+    >
+      <span className="absolute left-1 top-1 text-[9px] text-gray-600 select-none">
+        Pausa pranzo
+      </span>
+    </div>
+  )
+}
+
+// ============================================================================
+// NowLine — linea rossa ora corrente
+// ============================================================================
+function NowLine({ dateStr, slotH, nowMin }: { dateStr: string; slotH: number; nowMin: number }) {
+  if (dateStr !== format(new Date(), 'yyyy-MM-dd')) return null
+  if (nowMin < DAY_START || nowMin >= DAY_END) return null
+  const top = minToY(nowMin, slotH)
+  return (
+    <div
+      className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
+      style={{ top: top - 1 }}
+    >
+      <div className="w-2 h-2 rounded-full bg-red-500 -ml-1 flex-shrink-0" />
+      <div className="flex-1 h-[1.5px] bg-red-500 opacity-80" />
+    </div>
+  )
+}
+
+// ============================================================================
+// AptBlock — blocco appuntamento con drag + resize
+// ============================================================================
+function AptBlock({
+  apt, top, height, left, right, width, zIndex, slotH, isMobile, onClickApt, onResizeEnd,
+}: {
+  apt: AptData; top: number; height: number
+  left: string; right: string; width: string
+  zIndex?: number
+  slotH: number; isMobile: boolean
+  onClickApt: (a: AptData) => void
+  onResizeEnd: (id: string, newDuration: number) => void
+}) {
+  const [localH, setLocalH] = useState(height)
+  const resizing = useRef(false)
+  const startY   = useRef(0)
+  const startH   = useRef(0)
+
+  useEffect(() => setLocalH(height), [height])
+
+  const onResizeDown = (e: React.MouseEvent) => {
+    if (apt.isPast) return
+    e.preventDefault(); e.stopPropagation()
+    resizing.current = true
+    startY.current = e.clientY
+    startH.current = localH
+
+    const onMove = (ev: MouseEvent) => {
+      if (!resizing.current) return
+      const delta = Math.round((ev.clientY - startY.current) / slotH) * slotH
+      setLocalH(Math.max(slotH, startH.current + delta))
+    }
+    const onUp = (ev: MouseEvent) => {
+      resizing.current = false
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      const delta = Math.round((ev.clientY - startY.current) / slotH) * slotH
+      const newH  = Math.max(slotH, startH.current + delta)
+      onResizeEnd(apt.id, Math.round((newH / slotH) * SLOT_MIN))
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
+  const compact = localH < (isMobile ? 36 : 46)
+
+  return (
+    <div
+      draggable={!apt.isPast}
+      onDragStart={e => {
+        if (resizing.current) { e.preventDefault(); return }
+        e.stopPropagation()
+        e.dataTransfer.setData('aptId', apt.id)
+        e.dataTransfer.setData('aptTime', apt.time)
+        e.dataTransfer.effectAllowed = 'move'
+      }}
+      className={`apt-block absolute overflow-hidden rounded-xl border
+        backdrop-blur-sm shadow-lg transition-colors
+        ${apt.isPast
+          ? 'border-gold-400/15 grayscale brightness-60 cursor-not-allowed'
+          : 'border-gold-400/40 cursor-move hover:border-gold-400/70'
+        }`}
+      style={{
+        top, height: localH, left, right, width,
+        zIndex: zIndex ?? 10,
+        background: apt.isPast
+          ? 'rgba(212, 175, 55, 0.12)'
+          : 'linear-gradient(135deg, rgba(212, 175, 55, 0.32) 0%, rgba(184, 134, 11, 0.22) 100%)',
+      }}
+      onClick={e => { e.stopPropagation(); onClickApt(apt) }}
+    >
+      <div className="h-full flex flex-col justify-center px-2 py-1 leading-tight select-none pb-3">
+        <div className="font-semibold text-[10px] md:text-xs text-white truncate">
+          {apt.client_name}
+          {apt.isMultiplePackage && !compact && (
+            <Badge variant="info" size="sm" className="ml-1 text-[8px]">(Multiplo)</Badge>
+          )}
+        </div>
+        {!compact && (
+          <div className="text-[9px] md:text-[11px] text-gray-400 truncate mt-0.5">
+            {apt.time} · {apt.service}
+          </div>
+        )}
+      </div>
+      {!apt.isPast && (
+        <div
+          className="resize-handle absolute bottom-0 left-0 right-0 h-3 cursor-s-resize flex items-center justify-center group"
+          onMouseDown={onResizeDown}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="w-8 h-0.5 rounded-full bg-gold-400/30 group-hover:bg-gold-400/70 transition-colors" />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================================================
+// COMPONENTE PRINCIPALE
+// ============================================================================
 export default function AdminCalendar() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
-  const [calendarView, setCalendarView] = useState<CalendarView>('day')
+  const [view, setView] = useState<CalendarView>('day')
+  const [currentDay, setCurrentDay] = useState(new Date())
   const [currentWeek, setCurrentWeek] = useState(new Date())
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [currentDay, setCurrentDay] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentData | null>(null)
-  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
+  const [selectedApt, setSelectedApt] = useState<AptData | null>(null)
+  const [aptModalOpen, setAptModalOpen] = useState(false)
+  const [bookingModalOpen, setBookingModalOpen] = useState(false)
+  const [prefilledDate, setPrefilledDate] = useState('')
+  const [prefilledTime, setPrefilledTime] = useState('')
   const [isMobile, setIsMobile] = useState(false)
+  const [nowMin, setNowMin] = useState(() => {
+    const n = new Date(); return n.getHours() * 60 + n.getMinutes()
+  })
 
-  // Rileva se siamo su mobile
+  const dayRef  = useRef<HTMLDivElement>(null)
+  const weekRef = useRef<HTMLDivElement>(null)
+  const scrolled = useRef(false)
+
+  // Slot height dipende dal dispositivo
+  const SH = isMobile ? 20 : 30
+
+  // ─── Effetti ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024) // lg breakpoint
-    }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
+    const check = () => setIsMobile(window.innerWidth < 1024)
+    check(); window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
   }, [])
 
-  // Verifica se un appuntamento è passato
-  const isAppointmentPast = (apt: AppointmentData): boolean => {
-    const now = new Date()
-    const appointmentDateTime = new Date(`${apt.date}T${apt.time}:00`)
-    return appointmentDateTime < now
-  }
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const n = new Date(); setNowMin(n.getHours() * 60 + n.getMinutes())
+    }, 60000)
+    return () => clearInterval(iv)
+  }, [])
 
-  // Trasforma i booking dal formato API al formato del calendario
-  const transformBookings = (bookings: Booking[]): AppointmentData[] => {
-    return bookings.map(booking => {
-      const bookingDate = parseISO(booking.date)
-      const appointmentDateTime = new Date(`${format(bookingDate, 'yyyy-MM-dd')}T${booking.time}:00`)
-      const isPast = appointmentDateTime < new Date()
-      
-      // Per pacchetti multipli, mostra tutti gli atleti
-      let clientName = booking.user.name
-      const isMultiple = booking.package.isMultiple && booking.package.athletes && booking.package.athletes.length > 1
-      if (isMultiple && booking.package.athletes) {
-        const athleteNames = booking.package.athletes.map(a => a.name).join(', ')
-        clientName = athleteNames
-      }
-      
-      return {
-        id: booking.id,
-        client_name: clientName,
-        client_email: booking.user.email,
-        phone: booking.user.phone,
-        date: format(bookingDate, 'yyyy-MM-dd'),
-        time: booking.time,
-        service: booking.package.name,
-        status: booking.status.toLowerCase(),
-        notes: `${booking.package.durationMinutes} minuti`,
-        isPast, // Aggiungi flag per appuntamenti passati
-        userId: booking.user.id, // Aggiungi userId per modifica
-        packageId: booking.package.id, // Aggiungi packageId per modifica
-        durationMinutes: booking.package.durationMinutes, // Durata in minuti
-        isMultiplePackage: isMultiple, // Flag per pacchetti multipli
-      }
-    })
-  }
-
-  const allAppointments = transformBookings(bookings)
+  useEffect(() => { scrolled.current = false }, [view, currentDay, currentWeek])
 
   useEffect(() => {
-    fetchBookings()
-  }, [calendarView, currentMonth, currentDay, currentWeek])
+    if (loading || scrolled.current) return
+    const ref = view === 'day' ? dayRef.current : weekRef.current
+    if (!ref) return
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const inView = view === 'day'
+      ? format(currentDay, 'yyyy-MM-dd') === today
+      : eachDayOfInterval({
+          start: startOfWeek(currentWeek, { weekStartsOn: 1 }),
+          end:   endOfWeek(currentWeek,   { weekStartsOn: 1 }),
+        }).some(d => format(d, 'yyyy-MM-dd') === today)
+    if (!inView) return
+    const targetY = minToY(nowMin, SH)
+    ref.scrollTo({ top: Math.max(0, targetY - ref.clientHeight / 3), behavior: 'smooth' })
+    scrolled.current = true
+  }, [loading, view, currentDay, currentWeek, nowMin, SH])
+
+  // ─── Dati ─────────────────────────────────────────────────────────────────
+  const transform = (bs: Booking[]): AptData[] =>
+    bs.map(b => {
+      const dateStr = format(parseISO(b.date), 'yyyy-MM-dd')
+      const isMultiple = b.package.isMultiple === true && (b.package.athletes?.length ?? 0) > 1
+      return {
+        id: b.id,
+        client_name: isMultiple
+          ? b.package.athletes!.map(a => a.name).join(', ')
+          : b.user.name,
+        client_email: b.user.email,
+        phone: b.user.phone,
+        date: dateStr,
+        time: b.time,
+        service: b.package.name,
+        status: b.status.toLowerCase(),
+        isPast: isPastTime(dateStr, b.time),
+        userId: b.user.id,
+        packageId: b.package.id,
+        durationMinutes: b.package.durationMinutes,
+        isMultiplePackage: isMultiple,
+      }
+    })
+
+  const apts = transform(bookings)
+
+  useEffect(() => { fetchBookings() }, [view, currentDay, currentWeek, currentMonth])
 
   const fetchBookings = async () => {
     setLoading(true)
     try {
-      let startDate: Date
-      let endDate: Date
-
-      if (calendarView === 'day') {
-        startDate = startOfDay(currentDay)
-        endDate = addDays(startDate, 1)
-      } else if (calendarView === 'week') {
-        startDate = startOfWeek(currentWeek, { weekStartsOn: 1 })
-        endDate = endOfWeek(currentWeek, { weekStartsOn: 1 })
+      let start: Date, end: Date
+      if (view === 'day') {
+        start = startOfDay(currentDay); end = addDays(start, 1)
+      } else if (view === 'week') {
+        start = startOfWeek(currentWeek, { weekStartsOn: 1 })
+        end   = endOfWeek(currentWeek,   { weekStartsOn: 1 })
       } else {
-        // Month view - fetch tutto il mese
-        startDate = startOfMonth(currentMonth)
-        endDate = endOfMonth(currentMonth)
+        start = startOfMonth(currentMonth); end = endOfMonth(currentMonth)
       }
-
-      const response = await fetch(
-        `/api/admin/bookings?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+      const res = await fetch(
+        `/api/admin/bookings?startDate=${start.toISOString()}&endDate=${end.toISOString()}`
       )
-
-      if (response.ok) {
-        const data = await response.json()
-        setBookings(data)
-      }
-    } catch (error) {
-      console.error('Errore recupero prenotazioni:', error)
+      if (res.ok) setBookings(await res.json())
+    } catch (err) {
+      console.error('Errore fetch:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  // Formato data italiana
-  const formatDate = (dateString: string) => {
-    const date = parseISO(dateString)
-    return format(date, 'dd/MM/yyyy', { locale: it })
+  // ─── Navigazione ──────────────────────────────────────────────────────────
+  const nav = (d: 'prev' | 'next') => {
+    const n = d === 'prev' ? -1 : 1
+    if (view === 'month') setCurrentMonth(m => addMonths(m, n))
+    else if (view === 'week') setCurrentWeek(w => addWeeks(w, n))
+    else setCurrentDay(day => addDays(day, n))
   }
 
+  const goToday = () => {
+    const t = new Date()
+    setCurrentDay(new Date(t)); setCurrentWeek(new Date(t)); setCurrentMonth(new Date(t))
+  }
 
-  // Navigazione
-  const navigatePeriod = (direction: 'prev' | 'next') => {
-    if (calendarView === 'month') {
-      setCurrentMonth(direction === 'prev' ? subMonths(currentMonth, 1) : addMonths(currentMonth, 1))
-    } else if (calendarView === 'week') {
-      setCurrentWeek(direction === 'prev' ? subWeeks(currentWeek, 1) : addWeeks(currentWeek, 1))
-    } else {
-      setCurrentDay(direction === 'prev' ? subDays(currentDay, 1) : addDays(currentDay, 1))
+  const goDay = (ds: string) => { setCurrentDay(parseISO(ds)); setView('day') }
+
+  const openCreate = (ds: string, ts?: string) => {
+    setPrefilledDate(ds); setPrefilledTime(ts ?? ''); setBookingModalOpen(true)
+  }
+
+  const showApt = (a: AptData) => { setSelectedApt(a); setAptModalOpen(true) }
+
+  const periodLabel = () => {
+    if (view === 'month') return format(currentMonth, 'MMMM yyyy', { locale: it })
+    if (view === 'week') {
+      const ws = startOfWeek(currentWeek, { weekStartsOn: 1 })
+      const we = endOfWeek(currentWeek, { weekStartsOn: 1 })
+      return `${format(ws, 'd MMM', { locale: it })} – ${format(we, 'd MMM yyyy', { locale: it })}`
     }
+    return format(currentDay, 'EEEE d MMMM yyyy', { locale: it })
   }
 
-  const goToToday = () => {
-    const today = new Date()
-    setCurrentMonth(new Date(today))
-    setCurrentDay(new Date(today))
-    setCurrentWeek(new Date(today))
+  // ─── Drop handler ─────────────────────────────────────────────────────────
+  const buildDrop = (dateStr: string) => async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const id       = e.dataTransfer.getData('aptId')
+    const prevTime = e.dataTransfer.getData('aptTime')
+    if (!id) return
+    const rect    = e.currentTarget.getBoundingClientRect()
+    const newTime = yToBookableTime(e.clientY - rect.top, SH)
+    if (newTime === prevTime) return
+    setBookings(prev => prev.map(b =>
+      b.id === id ? { ...b, date: dateStr, time: newTime } : b
+    ))
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: dateStr, time: newTime }),
+      })
+      if (!res.ok) { alert((await res.json()).error || 'Errore spostamento'); fetchBookings() }
+    } catch { alert('Errore di rete'); fetchBookings() }
   }
 
-  // VISTA MESE
-  const renderMonthView = () => {
-    const year = currentMonth.getFullYear()
-    const month = currentMonth.getMonth()
-    const firstDay = startOfMonth(currentMonth)
-    const lastDay = endOfMonth(currentMonth)
-    const startDay = getDay(firstDay) === 0 ? 6 : getDay(firstDay) - 1
+  // ─── Resize handler ───────────────────────────────────────────────────────
+  const handleResizeEnd = async (id: string, newDuration: number) => {
+    setBookings(prev => prev.map(b =>
+      b.id === id ? { ...b, package: { ...b.package, durationMinutes: newDuration } } : b
+    ))
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ durationMinutes: newDuration }),
+      })
+      if (!res.ok) { alert((await res.json()).error || 'Errore resize'); fetchBookings() }
+    } catch { alert('Errore di rete'); fetchBookings() }
+  }
 
-    // Raggruppa appuntamenti per data
-    const appointmentsByDate: Record<string, AppointmentData[]> = {}
-    allAppointments.forEach(apt => {
-      if (!appointmentsByDate[apt.date]) {
-        appointmentsByDate[apt.date] = []
-      }
-      appointmentsByDate[apt.date].push(apt)
+  // ─── Render appuntamenti — layout stile Apple Calendar ──────────────────────
+  // Gli eventi si sovrappongono fisicamente con un offset orizzontale crescente,
+  // esattamente come Apple/Fantastical. NON dividono lo spazio al 50%.
+  //
+  // Formula:
+  //   col  = max depth degli overlapper precedenti + 1
+  //   left = col * INDENT
+  //   width = calc(100% - col*INDENT - RIGHT_MARGIN)  ← quasi full, decresce con col
+  //   zIndex = 10 + col  → l'evento "più in profondità" sta sopra
+  const renderApts = (dayApts: AptData[]) => {
+    type AptExt = AptData & { startMins: number; endMins: number }
+
+    const evs: AptExt[] = dayApts
+      .map(apt => {
+        const startMins = timeToMins(apt.time)
+        if (startMins >= LUNCH_START && startMins < LUNCH_END) return null
+        const duration = apt.durationMinutes || 60
+        let endMins = Math.min(startMins + duration, DAY_END)
+        if (startMins < LUNCH_START && endMins > LUNCH_START) endMins = LUNCH_START
+        return { ...apt, startMins, endMins }
+      })
+      .filter((e): e is AptExt => e !== null)
+      .sort((a, b) => a.startMins - b.startMins || b.endMins - a.endMins)
+
+    const ov = (a: AptExt, b: AptExt) => a.startMins < b.endMins && a.endMins > b.startMins
+
+    // col = max depth degli overlapper precedenti + 1
+    // "depth" si propaga lungo la catena: G1(col0)→G2(col1)→Mario(col2)
+    // anche quando gli estremi non si sovrappongono direttamente (G1 e Mario)
+    const colOf: Record<string, number> = {}
+    for (const ev of evs) {
+      const earlierOverlapping = evs.filter(other =>
+        other.id !== ev.id &&
+        ov(ev, other) &&
+        other.id in colOf  // già processato (evs è ordinato per start)
+      )
+      colOf[ev.id] = earlierOverlapping.length === 0
+        ? 0
+        : Math.max(...earlierOverlapping.map(o => colOf[o.id])) + 1
+    }
+
+    // Apple Calendar layout: offset fisso per colonna, width quasi full
+    const INDENT = isMobile ? 12 : 18 // px di offset per ogni livello di colonna
+    const RIGHT  = 4                   // px di margine destro fisso
+
+    return evs.map(apt => {
+      const col    = colOf[apt.id]
+      const top    = minToY(apt.startMins, SH)
+      const height = Math.max(minToY(apt.endMins, SH) - top, SH)
+      const left   = `${col * INDENT}px`
+      const width  = `calc(100% - ${col * INDENT + RIGHT}px)`
+
+      return (
+        <AptBlock
+          key={apt.id}
+          apt={apt}
+          top={top}
+          height={height}
+          left={left}
+          right="auto"
+          width={width}
+          zIndex={10 + col}
+          slotH={SH}
+          isMobile={isMobile}
+          onClickApt={showApt}
+          onResizeEnd={handleResizeEnd}
+        />
+      )
     })
+  }
+  // ─── Click handler timeline ───────────────────────────────────────────────
+  const buildClick = (dateStr: string) => (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('.apt-block')) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const time = yToBookableTime(e.clientY - rect.top, SH)
+    if (isPastTime(dateStr, time)) return
+    openCreate(dateStr, time)
+  }
 
-    const today = new Date()
-    const dayNames = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
+  // ============================================================================
+  // VISTA MESE
+  // ============================================================================
+  const renderMonth = () => {
+    const year  = currentMonth.getFullYear()
+    const month = currentMonth.getMonth()
+    const firstDay    = new Date(year, month, 1)
+    const lastDayNum  = new Date(year, month + 1, 0).getDate()
+    const startOffset = getDay(firstDay) === 0 ? 6 : getDay(firstDay) - 1
+    const todayStr    = format(new Date(), 'yyyy-MM-dd')
+
+    const byDate: Record<string, AptData[]> = {}
+    apts.forEach(a => {
+      if (!byDate[a.date]) byDate[a.date] = []
+      byDate[a.date].push(a)
+    })
 
     return (
       <div className="space-y-4">
-        {/* Day names header */}
         <div className="calendar-header">
-          {dayNames.map(day => (
-            <div key={day} className="calendar-header-day">
-              {day}
-            </div>
-          ))}
+          {['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].map(d =>
+            <div key={d} className="calendar-header-day">{d}</div>
+          )}
         </div>
-
-        {/* Calendar grid */}
         <div className="calendar-grid">
-          {/* Celle vuote iniziali */}
-          {Array.from({ length: startDay }).map((_, i) => (
-            <div key={`empty-${i}`} />
-          ))}
-
-          {/* Giorni del mese */}
-          {Array.from({ length: lastDay.getDate() }).map((_, i) => {
-            const day = i + 1
+          {Array.from({ length: startOffset }).map((_, i) => <div key={`e-${i}`} />)}
+          {Array.from({ length: lastDayNum }).map((_, i) => {
+            const day     = i + 1
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-            const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear()
-            const hasAppointments = appointmentsByDate[dateStr]?.length > 0
-            const appointmentCount = appointmentsByDate[dateStr]?.length || 0
-
+            const isToday = dateStr === todayStr
+            const dayApts = byDate[dateStr] || []
             return (
               <div
                 key={dateStr}
-                className={`calendar-day ${hasAppointments ? 'has-appointments' : ''} ${isToday ? 'today' : ''}`}
-                onClick={() => setSelectedDate(dateStr)}
+                className={`calendar-day ${dayApts.length ? 'has-appointments' : ''} ${isToday ? 'today' : ''} cursor-pointer`}
+                onClick={() => setSelectedDate(selectedDate === dateStr ? null : dateStr)}
+                onDoubleClick={() => goDay(dateStr)}
               >
-                <div className="calendar-day-number">{day}</div>
-                {appointmentCount > 0 && (
-                  <div className="calendar-day-count">{appointmentCount}</div>
+                <div className={`calendar-day-number ${isToday ? 'today-circle' : ''}`}>{day}</div>
+                {dayApts.slice(0, 2).map(a => (
+                  <div
+                    key={a.id}
+                    className={`month-event-pill truncate text-[9px] md:text-[10px] px-1 rounded mb-0.5 cursor-pointer
+                      ${a.isPast ? 'opacity-50 bg-dark-400/40 text-gray-500' : 'bg-gold-400/20 text-gold-300'}`}
+                    onClick={ev => { ev.stopPropagation(); showApt(a) }}
+                  >
+                    {a.time} {a.client_name}
+                  </div>
+                ))}
+                {dayApts.length > 2 && (
+                  <div className="text-[9px] text-gray-500 px-1">+{dayApts.length - 2} altri</div>
                 )}
               </div>
             )
           })}
         </div>
 
-        {/* Appuntamenti del giorno selezionato */}
-        {selectedDate && appointmentsByDate[selectedDate] && (
-          <div className="glass-card rounded-lg p-3 md:p-3 mt-3">
-            <p className="text-xs md:text-sm font-semibold mb-2 gold-text-gradient heading-font">
-              {formatDate(selectedDate)} - {appointmentsByDate[selectedDate].length} appuntament{appointmentsByDate[selectedDate].length !== 1 ? 'i' : 'o'}
-            </p>
-            <div className="space-y-1.5">
-              {appointmentsByDate[selectedDate].map(apt => (
-                <div
-                  key={apt.id}
-                  className={`glass-card rounded-lg p-2 md:p-2 cursor-pointer transition-smooth ${
-                    apt.isPast 
-                      ? 'opacity-60 border-dark-400/30 hover:border-dark-400/50' 
-                      : 'hover:border-gold-400/50'
-                  }`}
-                  onClick={() => showAppointmentDetail(apt)}
-                >
-                  <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 md:gap-0">
-                    <div className="flex-1">
-                      <p className="font-semibold text-xs md:text-sm text-white">{apt.client_name}</p>
-                      <p className="text-xs text-gray-400">{apt.time} • {apt.service}</p>
-                    </div>
-                    <Badge variant={apt.status === 'confirmed' ? 'success' : apt.status === 'pending' ? 'warning' : 'info'} size="sm" className="self-start md:self-center">
-                      {apt.status.toUpperCase()}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+        {selectedDate && (
+          <div className="glass-card rounded-lg p-2 md:p-3 mt-2 md:mt-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold gold-text-gradient heading-font">
+                {format(parseISO(selectedDate), 'dd/MM/yyyy', { locale: it })}
+                {byDate[selectedDate]
+                  ? ` — ${byDate[selectedDate].length} appuntament${byDate[selectedDate].length !== 1 ? 'i' : 'o'}`
+                  : ' — Nessun appuntamento'}
+              </p>
+              <button className="text-[10px] text-gold-400 hover:text-gold-300 underline" onClick={() => goDay(selectedDate)}>
+                Apri giornata →
+              </button>
             </div>
+            {byDate[selectedDate] ? (
+              <div className="space-y-1.5">
+                {byDate[selectedDate].map(a => (
+                  <div
+                    key={a.id}
+                    className={`glass-card rounded-lg p-2 cursor-pointer transition-smooth ${a.isPast ? 'opacity-60' : 'hover:border-gold-400/50'}`}
+                    onClick={() => showApt(a)}
+                  >
+                    <div className="flex justify-between items-center gap-2">
+                      <div>
+                        <p className="font-semibold text-xs text-white">{a.client_name}</p>
+                        <p className="text-[10px] text-gray-400">{a.time} · {a.service}</p>
+                      </div>
+                      <Badge variant={a.status === 'confirmed' ? 'success' : a.status === 'pending' ? 'warning' : 'info'} size="sm">
+                        {a.status.toUpperCase()}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <button className="flex items-center gap-1 text-[11px] text-gold-400 hover:text-gold-300" onClick={() => openCreate(selectedDate)}>
+                <Plus className="w-3 h-3" /> Aggiungi appuntamento
+              </button>
+            )}
           </div>
         )}
       </div>
     )
   }
 
-
+  // ============================================================================
   // VISTA GIORNO
-  const renderDayView = () => {
+  // ============================================================================
+  const renderDay = () => {
     const dateStr = format(currentDay, 'yyyy-MM-dd')
-    const dayAppointments = allAppointments.filter(a => a.date === dateStr)
-
-    // Genera le ore disponibili: 6-13 ogni ora, poi 15:30, 16:30, 17:30, ecc.
-    const hours: Array<{ hour: number; minute: number }> = []
-    // Dalle 6 alle 13: ogni ora
-    for (let h = 6; h < 14; h++) {
-      hours.push({ hour: h, minute: 0 })
-    }
-    // Dalle 15:30 in poi: ogni ora a partire da 15:30 fino a 22:30 (mostra anche 22:30 per completezza visiva)
-    for (let h = 15; h < 23; h++) {
-      hours.push({ hour: h, minute: 30 })
-    }
-
-    const HOUR_HEIGHT = isMobile ? 40 : 60
-    const PX_PER_MIN = HOUR_HEIGHT / 60
-    const dayStartMin = 6 * 60 // Inizia alle 6:00
-    const dayEndMin = 22 * 60 + 30 // Termina alle 22:30 (mostra la cella completa)
-    // Calcola l'altezza totale: dalle 6:00 alle 22:30
-    const totalMinutes = dayEndMin - dayStartMin
-    const timelineHeight = totalMinutes * PX_PER_MIN
-
-    const minutesSinceMidnight = (hhmm: string) => {
-      const [h, m] = hhmm.split(':').map(Number)
-      return h * 60 + m
-    }
+    const dayApts = apts.filter(a => a.date === dateStr)
 
     return (
-      <div className="space-y-4">
-        {/* Header giorno */}
-        <div className="glass-card rounded-lg p-3 mb-3">
-          <h3 className="text-lg font-bold gold-text-gradient heading-font mb-1">
-            {dayAppointments.length} Appuntament{dayAppointments.length !== 1 ? 'i' : 'o'}
+      <div className="space-y-2 md:space-y-3">
+        <div className="glass-card rounded-lg p-2 md:p-3">
+          <h3 className="text-sm md:text-base font-bold gold-text-gradient heading-font">
+            {dayApts.length} Appuntament{dayApts.length !== 1 ? 'i' : 'o'}
           </h3>
-            <p className="text-xs text-gray-400">Orario: 06:00 - 13:00, 15:30 - 21:30 (ultimo slot prenotabile)</p>
+          <p className="text-[10px] md:text-xs text-gray-500 mt-0.5">
+            Click su slot vuoto per aggiungere · Trascina il bordo inferiore per ridimensionare
+          </p>
         </div>
 
-        {/* UNICO SCROLL CONTAINER - ore + timeline insieme */}
         <div
-          className="calendar-scroll overflow-y-auto rounded-lg no-scrollbar"
-          style={{ height: '70vh' }}
+          ref={dayRef}
+          className="overflow-y-auto rounded-lg no-scrollbar"
+          style={{ height: isMobile ? '60vh' : '70vh' }}
         >
-          <div className="grid grid-cols-12 gap-2">
-              {/* Colonna etichette ore */}
-              <div className="col-span-2 md:col-span-1 relative" style={{ height: timelineHeight }}>
-                {hours.map((h, idx) => {
-                  const hourMinutes = h.hour * 60 + h.minute
-                  const top = (hourMinutes - dayStartMin) * PX_PER_MIN
-                  return (
-                    <div
-                      key={`${h.hour}-${h.minute}`}
-                      className="time-label flex items-start text-[10px] md:text-xs absolute"
-                      style={{ top, height: HOUR_HEIGHT }}
-                    >
-                      {String(h.hour).padStart(2, '0')}:{String(h.minute).padStart(2, '0')}
-                    </div>
-                  )
-                })}
-              </div>
-
-            {/* Colonna timeline */}
-            <div className="col-span-10 md:col-span-11">
-              <div
-                className="relative time-slot"
-                style={{ height: timelineHeight }}
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  e.dataTransfer.dropEffect = 'move'
-                }}
-                onDrop={async (e) => {
-                  e.preventDefault()
-                  const appointmentId = e.dataTransfer.getData('appointmentId')
-                  const currentTime = e.dataTransfer.getData('currentTime')
-                  
-                  if (!appointmentId) return
-                  
-                  // Calcola la nuova posizione basata su dove è stato rilasciato
-                  const rect = e.currentTarget.getBoundingClientRect()
-                  const y = e.clientY - rect.top
-                  const newMinutes = Math.round((y / PX_PER_MIN) + dayStartMin)
-                  
-                  // Converti minuti in HH:MM
-                  const newHour = Math.floor(newMinutes / 60)
-                  const newMinute = newMinutes % 60
-                  
-                  // Valida l'orario - usa i minuti calcolati, non l'ora arrotondata
-                  const rawMinutes = newHour * 60 + newMinute
-                  if (rawMinutes < 6 * 60 || rawMinutes > 23 * 60) {
-                    alert('Orario non valido. Gli slot sono disponibili dalle 06:00 alle 21:30.')
-                    return
-                  }
-                  
-                  // Evita la pausa pranzo (14:00-15:30)
-                  if ((newHour === 14) || (newHour === 15 && newMinute < 30)) {
-                    alert('Orario non valido. Slot non disponibili durante la pausa pranzo (14:00-15:30).')
-                    return
-                  }
-                  
-                  // Arrotonda all'orario più vicino disponibile
-                  let finalHour = newHour
-                  let finalMinute = newMinute
-                  
-                  if (finalHour < 14) {
-                    // Dalle 6 alle 13: solo :00
-                    finalMinute = 0
-                    // Se i minuti originali erano > 30, siamo più vicini all'ora successiva
-                    if (newMinute > 30) {
-                      finalHour += 1
-                    }
-                    // Clamp
-                    if (finalHour >= 14) {
-                      finalHour = 13
-                    }
-                  } else if (finalHour >= 15) {
-                    // Dalle 15:30 in poi: tutti gli slot sono a :30
-                    // Basta fissare il minuto a :30 (l'ora è già corretta dal calcolo Y)
-                    finalMinute = 30
-                    
-                    // Clamp al massimo 21:30 (ultimo slot prenotabile)
-                    if (finalHour > 21) {
-                      finalHour = 21
-                    }
-                  }
-                  
-                  const newTime = `${String(finalHour).padStart(2, '0')}:${String(finalMinute).padStart(2, '0')}`
-                  
-                  if (newTime === currentTime) return
-                  
-                  // OPTIMISTIC UPDATE - aggiorna subito la UI
-                  setBookings(prev => prev.map(b => {
-                    if (b.id === appointmentId) {
-                      return {
-                        ...b,
-                        date: new Date(dateStr).toISOString(),
-                        time: newTime,
-                      }
-                    }
-                    return b
-                  }))
-                  
-                  // Poi aggiorna il server in background (senza await bloccare la UI)
-                  try {
-                    const response = await fetch(`/api/admin/bookings/${appointmentId}`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        date: dateStr,
-                        time: newTime,
-                      }),
-                    })
-                    
-                    if (!response.ok) {
-                      const data = await response.json()
-                      alert(data.error || 'Errore nello spostamento dell\'appuntamento')
-                      fetchBookings() // Rollback: ricarica dallo stato reale
-                    }
-                    // Se ok, NON chiamare fetchBookings() - la UI è già aggiornata
-                  } catch (error) {
-                    alert('Errore nello spostamento dell\'appuntamento')
-                    fetchBookings() // Rollback
-                  }
-                }}
+          <div className="flex">
+            {/* Colonna ore — larghezza fissa */}
+            <div className="flex-shrink-0 w-10 md:w-12">
+              <HourLabels slotH={SH} />
+            </div>
+            {/* Colonna timeline — prende il resto */}
+            <div className="flex-1 min-w-0">
+              <Timeline
+                slotH={SH}
+                dateStr={dateStr}
+                onClick={buildClick(dateStr)}
+                onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+                onDrop={buildDrop(dateStr)}
               >
-                  {/* Linee orarie */}
-                  {hours.map((h, idx) => {
-                    const hourMinutes = h.hour * 60 + h.minute
-                    const top = (hourMinutes - dayStartMin) * PX_PER_MIN
-                    return (
-                      <div
-                        key={`${h.hour}-${h.minute}`}
-                        className="absolute left-0 right-0 border-t border-white/10 z-0"
-                        style={{ top }}
-                      />
-                    )
-                  })}
-                  {/* Linea finale per delimitare l'ultima cella (22:30) */}
-                  <div
-                    className="absolute left-0 right-0 border-t border-white/10 z-0"
-                    style={{ top: timelineHeight }}
-                  />
-
-                {/* Eventi assoluti - raggruppati per ora */}
-                {(() => {
-                  // Filtra appuntamenti escludendo la pausa pranzo
-                  const filteredAppointments = dayAppointments.filter((apt) => {
-                    const startMin = minutesSinceMidnight(apt.time)
-                    const lunchBreakStart = 14 * 60 // 14:00
-                    const lunchBreakEnd = 15 * 60 + 30 // 15:30
-                    return !(startMin >= lunchBreakStart && startMin < lunchBreakEnd)
-                  })
-
-                  // Raggruppa appuntamenti per ora
-                  const appointmentsByTime: Record<string, AppointmentData[]> = {}
-                  filteredAppointments.forEach((apt) => {
-                    if (!appointmentsByTime[apt.time]) {
-                      appointmentsByTime[apt.time] = []
-                    }
-                    appointmentsByTime[apt.time].push(apt)
-                  })
-
-                  // Renderizza gli appuntamenti
-                  return Object.entries(appointmentsByTime).flatMap(([time, apts]) => {
-                    // Se ci sono 2 appuntamenti singoli (non multipli) alla stessa ora, renderizzali affiancati
-                    const singleAppointments = apts.filter(apt => !apt.isMultiplePackage)
-                    const hasTwoSingles = singleAppointments.length === 2 && apts.length === 2
-
-                    return apts.map((apt, index) => {
-                      const startMin = minutesSinceMidnight(apt.time)
-                      const duration = apt.durationMinutes || 60
-                      const endMin = startMin + duration
-
-                      // clamp dentro range visibile (considerando la pausa pranzo)
-                      const lunchBreakStart = 14 * 60 // 14:00
-                      const lunchBreakEnd = 15 * 60 + 30 // 15:30
-                      if (startMin >= lunchBreakStart && startMin < lunchBreakEnd) {
-                        return null // Non mostrare appuntamenti nella pausa pranzo
-                      }
-                      
-                      const clampedStart = Math.max(startMin, dayStartMin)
-                      // Se l'appuntamento si estende nella pausa pranzo, taglialo
-                      let clampedEnd = Math.min(endMin, dayEndMin)
-                      if (clampedStart < lunchBreakStart && clampedEnd > lunchBreakStart) {
-                        clampedEnd = lunchBreakStart // Taglia alla pausa pranzo
-                      }
-                      
-                      // Se l'appuntamento inizia nell'ultima cella (22:30), assicurati che abbia l'altezza completa della cella
-                      let forcedFullCell = false
-                      if (clampedStart >= dayEndMin - 60) {
-                        forcedFullCell = true
-                      }
-
-                      const top = (clampedStart - dayStartMin) * PX_PER_MIN
-                      const naturalHeight = (clampedEnd - clampedStart) * PX_PER_MIN
-                      const height = forcedFullCell ? HOUR_HEIGHT : Math.max(naturalHeight, isMobile ? 14 : 18)
-                      
-                      // Assicura che il blocco non sfori la timeline
-                      const clampedTop = Math.min(top, timelineHeight - height)
-                      
-                      // Versione compatta per eventi bassi (soglia più bassa su mobile)
-                      const compact = height < (isMobile ? 40 : 55)
-
-                      // Calcola posizione e larghezza per appuntamenti affiancati
-                      let left = '0.5rem' // left-2
-                      let right = '0.5rem' // right-2
-                      let width = 'auto'
-
-                      if (hasTwoSingles) {
-                        // Ogni appuntamento occupa metà dello spazio, con un piccolo gap tra loro
-                        const gap = '0.25rem' // gap tra i due
-                        const totalGap = `calc(${gap} * 1)` // gap tra i due
-                        const halfWidth = `calc(50% - ${gap} / 2)`
-                        
-                        if (index === 0) {
-                          // Primo appuntamento: sinistra
-                          left = '0.5rem'
-                          right = 'auto'
-                          width = halfWidth
-                        } else {
-                          // Secondo appuntamento: destra
-                          left = 'auto'
-                          right = '0.5rem'
-                          width = halfWidth
-                        }
-                      }
-
-                      return (
-                        <div
-                          key={apt.id}
-                          draggable={!apt.isPast}
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('appointmentId', apt.id)
-                            e.dataTransfer.setData('currentTime', apt.time)
-                            e.dataTransfer.effectAllowed = 'move'
-                          }}
-                          className={`appointment-block absolute z-10 overflow-hidden
-                            bg-[#0b0b0b]/90 border border-gold-400/25 shadow-card backdrop-blur-sm
-                            rounded-xl
-                            ${apt.isPast ? 'grayscale brightness-75 cursor-not-allowed' : 'cursor-move hover:border-gold-400/50'}`}
-                          style={{ 
-                            top: clampedTop, 
-                            height,
-                            left: hasTwoSingles ? (index === 0 ? '0.5rem' : 'auto') : '0.5rem',
-                            right: hasTwoSingles ? (index === 0 ? 'auto' : '0.5rem') : '0.5rem',
-                            width: hasTwoSingles ? `calc(50% - 0.625rem)` : 'auto'
-                          }}
-                          onClick={() => showAppointmentDetail(apt)}
-                        >
-                          <div className="h-full p-1.5 md:p-2 flex flex-col justify-center leading-tight">
-                            <div>
-                              <div className="font-semibold text-[10px] md:text-xs lg:text-sm text-white truncate">
-                                {apt.client_name}
-                                {apt.isMultiplePackage && !compact && (
-                                  <Badge variant="info" size="sm" className="ml-1 md:ml-2 text-[8px] md:text-[10px]">(Multiplo)</Badge>
-                                )}
-                              </div>
-                              <div className="text-[9px] md:text-[11px] text-gray-400 truncate">
-                                {apt.time} • {apt.service}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })
-                  })
-                })()}
-              </div>
+                <GridLines slotH={SH} />
+                <LunchBreak slotH={SH} />
+                <NowLine dateStr={dateStr} slotH={SH} nowMin={nowMin} />
+                {renderApts(dayApts)}
+              </Timeline>
             </div>
           </div>
         </div>
@@ -591,425 +768,158 @@ export default function AdminCalendar() {
     )
   }
 
-  // Mostra dettaglio appuntamento
-  const showAppointmentDetail = (apt: AppointmentData) => {
-    setSelectedAppointment(apt)
-    setIsAppointmentModalOpen(true)
-  }
-
-  // Periodo corrente per il display
-  const getCurrentPeriod = () => {
-    if (calendarView === 'month') {
-      return format(currentMonth, 'MMMM yyyy', { locale: it })
-    } else if (calendarView === 'week') {
-      const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 })
-      const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 })
-      return `${format(weekStart, 'd MMM', { locale: it })} - ${format(weekEnd, 'd MMM yyyy', { locale: it })}`
-    } else {
-      return format(currentDay, 'EEEE d MMMM yyyy', { locale: it })
-    }
-  }
-
-  // VISTA SETTIMANALE
-  const renderWeekView = () => {
+  // ============================================================================
+  // VISTA SETTIMANA
+  // ============================================================================
+  const renderWeek = () => {
     const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 })
-    const weekDays = eachDayOfInterval({ start: weekStart, end: endOfWeek(currentWeek, { weekStartsOn: 1 }) })
-    const dayNames = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
+    const weekDays  = eachDayOfInterval({ start: weekStart, end: endOfWeek(currentWeek, { weekStartsOn: 1 }) })
+    const todayStr  = format(new Date(), 'yyyy-MM-dd')
 
-    // Genera le ore disponibili: 6-13 ogni ora, poi 15:30, 16:30, 17:30, ecc.
-    const hours: Array<{ hour: number; minute: number }> = []
-    // Dalle 6 alle 13: ogni ora
-    for (let h = 6; h < 14; h++) {
-      hours.push({ hour: h, minute: 0 })
-    }
-    // Dalle 15:30 in poi: ogni ora a partire da 15:30 fino a 22:30 (mostra anche 22:30 per completezza visiva)
-    for (let h = 15; h < 23; h++) {
-      hours.push({ hour: h, minute: 30 })
-    }
-
-    const HOUR_HEIGHT = isMobile ? 40 : 60
-    const PX_PER_MIN = HOUR_HEIGHT / 60
-    const dayStartMin = 6 * 60 // Inizia alle 6:00
-    const dayEndMin = 22 * 60 + 30 // Termina alle 22:30 (mostra la cella completa)
-    const totalMinutes = dayEndMin - dayStartMin
-    const timelineHeight = totalMinutes * PX_PER_MIN
-
-    const minutesSinceMidnight = (hhmm: string) => {
-      const [h, m] = hhmm.split(':').map(Number)
-      return h * 60 + m
-    }
+    // Colonna ore fissa, colonne giorni si espandono per riempire lo spazio
+    const HOUR_W  = isMobile ? 40 : 48
+    const GRID_COLS = `${HOUR_W}px repeat(7, 1fr)`
 
     return (
-      <div className="space-y-4">
-        {/* Header giorni */}
-        <div className="grid grid-cols-8 gap-2">
-          <div className="col-span-1"></div> {/* Spazio per le etichette orarie */}
-          {dayNames.map((dayName, index) => {
-            const day = weekDays[index]
-            const dateStr = format(day, 'yyyy-MM-dd')
-            const dayAppointments = allAppointments.filter(a => a.date === dateStr)
-            const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+      <div
+        ref={weekRef}
+        className="overflow-auto rounded-lg no-scrollbar"
+        style={{ height: '70vh' }}
+      >
+        {/* Contenitore senza larghezza fissa — si espande orizzontalmente */}
+        <div>
 
-            return (
-              <div key={dateStr} className="text-center">
-                <div className={`text-xs font-semibold mb-1 ${isToday ? 'text-gold-400' : 'text-gray-400'}`}>
-                  {dayName}
-                </div>
-                <div className={`text-sm font-bold ${isToday ? 'text-gold-400' : 'text-white'}`}>
-                  {format(day, 'd')}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Timeline settimanale con orari */}
-        <div
-          className="calendar-scroll overflow-y-auto rounded-lg no-scrollbar"
-          style={{ height: '70vh' }}
-        >
-          <div className="grid grid-cols-8 gap-2">
-            {/* Colonna etichette ore */}
-            <div className="col-span-1 relative" style={{ height: timelineHeight }}>
-              {hours.map((h, idx) => {
-                const hourMinutes = h.hour * 60 + h.minute
-                const top = (hourMinutes - dayStartMin) * PX_PER_MIN
+          {/* Header giorni — sticky top */}
+          <div className="sticky top-0 z-30" style={{ backgroundColor: '#0a0a0a' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: GRID_COLS }}>
+              {/* Spacer ore — sticky left */}
+              <div className="sticky left-0 z-10" style={{ backgroundColor: '#0a0a0a' }} />
+              {weekDays.map((day, i) => {
+                const dateStr = format(day, 'yyyy-MM-dd')
+                const isToday = dateStr === todayStr
                 return (
                   <div
-                    key={`${h.hour}-${h.minute}`}
-                    className="time-label flex items-start text-[10px] md:text-xs absolute"
-                    style={{ top, height: HOUR_HEIGHT }}
+                    key={dateStr}
+                    className="text-center cursor-pointer group py-1.5"
+                    onClick={() => goDay(dateStr)}
                   >
-                    {String(h.hour).padStart(2, '0')}:{String(h.minute).padStart(2, '0')}
+                    <div className={`text-[10px] font-semibold mb-0.5 transition group-hover:text-gold-300
+                      ${isToday ? 'text-gold-400' : 'text-gray-400'}`}>
+                      {['Lun','Mar','Mer','Gio','Ven','Sab','Dom'][i]}
+                    </div>
+                    <div className={`mx-auto w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold transition
+                      ${isToday ? 'bg-gold-400 text-black' : 'text-white group-hover:bg-dark-300'}`}>
+                      {format(day, 'd')}
+                    </div>
                   </div>
                 )
               })}
             </div>
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
+          </div>
 
-            {/* Colonne giorni con timeline */}
-            {weekDays.map((day) => {
+          {/* Griglia timeline */}
+          <div style={{ display: 'grid', gridTemplateColumns: GRID_COLS }}>
+            {/* Colonna ore — sticky left */}
+            <div className="sticky left-0 z-20" style={{ backgroundColor: '#0a0a0a' }}>
+              <HourLabels slotH={SH} />
+            </div>
+
+            {/* Colonne giorni */}
+            {weekDays.map(day => {
               const dateStr = format(day, 'yyyy-MM-dd')
-              const dayAppointments = allAppointments.filter(a => a.date === dateStr)
-
+              const dayApts = apts.filter(a => a.date === dateStr)
               return (
-                <div key={dateStr} className="col-span-1">
-                  <div
-                    className="relative time-slot border border-dark-200/20 rounded-lg"
-                    style={{ height: timelineHeight }}
-                    onDragOver={(e) => {
-                      e.preventDefault()
-                      e.dataTransfer.dropEffect = 'move'
-                    }}
-                    onDrop={async (e) => {
-                      e.preventDefault()
-                      const appointmentId = e.dataTransfer.getData('appointmentId')
-                      const currentTime = e.dataTransfer.getData('currentTime')
-                      
-                      if (!appointmentId) return
-                      
-                      // Calcola la nuova posizione basata su dove è stato rilasciato
-                      const rect = e.currentTarget.getBoundingClientRect()
-                      const y = e.clientY - rect.top
-                      const newMinutes = Math.round((y / PX_PER_MIN) + dayStartMin)
-                      
-                      // Converti minuti in HH:MM
-                      const newHour = Math.floor(newMinutes / 60)
-                      const newMinute = newMinutes % 60
-                      
-                      // Valida l'orario - usa i minuti calcolati, non l'ora arrotondata
-                      const rawMinutes = newHour * 60 + newMinute
-                      if (rawMinutes < 6 * 60 || rawMinutes > 23 * 60) {
-                        alert('Orario non valido. Gli slot sono disponibili dalle 06:00 alle 21:30.')
-                        return
-                      }
-                      
-                      // Evita la pausa pranzo (14:00-15:30)
-                      if ((newHour === 14) || (newHour === 15 && newMinute < 30)) {
-                        alert('Orario non valido. Slot non disponibili durante la pausa pranzo (14:00-15:30).')
-                        return
-                      }
-                      
-                      // Arrotonda all'orario più vicino disponibile
-                      let finalHour = newHour
-                      let finalMinute = newMinute
-                      
-                      if (finalHour < 14) {
-                        // Dalle 6 alle 13: solo :00
-                        finalMinute = 0
-                        // Se i minuti originali erano > 30, siamo più vicini all'ora successiva
-                        if (newMinute > 30) {
-                          finalHour += 1
-                        }
-                        // Clamp
-                        if (finalHour >= 14) {
-                          finalHour = 13
-                        }
-                      } else if (finalHour >= 15) {
-                        // Dalle 15:30 in poi: tutti gli slot sono a :30
-                        // Basta fissare il minuto a :30 (l'ora è già corretta dal calcolo Y)
-                        finalMinute = 30
-                        
-                        // Clamp al massimo 21:30 (ultimo slot prenotabile)
-                        if (finalHour > 21) {
-                          finalHour = 21
-                        }
-                      }
-                      
-                      const newTime = `${String(finalHour).padStart(2, '0')}:${String(finalMinute).padStart(2, '0')}`
-                      
-                      if (newTime === currentTime) return
-                      
-                      // OPTIMISTIC UPDATE - aggiorna subito la UI
-                      setBookings(prev => prev.map(b => {
-                        if (b.id === appointmentId) {
-                          return {
-                            ...b,
-                            date: new Date(dateStr).toISOString(),
-                            time: newTime,
-                          }
-                        }
-                        return b
-                      }))
-                      
-                      // Poi aggiorna il server in background (senza await bloccare la UI)
-                      try {
-                        const response = await fetch(`/api/admin/bookings/${appointmentId}`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            date: dateStr,
-                            time: newTime,
-                          }),
-                        })
-                        
-                        if (!response.ok) {
-                          const data = await response.json()
-                          alert(data.error || 'Errore nello spostamento dell\'appuntamento')
-                          fetchBookings() // Rollback: ricarica dallo stato reale
-                        }
-                        // Se ok, NON chiamare fetchBookings() - la UI è già aggiornata
-                      } catch (error) {
-                        alert('Errore nello spostamento dell\'appuntamento')
-                        fetchBookings() // Rollback
-                      }
-                    }}
+                <div key={dateStr} style={{ borderLeft: '1px solid rgba(255,255,255,0.07)' }}>
+                  <Timeline
+                    slotH={SH}
+                    dateStr={dateStr}
+                    onClick={buildClick(dateStr)}
+                    onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+                    onDrop={buildDrop(dateStr)}
                   >
-                    {/* Linee orarie */}
-                    {hours.map((h, idx) => {
-                      const hourMinutes = h.hour * 60 + h.minute
-                      const top = (hourMinutes - dayStartMin) * PX_PER_MIN
-                      return (
-                        <div
-                          key={`${h.hour}-${h.minute}`}
-                          className="absolute left-0 right-0 border-t border-white/10 z-0"
-                          style={{ top }}
-                        />
-                      )
-                    })}
-                    {/* Linea finale per delimitare l'ultima cella (22:30) */}
-                    <div
-                      className="absolute left-0 right-0 border-t border-white/10 z-0"
-                      style={{ top: timelineHeight }}
-                    />
-
-                    {/* Appuntamenti */}
-                    {dayAppointments.map((apt) => {
-                      const startMin = minutesSinceMidnight(apt.time)
-                      const duration = apt.durationMinutes || 60
-                      const endMin = startMin + duration
-
-                      // Clamp dentro range visibile
-                      const lunchBreakStart = 14 * 60 // 14:00
-                      const lunchBreakEnd = 15 * 60 + 30 // 15:30
-                      if (startMin >= lunchBreakStart && startMin < lunchBreakEnd) {
-                        return null // Non mostrare appuntamenti nella pausa pranzo
-                      }
-
-                      // Clamp l'appuntamento alla fine del calendario
-                      const clampedStart = Math.max(startMin, dayStartMin)
-                      let clampedEnd = Math.min(endMin, dayEndMin)
-                      if (clampedStart < lunchBreakStart && clampedEnd > lunchBreakStart) {
-                        clampedEnd = lunchBreakStart // Taglia alla pausa pranzo
-                      }
-                      
-                      // Se l'appuntamento inizia nell'ultima cella (22:30), assicurati che abbia l'altezza completa della cella
-                      let forcedFullCell = false
-                      if (clampedStart >= dayEndMin - 60) {
-                        forcedFullCell = true
-                      }
-
-                      const top = (clampedStart - dayStartMin) * PX_PER_MIN
-                      const naturalHeight = (clampedEnd - clampedStart) * PX_PER_MIN
-                      const height = forcedFullCell ? HOUR_HEIGHT : Math.max(naturalHeight, isMobile ? 14 : 18)
-                      
-                      // Assicura che il blocco non sfori la timeline
-                      const clampedTop = Math.min(top, timelineHeight - height)
-
-                      // Controlla se ci sono più appuntamenti alla stessa ora
-                      const sameTimeAppointments = dayAppointments.filter(
-                        a => minutesSinceMidnight(a.time) === startMin && !a.isMultiplePackage
-                      )
-                      const hasTwoSingles = sameTimeAppointments.length === 2 && !apt.isMultiplePackage
-
-                      let left = '0.5rem'
-                      let right = '0.5rem'
-                      let width = 'auto'
-
-                      if (hasTwoSingles) {
-                        const index = sameTimeAppointments.findIndex(a => a.id === apt.id)
-                        const halfWidth = `calc(50% - 0.625rem)`
-                        if (index === 0) {
-                          left = '0.5rem'
-                          right = 'auto'
-                          width = halfWidth
-                        } else {
-                          left = 'auto'
-                          right = '0.5rem'
-                          width = halfWidth
-                        }
-                      }
-
-                      return (
-                        <div
-                          key={apt.id}
-                          draggable={!apt.isPast}
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('appointmentId', apt.id)
-                            e.dataTransfer.setData('currentTime', apt.time)
-                            e.dataTransfer.effectAllowed = 'move'
-                          }}
-                          className={`appointment-block absolute z-10 overflow-hidden
-                            bg-[#0b0b0b]/90 border border-gold-400/25 shadow-card backdrop-blur-sm
-                            rounded-xl
-                            ${apt.isPast ? 'grayscale brightness-75 cursor-not-allowed' : 'cursor-move hover:border-gold-400/50'}`}
-                          style={{ 
-                            top: clampedTop, 
-                            height,
-                            left,
-                            right,
-                            width
-                          }}
-                          onClick={() => showAppointmentDetail(apt)}
-                        >
-                          <div className="h-full p-1.5 md:p-2 flex flex-col justify-center leading-tight">
-                            <div>
-                              <div className="font-semibold text-[10px] md:text-xs lg:text-sm text-white truncate">
-                                {apt.client_name}
-                                {apt.isMultiplePackage && (
-                                  <Badge variant="info" size="sm" className="ml-1 md:ml-2 text-[8px] md:text-[10px]">(Multiplo)</Badge>
-                                )}
-                              </div>
-                              <div className="text-[9px] md:text-[11px] text-gray-400 truncate">
-                                {apt.time} • {apt.service}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
+                    <GridLines slotH={SH} />
+                    <LunchBreak slotH={SH} />
+                    <NowLine dateStr={dateStr} slotH={SH} nowMin={nowMin} />
+                    {renderApts(dayApts)}
+                  </Timeline>
                 </div>
               )
             })}
           </div>
+
         </div>
       </div>
     )
   }
 
+  // ============================================================================
+  // RENDER PRINCIPALE
+  // ============================================================================
   return (
-    <div className="space-y-4 calendar-container">
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 md:gap-4">
-        <div className="flex items-center space-x-2 md:space-x-4 w-full sm:w-auto justify-center sm:justify-start">
-          <Button
-            variant="outline-gold"
-            size="sm"
-            onClick={() => navigatePeriod('prev')}
-            className="p-2"
-          >
+    <div className="space-y-2 md:space-y-4 calendar-container">
+      {/* Barra navigazione */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 md:gap-4">
+        <div className="flex items-center gap-2 md:gap-3">
+          <Button variant="outline-gold" size="sm" className="p-2" onClick={() => nav('prev')}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={goToToday}
-            className="text-gold-400 hover:text-gold-300 text-xs md:text-sm px-2 md:px-3"
-          >
+          <Button variant="ghost" size="sm" className="text-gold-400 hover:text-gold-300 text-xs md:text-sm px-2" onClick={goToday}>
             Oggi
           </Button>
-
-          <Button
-            variant="outline-gold"
-            size="sm"
-            onClick={() => navigatePeriod('next')}
-            className="p-2"
-          >
+          <Button variant="outline-gold" size="sm" className="p-2" onClick={() => nav('next')}>
             <ChevronRight className="w-4 h-4" />
           </Button>
-
-          <div className="text-white font-semibold text-xs md:text-sm min-w-[120px] md:min-w-[200px] text-center heading-font px-2">
-            {getCurrentPeriod()}
-          </div>
+          <span className="text-white font-semibold text-xs md:text-sm heading-font min-w-[140px] md:min-w-[210px] text-center px-2">
+            {periodLabel()}
+          </span>
         </div>
 
-        {/* View buttons */}
-        <div className="flex items-center space-x-2 w-full sm:w-auto justify-center sm:justify-end">
-          <button
-            className={`calendar-view-btn text-xs md:text-sm px-3 md:px-4 ${calendarView === 'month' ? 'active' : ''}`}
-            onClick={() => setCalendarView('month')}
-            data-view="month"
-          >
-            Mese
-          </button>
-          <button
-            className={`calendar-view-btn text-xs md:text-sm px-3 md:px-4 ${calendarView === 'week' ? 'active' : ''}`}
-            onClick={() => setCalendarView('week')}
-            data-view="week"
-          >
-            Settimana
-          </button>
-          <button
-            className={`calendar-view-btn text-xs md:text-sm px-3 md:px-4 ${calendarView === 'day' ? 'active' : ''}`}
-            onClick={() => setCalendarView('day')}
-            data-view="day"
-          >
-            Giorno
-          </button>
+        <div className="flex items-center gap-2">
+          {(['month', 'week', 'day'] as CalendarView[]).map(v => (
+            <button
+              key={v}
+              className={`calendar-view-btn text-xs md:text-sm px-3 md:px-4 ${view === v ? 'active' : ''}`}
+              onClick={() => setView(v)}
+            >
+              {v === 'month' ? 'Mese' : v === 'week' ? 'Settimana' : 'Giorno'}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Calendar Content */}
+      {/* Contenuto */}
       <div>
         {loading ? (
           <div className="text-center py-12">
-            <div className="inline-block w-8 h-8 border-4 border-dark-200 border-t-gold-400 rounded-full animate-spin"></div>
-            <p className="mt-4 text-dark-600">Caricamento calendario...</p>
+            <div className="inline-block w-8 h-8 border-4 border-dark-200 border-t-gold-400 rounded-full animate-spin" />
+            <p className="mt-4 text-dark-600 text-sm">Caricamento...</p>
           </div>
         ) : (
           <>
-            {calendarView === 'month' && renderMonthView()}
-            {calendarView === 'week' && renderWeekView()}
-            {calendarView === 'day' && renderDayView()}
+            {view === 'month' && renderMonth()}
+            {view === 'week'  && renderWeek()}
+            {view === 'day'   && renderDay()}
           </>
         )}
       </div>
 
-      {/* Appointment Detail Modal */}
-      {selectedAppointment && (
+      {/* Modali */}
+      {selectedApt && (
         <AppointmentDetailModal
-          appointment={selectedAppointment}
-          isOpen={isAppointmentModalOpen}
-          onClose={() => {
-            setIsAppointmentModalOpen(false)
-            setSelectedAppointment(null)
-          }}
-          onUpdate={() => {
-            fetchBookings() // Ricarica le prenotazioni dopo modifica/cancellazione
-          }}
+          appointment={selectedApt}
+          isOpen={aptModalOpen}
+          onClose={() => { setAptModalOpen(false); setSelectedApt(null) }}
+          onUpdate={fetchBookings}
         />
       )}
+      <AdminBookingModal
+        isOpen={bookingModalOpen}
+        onClose={() => { setBookingModalOpen(false); setPrefilledDate(''); setPrefilledTime('') }}
+        onSuccess={() => { setBookingModalOpen(false); fetchBookings() }}
+        prefilledDate={prefilledDate}
+        prefilledTime={prefilledTime}
+      />
     </div>
   )
 }

@@ -371,7 +371,7 @@ export default function AdminPage() {
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="max-w-[900px] mx-auto">
+                <CardContent className="w-full">
                   <AdminCalendar />
                 </CardContent>
               </div>

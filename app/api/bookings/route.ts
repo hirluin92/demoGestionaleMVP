@@ -27,9 +27,13 @@ const bookingSchema = z.object({
     .refine((time) => {
       const [hours, minutes] = time.split(':').map(Number)
       const totalMinutes = hours * 60 + minutes
-      // Orario valido: dalle 06:00 alle 21:30 (non si può prenotare alle 22:30)
-      return totalMinutes >= 360 && totalMinutes <= 1290
-    }, 'Orario non valido (06:00-21:30)'),
+      // Orario valido: dalle 06:00 alle 21:30, solo slot da 30 minuti (:00 o :30)
+      // Esclude la pausa pranzo (14:00-15:30)
+      if (totalMinutes < 360 || totalMinutes > 1290) return false
+      if (minutes !== 0 && minutes !== 30) return false
+      if (totalMinutes >= 840 && totalMinutes < 930) return false // 14:00-15:30
+      return true
+    }, 'Orario non valido (06:00-21:30, solo :00 o :30, esclusa pausa pranzo 14:00-15:30)'),
     
   packageId: z.string().min(1, 'Package ID richiesto'),
 }).refine((data) => {

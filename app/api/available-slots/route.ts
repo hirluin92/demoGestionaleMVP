@@ -91,14 +91,20 @@ export async function GET(request: NextRequest) {
         })
         
         const allSlots: string[] = []
-        // Genera slot dalle 06:00 alle 21:30 (non si può prenotare alle 22:30)
-        // Dalle 06:00 alle 13:00: ogni ora
-        for (let hour = 6; hour < 14; hour++) {
-          allSlots.push(`${hour.toString().padStart(2, '0')}:00`)
-        }
-        // Dalle 15:30 in poi: ogni ora a partire da 15:30 fino a 21:30
-        for (let hour = 15; hour < 22; hour++) {
-          allSlots.push(`${hour.toString().padStart(2, '0')}:30`)
+        // Genera slot dalle 06:00 alle 21:30 con griglia uniforme da 30 minuti
+        // Esclude la pausa pranzo (14:00-15:30)
+        const DAY_START_MIN = 6 * 60       // 06:00
+        const DAY_END_MIN = 21 * 60 + 30   // 21:30 (ultimo slot prenotabile)
+        const LUNCH_START_MIN = 14 * 60    // 14:00
+        const LUNCH_END_MIN = 15 * 60 + 30 // 15:30
+        const SLOT_MINUTES = 30
+        
+        for (let min = DAY_START_MIN; min <= DAY_END_MIN; min += SLOT_MINUTES) {
+          // Salta la pausa pranzo
+          if (min >= LUNCH_START_MIN && min < LUNCH_END_MIN) continue
+          const h = Math.floor(min / 60)
+          const m = min % 60
+          allSlots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
         }
         
         // Filtra slot considerando sovrapposizioni (durata standard 60 minuti)

@@ -70,18 +70,19 @@ model UserPackage {
 }
 
 model Booking {
-  id            String        @id @default(cuid())
-  userId        String
-  packageId     String
-  date          DateTime
-  time          String
-  status        BookingStatus @default(CONFIRMED)
-  googleEventId String?       @unique
-  reminderSent  Boolean       @default(false)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  package       Package       @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String        @id @default(cuid())
+  userId          String
+  packageId       String
+  date            DateTime
+  time            String
+  status          BookingStatus @default(CONFIRMED)
+  durationMinutes Int?          // Durata personalizzata per questa prenotazione (override del pacchetto)
+  googleEventId   String?       @unique
+  reminderSent    Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  package         Package       @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
   @@index([date, status])

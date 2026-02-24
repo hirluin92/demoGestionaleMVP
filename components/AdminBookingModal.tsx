@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { format, addDays } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { X, Calendar as CalendarIcon, Clock, User, ChevronDown } from 'lucide-react'
+import { X, ChevronDown } from 'lucide-react'
 import Button from '@/components/ui/Button'
-import Input from '@/components/ui/Input'
 
 interface User {
   id: string
@@ -28,9 +27,19 @@ interface AdminBookingModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  /** Data pre-compilata dal click sul calendario (YYYY-MM-DD) */
+  prefilledDate?: string
+  /** Orario pre-compilato dal click sulla timeline (HH:MM) */
+  prefilledTime?: string
 }
 
-export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminBookingModalProps) {
+export default function AdminBookingModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  prefilledDate = '',
+  prefilledTime = '',
+}: AdminBookingModalProps) {
   const [users, setUsers] = useState<User[]>([])
   const [selectedUserId, setSelectedUserId] = useState('')
   const [selectedPackageId, setSelectedPackageId] = useState('')
@@ -41,6 +50,7 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [error, setError] = useState('')
   const [mounted, setMounted] = useState(false)
+  const [dateOverride, setDateOverride] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -50,27 +60,48 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
   useEffect(() => {
     if (isOpen) {
       fetchUsers()
-      // Reset form quando si apre
+      // Pre-compila data e orario se passati dal calendario
+      setSelectedDate(prefilledDate || '')
       setSelectedUserId('')
       setSelectedPackageId('')
-      setSelectedDate('')
-      setSelectedTime('')
-      setAvailableSlots([])
+      
+      // Verifica se prefilledTime è passato (solo se la data è oggi)
+      let initialTime = prefilledTime || ''
+      if (prefilledTime && prefilledDate) {
+        const now = new Date()
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const selDate = new Date(prefilledDate)
+        const selDateOnly = new Date(selDate.getFullYear(), selDate.getMonth(), selDate.getDate())
+        const isToday = selDateOnly.getTime() === today.getTime()
+        
+        if (isToday) {
+          const [ph, pm] = prefilledTime.split(':').map(Number)
+          if (ph < now.getHours() || (ph === now.getHours() && pm <= now.getMinutes())) {
+            // Orario passato: non impostarlo
+            initialTime = ''
+          }
+        }
+      }
+      
+      setSelectedTime(initialTime)
+      // Se c'è un orario pre-compilato valido (non passato), includilo subito negli slot disponibili
+      setAvailableSlots(initialTime ? [initialTime] : [])
       setError('')
+      setDateOverride(false)
     }
-  }, [isOpen])
+  }, [isOpen, prefilledDate, prefilledTime])
 
   useEffect(() => {
     if (selectedDate) {
       fetchAvailableSlots()
     } else {
       setAvailableSlots([])
-      setSelectedTime('')
+      // Non resettare selectedTime se era pre-compilato dall'esterno
+      if (!prefilledTime) setSelectedTime('')
     }
   }, [selectedDate, selectedPackageId])
 
   useEffect(() => {
-    // Reset package quando cambia utente
     setSelectedPackageId('')
   }, [selectedUserId])
 
@@ -79,8 +110,7 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
       const response = await fetch('/api/admin/users')
       if (response.ok) {
         const data = await response.json()
-        // Filtra solo utenti con pacchetti attivi
-        const usersWithPackages = data.filter((user: User) => 
+        const usersWithPackages = data.filter((user: User) =>
           user.userPackages && user.userPackages.length > 0
         )
         setUsers(usersWithPackages)
@@ -93,44 +123,64 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
 
   const fetchAvailableSlots = async () => {
     if (!selectedDate) return
-    
     setLoadingSlots(true)
     try {
-      // Costruisci i parametri della query
-      const params = new URLSearchParams({
-        date: selectedDate,
-        isAdmin: 'true',
-      })
-      
-      if (selectedPackageId) {
-        params.append('packageId', selectedPackageId)
-        // isMultiplePackage sarà determinato automaticamente dal backend
-      }
-      
+      const params = new URLSearchParams({ date: selectedDate, isAdmin: 'true' })
+      if (selectedPackageId) params.append('packageId', selectedPackageId)
+
       const response = await fetch(`/api/available-slots?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
         let slots = data.slots
-        
-        // Filtra orari passati se la data è oggi
+
+        // Filtra orari passati se oggi
         const now = new Date()
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-        const selectedDateObj = new Date(selectedDate)
-        const selectedDateOnly = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate())
-        
-        if (selectedDateOnly.getTime() === today.getTime()) {
+        const selDate = new Date(selectedDate)
+        const selDateOnly = new Date(selDate.getFullYear(), selDate.getMonth(), selDate.getDate())
+        const isToday = selDateOnly.getTime() === today.getTime()
+
+        if (isToday) {
           const currentHour = now.getHours()
           const currentMinute = now.getMinutes()
-          
           slots = slots.filter((slot: string) => {
-            const [slotHour, slotMinute] = slot.split(':').map(Number)
-            if (slotHour < currentHour) return false
-            if (slotHour === currentHour && slotMinute <= currentMinute) return false
+            const [h, m] = slot.split(':').map(Number)
+            if (h < currentHour) return false
+            if (h === currentHour && m <= currentMinute) return false
             return true
           })
         }
-        
+
+        // Verifica se prefilledTime è passato (solo se la data è oggi)
+        let isPrefilledTimePast = false
+        if (prefilledTime && isToday) {
+          const [ph, pm] = prefilledTime.split(':').map(Number)
+          if (ph < now.getHours() || (ph === now.getHours() && pm <= now.getMinutes())) {
+            isPrefilledTimePast = true
+          }
+        }
+
+        // Se l'orario pre-compilato non è passato e non è negli slot disponibili, aggiungilo
+        // (permette all'admin di vedere e selezionare l'orario cliccato sul calendario)
+        if (prefilledTime && !isPrefilledTimePast && !slots.includes(prefilledTime)) {
+          slots = [prefilledTime, ...slots].sort((a, b) => {
+            const [ah, am] = a.split(':').map(Number)
+            const [bh, bm] = b.split(':').map(Number)
+            return (ah * 60 + am) - (bh * 60 + bm)
+          })
+        }
+
         setAvailableSlots(slots)
+
+        // Seleziona l'orario: prefilledTime se non è passato, altrimenti il primo disponibile
+        if (prefilledTime && !isPrefilledTimePast) {
+          setSelectedTime(prefilledTime)
+        } else if (slots.length > 0) {
+          // Se prefilledTime è passato o non presente, seleziona il primo slot disponibile
+          setSelectedTime(slots[0])
+        } else {
+          setSelectedTime('')
+        }
       }
     } catch (error) {
       console.error('Errore recupero slot:', error)
@@ -142,13 +192,9 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
 
   const selectedUser = users.find(u => u.id === selectedUserId)
   const availablePackages = selectedUser?.userPackages.filter(up => {
-    const remaining = up.package.totalSessions - up.usedSessions
-    return remaining > 0
+    return (up.package.totalSessions - up.usedSessions) > 0
   }) || []
 
-  const today = new Date().toISOString().split('T')[0]
-  
-  // Genera array di date disponibili (prossimi 60 giorni)
   const availableDates = Array.from({ length: 60 }, (_, i) => {
     const date = addDays(new Date(), i)
     return {
@@ -168,12 +214,25 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
       return
     }
 
+    // Valida che l'orario non sia passato (se la data è oggi)
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const selDate = new Date(selectedDate)
+    const selDateOnly = new Date(selDate.getFullYear(), selDate.getMonth(), selDate.getDate())
+    
+    if (selDateOnly.getTime() === today.getTime()) {
+      const [h, m] = selectedTime.split(':').map(Number)
+      if (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes())) {
+        setError('Non è possibile prenotare un appuntamento in un orario già passato')
+        setLoading(false)
+        return
+      }
+    }
+
     try {
       const response = await fetch('/api/admin/bookings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: selectedUserId,
           packageId: selectedPackageId,
@@ -197,7 +256,7 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
 
       onSuccess()
       onClose()
-    } catch (error) {
+    } catch {
       setError('Impossibile connettersi al server')
     } finally {
       setLoading(false)
@@ -205,6 +264,9 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
   }
 
   if (!mounted || !isOpen) return null
+
+  const isDatePrefilled = !!prefilledDate && !dateOverride
+  const isTimePrefilled = !!prefilledTime
 
   const modalContent = (
     <div className="modal-overlay" onClick={onClose}>
@@ -214,14 +276,22 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
         style={{ maxWidth: '900px', width: '95vw' }}
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold gold-text-gradient heading-font">
-            Prenota Lezione
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-4xl text-gray-400 hover:text-white transition"
-            aria-label="Chiudi"
-          >
+          <div>
+            <h2 className="text-2xl font-bold gold-text-gradient heading-font">
+              Prenota Lezione
+            </h2>
+            {/* Mostra data/ora pre-compilata se presente */}
+            {(isDatePrefilled || isTimePrefilled) && (
+              <p className="text-xs text-gray-400 mt-0.5">
+                {isDatePrefilled && (
+                  <span>{format(new Date(selectedDate || prefilledDate), 'EEE d MMM yyyy', { locale: it })}</span>
+                )}
+                {isDatePrefilled && isTimePrefilled && <span> — </span>}
+                {isTimePrefilled && <span className="text-gold-400">{prefilledTime}</span>}
+              </p>
+            )}
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition" aria-label="Chiudi">
             <X className="w-8 h-8" />
           </button>
         </div>
@@ -233,7 +303,7 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
             </div>
           )}
 
-          {/* Selezione Cliente */}
+          {/* Cliente */}
           <div>
             <label className="block text-sm font-light mb-2 heading-font text-gold-400" style={{ letterSpacing: '0.5px' }}>
               Cliente
@@ -252,11 +322,11 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500 pointer-events-none" aria-hidden="true" />
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500 pointer-events-none" />
             </div>
           </div>
 
-          {/* Selezione Pacchetto */}
+          {/* Pacchetto */}
           {selectedUser && (
             <div>
               <label className="block text-sm font-light mb-2 heading-font text-gold-400" style={{ letterSpacing: '0.5px' }}>
@@ -275,48 +345,61 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
                     required
                   >
                     <option value="">Seleziona un pacchetto</option>
-                    {availablePackages.map((userPackage) => {
-                      const remaining = userPackage.package.totalSessions - userPackage.usedSessions
-                      const isMultiple = userPackage.package.name === 'Multiplo' || userPackage.package.name === 'Singolo'
-                      const packageType = isMultiple ? (userPackage.package.name) : userPackage.package.name
+                    {availablePackages.map((up) => {
+                      const remaining = up.package.totalSessions - up.usedSessions
                       return (
-                        <option key={userPackage.id} value={userPackage.package.id}>
-                          {packageType} - {remaining} / {userPackage.package.totalSessions} sessioni rimaste
+                        <option key={up.id} value={up.package.id}>
+                          {up.package.name} — {remaining} / {up.package.totalSessions} sessioni rimaste
                         </option>
                       )
                     })}
                   </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500 pointer-events-none" aria-hidden="true" />
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500 pointer-events-none" />
                 </div>
               )}
             </div>
           )}
 
-          {/* Selezione Data */}
+          {/* Data — se pre-compilata mostrala come readonly, altrimenti select */}
           <div>
-            <label htmlFor="date" className="block text-sm font-light mb-2 heading-font text-gold-400" style={{ letterSpacing: '0.5px' }}>
+            <label className="block text-sm font-light mb-2 heading-font text-gold-400" style={{ letterSpacing: '0.5px' }}>
               Data
             </label>
-            <div className="relative">
-              <select
-                id="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="input-field w-full appearance-none pr-10"
-                required
-              >
-                <option value="">Seleziona una data</option>
-                {availableDates.map((date) => (
-                  <option key={date.value} value={date.value}>
-                    {date.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500 pointer-events-none" aria-hidden="true" />
-            </div>
+            {isDatePrefilled ? (
+              <div className="input-field w-full flex items-center justify-between">
+                <span className="text-white">
+                  {format(new Date(prefilledDate), 'EEEE d MMMM yyyy', { locale: it })}
+                </span>
+                <button
+                  type="button"
+                  className="text-[10px] text-gray-500 hover:text-gray-300 transition underline ml-2"
+                  onClick={() => {
+                    setDateOverride(true)
+                  }}
+                >
+                  Cambia
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <select
+                  id="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="input-field w-full appearance-none pr-10"
+                  required
+                >
+                  <option value="">Seleziona una data</option>
+                  {availableDates.map((date) => (
+                    <option key={date.value} value={date.value}>{date.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500 pointer-events-none" />
+              </div>
+            )}
           </div>
 
-          {/* Selezione Orario */}
+          {/* Orario */}
           {selectedDate && (
             <div>
               <label className="block text-sm font-light mb-2 heading-font text-gold-400" style={{ letterSpacing: '0.5px' }}>
@@ -324,10 +407,10 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
               </label>
               {loadingSlots ? (
                 <div className="text-center py-4">
-                  <div className="inline-block w-6 h-6 border-2 border-dark-200 border-t-gold-400 rounded-full animate-spin"></div>
+                  <div className="inline-block w-6 h-6 border-2 border-dark-200 border-t-gold-400 rounded-full animate-spin" />
                   <p className="mt-2 text-xs text-dark-600">Caricamento orari disponibili...</p>
                 </div>
-              ) : availableSlots.length === 0 ? (
+              ) : availableSlots.length === 0 && !prefilledTime ? (
                 <div className="p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg text-yellow-400 text-sm">
                   Nessun orario disponibile per questa data
                 </div>
@@ -342,23 +425,18 @@ export default function AdminBookingModal({ isOpen, onClose, onSuccess }: AdminB
                     <option value="">Seleziona un orario</option>
                     {availableSlots.map((slot: string) => (
                       <option key={slot} value={slot}>
-                        {slot}
+                        {slot}{isTimePrefilled && slot === prefilledTime ? ' ✓ (selezionato dal calendario)' : ''}
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500 pointer-events-none" aria-hidden="true" />
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500 pointer-events-none" />
                 </div>
               )}
             </div>
           )}
 
           <div className="flex gap-4 pt-4">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              className="flex-1"
-            >
+            <Button type="button" variant="ghost" onClick={onClose} className="flex-1">
               Annulla
             </Button>
             <Button

@@ -7,6 +7,7 @@ import { sendWhatsAppMessage, formatBookingModificationMessage, formatBookingCan
 import { isTwilioError } from '@/lib/errors'
 import { logger, sanitizeError } from '@/lib/logger'
 import { z } from 'zod'
+import { format, parseISO } from 'date-fns'
 
 // Forza rendering dinamico (usa headers per autenticazione)
 export const dynamic = 'force-dynamic'
@@ -18,15 +19,26 @@ const updateBookingSchema = z.object({
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       return bookingDate >= today && !isNaN(bookingDate.getTime())
-    }, 'Data non valida o nel passato'),
+    }, 'Data non valida o nel passato')
+    .optional(),
   time: z.string()
     .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato orario non valido')
     .refine((time) => {
       const [hours, minutes] = time.split(':').map(Number)
       const totalMinutes = hours * 60 + minutes
-      // Orario valido: dalle 06:00 alle 21:30 (non si può prenotare alle 22:30)
-      return totalMinutes >= 360 && totalMinutes <= 1290
-    }, 'Orario non valido (06:00-21:30)'),
+      // Orario valido: dalle 06:00 alle 21:30, solo slot da 30 minuti (:00 o :30)
+      // Esclude la pausa pranzo (14:00-15:30)
+      if (totalMinutes < 360 || totalMinutes > 1290) return false
+      if (minutes !== 0 && minutes !== 30) return false
+      if (totalMinutes >= 840 && totalMinutes < 930) return false // 14:00-15:30
+      return true
+    }, 'Orario non valido (06:00-21:30, solo :00 o :30, esclusa pausa pranzo 14:00-15:30)')
+    .optional(),
+  durationMinutes: z.number()
+    .int()
+    .min(15, 'Durata minima 15 minuti')
+    .max(240, 'Durata massima 240 minuti')
+    .optional(),
 })
 
 // DELETE - Disdici prenotazione (solo admin)
@@ -313,7 +325,7 @@ export async function PUT(
     // STEP 1: Valida input
     const body = await request.json()
     const validatedData = updateBookingSchema.parse(body)
-    const { date, time } = validatedData
+    const { date, time, durationMinutes } = validatedData
 
     // STEP 2: Recupera la prenotazione esistente
     const existingBooking = await prisma.booking.findFirst({
@@ -355,76 +367,38 @@ export async function PUT(
       )
     }
 
-    // STEP 4: Prepara nuove date
-    const newBookingDate = new Date(date)
-    const [hours, minutes] = time.split(':').map(Number)
+    // STEP 4: Prepara nuove date (usa quelle esistenti se non specificate)
+    const finalDate = date || format(parseISO(existingBooking.date.toISOString()), 'yyyy-MM-dd')
+    const finalTime = time || existingBooking.time
+    const finalDuration = durationMinutes ?? userPackage.package.durationMinutes ?? 60
+
+    const newBookingDate = new Date(finalDate)
+    const [hours, minutes] = finalTime.split(':').map(Number)
     newBookingDate.setHours(hours, minutes, 0, 0)
     const newEndDate = new Date(newBookingDate)
-    newEndDate.setMinutes(newEndDate.getMinutes() + (userPackage.package.durationMinutes || 60))
+    newEndDate.setMinutes(newEndDate.getMinutes() + finalDuration)
 
-    // STEP 5: Verifica sovrapposizioni (escludendo la prenotazione corrente)
-    const startOfDay = new Date(newBookingDate)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(newBookingDate)
-    endOfDay.setHours(23, 59, 59, 999)
-
-    const existingBookings = await prisma.booking.findMany({
-      where: {
-        status: 'CONFIRMED',
-        date: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-        id: { not: params.id }, // Escludi la prenotazione corrente
-      },
-      include: {
-        package: {
-          select: {
-            durationMinutes: true,
-          },
-        },
-      },
-    })
-
-    const hasOverlap = existingBookings.some(existing => {
-      const existingDate = new Date(existing.date)
-      const [existingHour, existingMinute] = existing.time.split(':').map(Number)
-      
-      if (
-        existingDate.getFullYear() !== newBookingDate.getFullYear() ||
-        existingDate.getMonth() !== newBookingDate.getMonth() ||
-        existingDate.getDate() !== newBookingDate.getDate()
-      ) {
-        return false
-      }
-      
-      const existingStart = new Date(0, 0, 0, existingHour, existingMinute)
-      const existingEnd = new Date(existingStart)
-      existingEnd.setMinutes(existingEnd.getMinutes() + (existing.package.durationMinutes || 60))
-      
-      const newStart = new Date(0, 0, 0, hours, minutes)
-      const newEnd = new Date(newStart)
-      newEnd.setMinutes(newEnd.getMinutes() + (userPackage.package.durationMinutes || 60))
-      
-      return newStart.getTime() < existingEnd.getTime() && newEnd.getTime() > existingStart.getTime()
-    })
-
-    if (hasOverlap) {
+    // STEP 5: Verifica che la data/orario non sia nel passato
+    const now = new Date()
+    if (newBookingDate < now) {
       return NextResponse.json(
-        { error: 'Questo orario si sovrappone con una prenotazione esistente' },
+        { error: 'Non è possibile prenotare in una data o orario già passato' },
         { status: 400 }
       )
     }
 
-    // STEP 6: Transazione atomica - aggiorna solo data e ora
+    // STEP 6: Transazione atomica - aggiorna solo i campi presenti
     const updatedBooking = await prisma.$transaction(async (tx) => {
-      // Aggiorna solo data e ora (cliente e pacchetto rimangono invariati)
+      // Costruisci l'oggetto data solo con i campi presenti
+      const updateData: { date?: Date; time?: string; durationMinutes?: number } = {}
+      if (date) updateData.date = newBookingDate
+      if (time) updateData.time = finalTime
+      if (durationMinutes !== undefined) updateData.durationMinutes = durationMinutes
+
+      // Aggiorna solo i campi specificati (cliente e pacchetto rimangono invariati)
       const updated = await tx.booking.update({
         where: { id: params.id },
-        data: {
-          date: newBookingDate,
-          time,
-        },
+        data: updateData,
         include: {
           user: true,
           package: true,
@@ -478,7 +452,7 @@ export async function PUT(
       }
     }
 
-    // STEP 9: Invia notifiche WhatsApp (fuori transazione - non critico)
+    // STEP 8: Invia notifiche WhatsApp (fuori transazione - non critico)
     try {
       // Determina se è un pacchetto multiplo
       const allUserPackages = await prisma.userPackage.findMany({
@@ -524,7 +498,7 @@ export async function PUT(
             oldBookingDate,
             existingBooking.time,
             newBookingDate,
-            time
+            finalTime
           )
 
           await sendWhatsAppMessage(user.phone, message)
