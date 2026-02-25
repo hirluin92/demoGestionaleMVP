@@ -470,11 +470,43 @@ function AptBlock({
       </div>
       {!apt.isPast && (
         <div
-          className="resize-handle absolute bottom-0 left-0 right-0 h-3 cursor-s-resize flex items-center justify-center group touch-none"
+          className="resize-handle absolute bottom-0 left-0 right-0 flex items-center justify-center group"
+          style={{ height: isMobile ? 20 : 12, cursor: 'ns-resize' }}
           onMouseDown={onResizeDown}
+          onTouchStart={e => {
+            // Blocca il long-press drag del blocco padre
+            e.stopPropagation()
+            if (longPress.current) { clearTimeout(longPress.current); longPress.current = null }
+            if (apt.isPast) return
+            resizing.current = true
+            startY.current = e.touches[0].clientY
+            startH.current = localH
+            document.body.style.overflow = 'hidden'
+            document.body.style.touchAction = 'none'
+            const onMove = (ev: TouchEvent) => {
+              ev.preventDefault()
+              const delta = Math.round((ev.touches[0].clientY - startY.current) / slotH) * slotH
+              setLocalH(Math.max(slotH, startH.current + delta))
+            }
+            const onEnd = (ev: TouchEvent) => {
+              resizing.current = false
+              document.body.style.overflow = ''
+              document.body.style.touchAction = ''
+              document.removeEventListener('touchmove', onMove, { passive: false } as EventListenerOptions)
+              document.removeEventListener('touchend', onEnd)
+              document.removeEventListener('touchcancel', onEnd)
+              const delta = Math.round((ev.changedTouches[0].clientY - startY.current) / slotH) * slotH
+              onResizeEnd(apt.id, Math.round((Math.max(slotH, startH.current + delta) / slotH) * SLOT_MIN))
+            }
+            document.addEventListener('touchmove', onMove, { passive: false })
+            document.addEventListener('touchend', onEnd)
+            document.addEventListener('touchcancel', onEnd)
+          }}
           onClick={e => e.stopPropagation()}
         >
-          <div className="w-8 h-0.5 rounded-full bg-gold-400/30 group-hover:bg-gold-400/70 transition-colors" />
+          <div className={`rounded-full bg-gold-400/40 group-active:bg-gold-400/80 transition-colors
+            ${isMobile ? 'w-10 h-1' : 'w-8 h-0.5 group-hover:bg-gold-400/70'}`}
+          />
         </div>
       )}
     </div>
