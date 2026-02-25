@@ -423,8 +423,6 @@ function AptBlock({
     document.addEventListener('touchcancel', onEnd)
   }
 
-  const compact = localH < (isMobile ? 36 : 46)
-
   return (
     <div
       draggable={!apt.isPast && !isMobile}
@@ -455,18 +453,25 @@ function AptBlock({
       }}
       onClick={e => { if (!isMobile) { e.stopPropagation(); onClickApt(apt) } }}
     >
-      <div className="h-full flex flex-col justify-center px-2 py-1 leading-tight select-none pb-3">
-        <div className="font-semibold text-[10px] md:text-xs text-white truncate">
-          {apt.client_name}
-          {apt.isMultiplePackage && !compact && (
-            <Badge variant="info" size="sm" className="ml-1 text-[8px]">(Multiplo)</Badge>
+      <div className="px-2 pt-1 select-none" style={{ paddingBottom: isMobile ? 24 : 16 }}>
+        {apt.isMultiplePackage
+          ? (
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                {apt.client_name.split(', ').filter(Boolean).map((name, i, arr) => (
+                  <span key={i} className="text-[10px] font-semibold text-white truncate">
+                    {name}{i < arr.length - 1 && ','}
+                  </span>
+                ))}
+              </div>
+            )
+          : <div className="text-[10px] font-semibold text-white truncate">{apt.client_name}</div>
+        }
+        <div className="flex items-center gap-1 mt-0.5">
+          <span className="text-[9px] text-gray-400 truncate">{apt.time} · {apt.service}</span>
+          {apt.isMultiplePackage && (
+            <span className="flex-shrink-0 text-[7px] text-gold-400 font-bold border border-gold-400/40 rounded px-0.5 leading-tight">1to2</span>
           )}
         </div>
-        {!compact && (
-          <div className="text-[9px] md:text-[11px] text-gray-400 truncate mt-0.5">
-            {apt.time} · {apt.service}
-          </div>
-        )}
       </div>
       {!apt.isPast && (
         <div
@@ -578,10 +583,11 @@ export default function AdminCalendar() {
   const transform = (bs: Booking[]): AptData[] =>
     bs.map(b => {
       const dateStr = format(parseISO(b.date), 'yyyy-MM-dd')
-      const isMultiple = b.package.isMultiple === true && (b.package.athletes?.length ?? 0) > 1
+      const hasAthletes = (b.package.athletes?.length ?? 0) > 1
+      const isMultiple  = b.package.isMultiple === true
       return {
         id: b.id,
-        client_name: isMultiple
+        client_name: isMultiple && hasAthletes
           ? b.package.athletes!.map(a => a.name).join(', ')
           : b.user.name,
         client_email: b.user.email,
@@ -761,7 +767,9 @@ export default function AdminCalendar() {
     return evs.map(apt => {
       const col    = colOf[apt.id]
       const top    = minToY(apt.startMins, SH)
-      const height = Math.max(minToY(apt.endMins, SH) - top, SH)
+      // Multipli: altezza minima 2 slot per contenere 2 nomi + orario senza tagli
+      const minH = apt.isMultiplePackage ? SH * 2 : SH
+      const height = Math.max(minToY(apt.endMins, SH) - top, minH)
       const left   = `${col * INDENT}px`
       const width  = `calc(100% - ${col * INDENT + RIGHT}px)`
 
@@ -871,14 +879,9 @@ export default function AdminCalendar() {
                     className={`glass-card rounded-lg p-2 cursor-pointer transition-smooth ${a.isPast ? 'opacity-60' : 'hover:border-gold-400/50'}`}
                     onClick={() => showApt(a)}
                   >
-                    <div className="flex justify-between items-center gap-2">
-                      <div>
-                        <p className="font-semibold text-xs text-white">{a.client_name}</p>
-                        <p className="text-[10px] text-gray-400">{a.time} · ${a.service}</p>
-                      </div>
-                      <Badge variant={a.status === 'confirmed' ? 'success' : a.status === 'pending' ? 'warning' : 'info'} size="sm">
-                        {a.status.toUpperCase()}
-                      </Badge>
+                    <div>
+                      <p className="font-semibold text-xs text-white">{a.client_name}</p>
+                      <p className="text-[10px] text-gray-400">{a.time} · {a.service}</p>
                     </div>
                   </div>
                 ))}
