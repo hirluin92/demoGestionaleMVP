@@ -947,16 +947,22 @@ export default function AdminCalendar() {
       return (
         <div
           ref={weekRef}
-          className="overflow-auto rounded-lg no-scrollbar"
+          className="overflow-auto rounded-lg no-scrollbar relative"
           style={{ height: '70vh' }}
         >
-          {/* Header giorni — sticky top, scroll orizzontale */}
-          <div className="sticky top-0 z-30" style={{ backgroundColor: '#0a0a0a' }}>
+          {/* Header giorni — sticky top (rimane visibile durante scroll verticale) */}
+          <div
+            className="sticky top-0 z-30"
+            style={{
+              backgroundColor: '#0a0a0a',
+              minWidth: `calc(${HOUR_W}px + ${DAY_W} * 7)`,
+            }}
+          >
             <div className="flex">
-              {/* Spacer ore — sticky left */}
-              <div className="sticky left-0 z-10 flex-shrink-0" style={{ width: HOUR_W, backgroundColor: '#0a0a0a' }} />
-              {/* Header giorni — scroll orizzontale */}
-              <div className="flex" style={{ width: `calc(${DAY_W} * 7)` }}>
+              {/* Spacer ore nell'header — per allineamento con colonna ore */}
+              <div className="flex-shrink-0" style={{ width: HOUR_W }} />
+              {/* Header giorni — scroll orizzontale, sticky top */}
+              <div className="flex relative" style={{ width: `calc(${DAY_W} * 7)` }}>
                 {weekDays.map((day, i) => {
                   const dateStr = format(day, 'yyyy-MM-dd')
                   const isToday = dateStr === todayStr
@@ -974,14 +980,15 @@ export default function AdminCalendar() {
                     </div>
                   )
                 })}
+                {/* Barra di separazione — si estende per tutti i 7 giorni */}
+                <div className="absolute bottom-0 left-0 right-0" style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
               </div>
             </div>
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
           </div>
 
           {/* Griglia timeline — flexbox orizzontale */}
-          <div className="flex">
-            {/* Colonna ore — sticky left */}
+          <div className="flex" style={{ minWidth: `calc(${HOUR_W}px + ${DAY_W} * 7)` }}>
+            {/* Colonna ore — sticky left (rimane visibile durante scroll orizzontale) */}
             <div className="sticky left-0 z-20 flex-shrink-0" style={{ width: HOUR_W, backgroundColor: '#0a0a0a' }}>
               <HourLabels slotH={SH} />
             </div>
