@@ -21,6 +21,7 @@ interface Booking {
   date: string
   time: string
   status: string
+  durationMinutes?: number // Durata personalizzata (override del package)
   user: { id: string; name: string; email: string; phone: string | null }
   package: {
     id: string; name: string; durationMinutes: number; isMultiple?: boolean
@@ -127,7 +128,8 @@ function Timeline({
 
   return (
     <div
-      className="relative"
+      className="relative time-slot"
+      data-date={dateStr}
       style={{ height: totalH }}
       onClick={onClick}
       onDragOver={onDragOver}
@@ -266,7 +268,7 @@ function NowLine({ dateStr, slotH, nowMin }: { dateStr: string; slotH: number; n
 // AptBlock — blocco appuntamento con drag + resize
 // ============================================================================
 function AptBlock({
-  apt, top, height, left, right, width, zIndex, slotH, isMobile, onClickApt, onResizeEnd,
+  apt, top, height, left, right, width, zIndex, slotH, isMobile, onClickApt, onResizeEnd, onDragTouchEnd,
 }: {
   apt: AptData; top: number; height: number
   left: string; right: string; width: string
@@ -274,15 +276,19 @@ function AptBlock({
   slotH: number; isMobile: boolean
   onClickApt: (a: AptData) => void
   onResizeEnd: (id: string, newDuration: number) => void
+  onDragTouchEnd?: (aptId: string, clientX: number, clientY: number) => void
 }) {
   const [localH, setLocalH] = useState(height)
   const resizing = useRef(false)
+  const dragging = useRef(false)
   const startY   = useRef(0)
   const startH   = useRef(0)
+  const touchStartY = useRef(0)
+  const touchStartX = useRef(0)
 
   useEffect(() => setLocalH(height), [height])
 
-  const onResizeDown = (e: React.MouseEvent) => {
+  const onResizeDownMouse = (e: React.MouseEvent) => {
     if (apt.isPast) return
     e.preventDefault(); e.stopPropagation()
     resizing.current = true
@@ -291,6 +297,7 @@ function AptBlock({
 
     const onMove = (ev: MouseEvent) => {
       if (!resizing.current) return
+      ev.preventDefault()
       const delta = Math.round((ev.clientY - startY.current) / slotH) * slotH
       setLocalH(Math.max(slotH, startH.current + delta))
     }
@@ -306,18 +313,94 @@ function AptBlock({
     document.addEventListener('mouseup', onUp)
   }
 
-  const compact = localH < (isMobile ? 36 : 46)
+  const onResizeDownTouch = (e: React.TouchEvent) => {
+    if (apt.isPast) return
+    e.stopPropagation()
+    resizing.current = true
+    startY.current = e.touches[0].clientY
+    startH.current = localH
+
+    const onMove = (ev: TouchEvent) => {
+      if (!resizing.current) return
+      ev.preventDefault()
+      const delta = Math.round((ev.touches[0].clientY - startY.current) / slotH) * slotH
+      setLocalH(Math.max(slotH, startH.current + delta))
+    }
+    const onUp = (ev: TouchEvent) => {
+      resizing.current = false
+      document.removeEventListener('touchmove', onMove, { passive: false } as any)
+      document.removeEventListener('touchend', onUp)
+      const clientY = ev.changedTouches[0].clientY
+      const delta = Math.round((clientY - startY.current) / slotH) * slotH
+      const newH  = Math.max(slotH, startH.current + delta)
+      onResizeEnd(apt.id, Math.round((newH / slotH) * SLOT_MIN))
+    }
+    document.addEventListener('touchmove', onMove, { passive: false })
+    document.addEventListener('touchend', onUp)
+  }
+
+  // Per appuntamenti multipli, aumenta la soglia per "compact" per dare più spazio ai nomi
+  const compactThreshold = apt.isMultiplePackage 
+    ? (isMobile ? 60 : 70)
+    : (isMobile ? 36 : 46)
+  const compact = localH < compactThreshold
+  // Per appuntamenti multipli, mostra sempre l'orario
+  const showTime = !compact || apt.isMultiplePackage
+
+  // Gestori touch per drag and drop
+  const onTouchStartDrag = (e: React.TouchEvent) => {
+    if (apt.isPast || resizing.current) return
+    e.stopPropagation()
+    const touch = e.touches[0]
+    touchStartX.current = touch.clientX
+    touchStartY.current = touch.clientY
+    dragging.current = false
+
+    const onMove = (ev: TouchEvent) => {
+      if (!touchStartX.current || !touchStartY.current) return
+      const currentTouch = ev.touches[0]
+      const deltaX = Math.abs(currentTouch.clientX - touchStartX.current)
+      const deltaY = Math.abs(currentTouch.clientY - touchStartY.current)
+      
+      // Se il movimento è significativo (>10px), inizia il drag
+      if (deltaX > 10 || deltaY > 10) {
+        if (!dragging.current) {
+          dragging.current = true
+          ev.preventDefault()
+        }
+      }
+    }
+
+    const onEnd = (ev: TouchEvent) => {
+      if (dragging.current && onDragTouchEnd) {
+        const touch = ev.changedTouches[0]
+        onDragTouchEnd(apt.id, touch.clientX, touch.clientY)
+      } else if (!dragging.current) {
+        // Se non era un drag, è un click
+        onClickApt(apt)
+      }
+      dragging.current = false
+      touchStartX.current = 0
+      touchStartY.current = 0
+      document.removeEventListener('touchmove', onMove, { passive: false } as any)
+      document.removeEventListener('touchend', onEnd)
+    }
+
+    document.addEventListener('touchmove', onMove, { passive: false })
+    document.addEventListener('touchend', onEnd)
+  }
 
   return (
     <div
-      draggable={!apt.isPast}
+      draggable={!apt.isPast && !isMobile}
       onDragStart={e => {
-        if (resizing.current) { e.preventDefault(); return }
+        if (resizing.current || isMobile) { e.preventDefault(); return }
         e.stopPropagation()
         e.dataTransfer.setData('aptId', apt.id)
         e.dataTransfer.setData('aptTime', apt.time)
         e.dataTransfer.effectAllowed = 'move'
       }}
+      onTouchStart={onTouchStartDrag}
       className={`apt-block absolute overflow-hidden rounded-xl border
         backdrop-blur-sm shadow-lg transition-colors
         ${apt.isPast
@@ -331,25 +414,46 @@ function AptBlock({
           ? 'rgba(212, 175, 55, 0.12)'
           : 'linear-gradient(135deg, rgba(212, 175, 55, 0.32) 0%, rgba(184, 134, 11, 0.22) 100%)',
       }}
-      onClick={e => { e.stopPropagation(); onClickApt(apt) }}
+      onClick={e => { 
+        if (!isMobile) {
+          e.stopPropagation(); 
+          onClickApt(apt) 
+        }
+      }}
     >
-      <div className="h-full flex flex-col justify-center px-2 py-1 leading-tight select-none pb-3">
-        <div className="font-semibold text-[10px] md:text-xs text-white truncate">
-          {apt.client_name}
-          {apt.isMultiplePackage && !compact && (
-            <Badge variant="info" size="sm" className="ml-1 text-[8px]">(Multiplo)</Badge>
-          )}
-        </div>
-        {!compact && (
-          <div className="text-[9px] md:text-[11px] text-gray-400 truncate mt-0.5">
-            {apt.time} · {apt.service}
-          </div>
+      <div className={`h-full flex flex-col px-2 select-none pb-3 min-h-0 ${
+        apt.isMultiplePackage ? 'justify-start py-1' : 'justify-center py-1'
+      }`}>
+        {apt.isMultiplePackage ? (
+          <>
+            <div className="font-semibold text-[10px] md:text-xs text-white break-words leading-tight">
+              {apt.client_name}
+            </div>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="text-[9px] md:text-[11px] text-gray-300">
+                {apt.time} · {apt.service}
+              </div>
+              <span className="text-[7px] md:text-[8px] text-gold-400/80 font-medium">1to2</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="font-semibold text-[10px] md:text-xs text-white truncate">
+              {apt.client_name}
+            </div>
+            {showTime && (
+              <div className="text-[9px] md:text-[11px] text-gray-400 mt-0.5 truncate">
+                {apt.time} · {apt.service}
+              </div>
+            )}
+          </>
         )}
       </div>
       {!apt.isPast && (
         <div
-          className="resize-handle absolute bottom-0 left-0 right-0 h-3 cursor-s-resize flex items-center justify-center group"
-          onMouseDown={onResizeDown}
+          className="resize-handle absolute bottom-0 left-0 right-0 h-3 cursor-s-resize flex items-center justify-center group touch-none"
+          onMouseDown={onResizeDownMouse}
+          onTouchStart={onResizeDownTouch}
           onClick={e => e.stopPropagation()}
         >
           <div className="w-8 h-0.5 rounded-full bg-gold-400/30 group-hover:bg-gold-400/70 transition-colors" />
@@ -415,19 +519,43 @@ export default function AdminCalendar() {
           end:   endOfWeek(currentWeek,   { weekStartsOn: 1 }),
         }).some(d => format(d, 'yyyy-MM-dd') === today)
     if (!inView) return
+    
+    // Scroll verticale all'ora corrente
     const targetY = minToY(nowMin, SH)
     ref.scrollTo({ top: Math.max(0, targetY - ref.clientHeight / 3), behavior: 'smooth' })
+    
+    // Su mobile, nella vista settimanale, scroll orizzontale al giorno corrente
+    if (view === 'week' && isMobile) {
+      const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 })
+      const weekDays = eachDayOfInterval({
+        start: weekStart,
+        end: endOfWeek(currentWeek, { weekStartsOn: 1 }),
+      })
+      const todayIndex = weekDays.findIndex(d => format(d, 'yyyy-MM-dd') === today)
+      if (todayIndex >= 0) {
+        // Ogni giorno occupa 50vw, quindi scrolla al giorno corrente centrato
+        const dayWidth = ref.clientWidth / 2 // 50vw = metà dello schermo
+        const targetX = todayIndex * dayWidth - dayWidth / 2 // Centra il giorno corrente
+        ref.scrollTo({ left: Math.max(0, targetX), behavior: 'smooth' })
+      }
+    }
+    
     scrolled.current = true
-  }, [loading, view, currentDay, currentWeek, nowMin, SH])
+  }, [loading, view, currentDay, currentWeek, nowMin, SH, isMobile])
 
   // ─── Dati ─────────────────────────────────────────────────────────────────
   const transform = (bs: Booking[]): AptData[] =>
     bs.map(b => {
       const dateStr = format(parseISO(b.date), 'yyyy-MM-dd')
-      const isMultiple = b.package.isMultiple === true && (b.package.athletes?.length ?? 0) > 1
+      // Determina se è multiplo: controlla prima isMultiple, poi athletes
+      // Se isMultiple è true ma athletes non è ancora disponibile, considera comunque multiplo
+      const hasAthletes = b.package.athletes && b.package.athletes.length > 1
+      const isMultiple = Boolean(b.package.isMultiple === true || hasAthletes)
+      // Usa durationMinutes del booking se presente (override), altrimenti quello del package
+      const durationMinutes = b.durationMinutes ?? b.package.durationMinutes
       return {
         id: b.id,
-        client_name: isMultiple
+        client_name: isMultiple && hasAthletes
           ? b.package.athletes!.map(a => a.name).join(', ')
           : b.user.name,
         client_email: b.user.email,
@@ -439,7 +567,7 @@ export default function AdminCalendar() {
         isPast: isPastTime(dateStr, b.time),
         userId: b.user.id,
         packageId: b.package.id,
-        durationMinutes: b.package.durationMinutes,
+        durationMinutes,
         isMultiplePackage: isMultiple,
       }
     })
@@ -524,6 +652,37 @@ export default function AdminCalendar() {
     } catch { alert('Errore di rete'); fetchBookings() }
   }
 
+  // ─── Drop handler touch ───────────────────────────────────────────────────
+  const handleDragTouchEnd = async (aptId: string, clientX: number, clientY: number) => {
+    // Trova la timeline più vicina al punto di rilascio
+    const elements = document.elementsFromPoint(clientX, clientY)
+    const timeline = elements.find(el => el.classList.contains('time-slot'))
+    if (!timeline) return
+
+    const rect = timeline.getBoundingClientRect()
+    const dateStr = timeline.getAttribute('data-date')
+    if (!dateStr) return
+
+    const booking = bookings.find(b => b.id === aptId)
+    if (!booking) return
+
+    const prevTime = booking.time
+    const newTime = yToBookableTime(clientY - rect.top, SH)
+    if (newTime === prevTime) return
+
+    setBookings(prev => prev.map(b =>
+      b.id === aptId ? { ...b, date: dateStr, time: newTime } : b
+    ))
+    try {
+      const res = await fetch(`/api/admin/bookings/${aptId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: dateStr, time: newTime }),
+      })
+      if (!res.ok) { alert((await res.json()).error || 'Errore spostamento'); fetchBookings() }
+    } catch { alert('Errore di rete'); fetchBookings() }
+  }
+
   // ─── Resize handler ───────────────────────────────────────────────────────
   const handleResizeEnd = async (id: string, newDuration: number) => {
     setBookings(prev => prev.map(b =>
@@ -587,7 +746,9 @@ export default function AdminCalendar() {
     return evs.map(apt => {
       const col    = colOf[apt.id]
       const top    = minToY(apt.startMins, SH)
-      const height = Math.max(minToY(apt.endMins, SH) - top, SH)
+      // Per appuntamenti multipli, aumenta l'altezza minima per mostrare meglio i nomi e l'orario
+      const minHeight = apt.isMultiplePackage ? SH * 2 : SH
+      const height = Math.max(minToY(apt.endMins, SH) - top, minHeight)
       const left   = `${col * INDENT}px`
       const width  = `calc(100% - ${col * INDENT + RIGHT}px)`
 
@@ -605,6 +766,7 @@ export default function AdminCalendar() {
           isMobile={isMobile}
           onClickApt={showApt}
           onResizeEnd={handleResizeEnd}
+          onDragTouchEnd={handleDragTouchEnd}
         />
       )
     })
@@ -776,8 +938,88 @@ export default function AdminCalendar() {
     const weekDays  = eachDayOfInterval({ start: weekStart, end: endOfWeek(currentWeek, { weekStartsOn: 1 }) })
     const todayStr  = format(new Date(), 'yyyy-MM-dd')
 
-    // Colonna ore fissa, colonne giorni si espandono per riempire lo spazio
-    const HOUR_W  = isMobile ? 40 : 48
+    // Su mobile: layout flexbox orizzontale con scroll (2 giorni visibili)
+    // Su desktop: grid con tutti i 7 giorni
+    if (isMobile) {
+      const HOUR_W = 40
+      const DAY_W = '50vw' // Ogni giorno occupa metà dello schermo
+
+      return (
+        <div
+          ref={weekRef}
+          className="overflow-auto rounded-lg no-scrollbar"
+          style={{ height: '70vh' }}
+        >
+          {/* Header giorni — sticky top, scroll orizzontale */}
+          <div className="sticky top-0 z-30" style={{ backgroundColor: '#0a0a0a' }}>
+            <div className="flex">
+              {/* Spacer ore — sticky left */}
+              <div className="sticky left-0 z-10 flex-shrink-0" style={{ width: HOUR_W, backgroundColor: '#0a0a0a' }} />
+              {/* Header giorni — scroll orizzontale */}
+              <div className="flex" style={{ width: `calc(${DAY_W} * 7)` }}>
+                {weekDays.map((day, i) => {
+                  const dateStr = format(day, 'yyyy-MM-dd')
+                  const isToday = dateStr === todayStr
+                  return (
+                    <div
+                      key={dateStr}
+                      className="text-center cursor-pointer group py-1.5 flex-shrink-0 flex flex-col items-center"
+                      style={{ width: DAY_W }}
+                      onClick={() => goDay(dateStr)}
+                    >
+                      <div className={`text-[9px] font-semibold mb-0.5 transition group-hover:text-gold-300
+                        ${isToday ? 'text-gold-400' : 'text-gray-400'}`}>
+                        {format(day, 'EEE', { locale: it }).toLowerCase()} - {format(day, 'd')} {format(day, 'MMM', { locale: it }).toLowerCase()}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
+          </div>
+
+          {/* Griglia timeline — flexbox orizzontale */}
+          <div className="flex">
+            {/* Colonna ore — sticky left */}
+            <div className="sticky left-0 z-20 flex-shrink-0" style={{ width: HOUR_W, backgroundColor: '#0a0a0a' }}>
+              <HourLabels slotH={SH} />
+            </div>
+
+            {/* Colonne giorni — scroll orizzontale */}
+            <div className="flex" style={{ width: `calc(${DAY_W} * 7)` }}>
+              {weekDays.map(day => {
+                const dateStr = format(day, 'yyyy-MM-dd')
+                const dayApts = apts.filter(a => a.date === dateStr)
+                return (
+                  <div
+                    key={dateStr}
+                    className="flex-shrink-0"
+                    style={{ width: DAY_W, borderLeft: '1px solid rgba(255,255,255,0.07)' }}
+                  >
+                    <Timeline
+                      slotH={SH}
+                      dateStr={dateStr}
+                      onClick={buildClick(dateStr)}
+                      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+                      onDrop={buildDrop(dateStr)}
+                    >
+                      <GridLines slotH={SH} />
+                      <LunchBreak slotH={SH} />
+                      <NowLine dateStr={dateStr} slotH={SH} nowMin={nowMin} />
+                      {renderApts(dayApts)}
+                    </Timeline>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Desktop: layout originale con tutti i 7 giorni
+    const HOUR_W = 48
     const GRID_COLS = `${HOUR_W}px repeat(7, 1fr)`
 
     return (
