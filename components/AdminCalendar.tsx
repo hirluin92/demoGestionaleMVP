@@ -1124,15 +1124,6 @@ export default function AdminCalendar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="gold"
-            size="sm"
-            className="flex items-center gap-1.5 text-xs md:text-sm px-3"
-            onClick={() => openCreate(format(currentDay, 'yyyy-MM-dd'))}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Nuovo</span>
-          </Button>
           {(['month', 'week', 'day'] as CalendarView[]).map(v => (
             <button
               key={v}
