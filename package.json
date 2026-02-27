@@ -27,7 +27,8 @@
     "check:token": "tsx scripts/check-google-token.ts",
     "check:whatsapp": "tsx scripts/check-whatsapp-user.ts",
     "list:users": "tsx scripts/list-users-whatsapp.ts",
-    "clean:demo": "tsx scripts/clean-db-for-demo.ts"
+    "clean:demo": "tsx scripts/clean-db-for-demo.ts",
+    "seed:exercises": "tsx scripts/seed-exercises.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",

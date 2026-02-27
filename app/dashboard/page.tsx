@@ -19,11 +19,13 @@ import {
   Ruler,
   User,
   Settings,
-  ChevronDown
+  ChevronDown,
+  Dumbbell,
 } from 'lucide-react'
 import BookingForm from '@/components/BookingForm'
 import BookingsList from '@/components/BookingsList'
 import ClientMeasurementsView from '@/components/ClientMeasurementsView'
+import ClientWorkoutPlansView from '@/components/ClientWorkoutPlansView'
 import ProfileModal from '@/components/ProfileModal'
 import SettingsModal from '@/components/SettingsModal'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
@@ -49,7 +51,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'measurements'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'measurements' | 'workouts'>('dashboard')
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 })
   const [showProfileModal, setShowProfileModal] = useState(false)
@@ -282,6 +284,16 @@ export default function DashboardPage() {
               <Ruler className="w-4 h-4 md:w-5 md:h-5" />
               <span>Misurazioni</span>
             </button>
+            <button
+              onClick={() => setActiveTab('workouts')}
+              role="tab"
+              aria-selected={activeTab === 'workouts'}
+              className={`tab-button heading-font ${activeTab === 'workouts' ? 'active' : ''}`}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Dumbbell className="w-4 h-4 md:w-5 md:h-5" />
+              <span>Schede</span>
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -446,6 +458,25 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <ClientMeasurementsView />
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === 'workouts' && (
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg md:text-2xl heading-font gold-text-gradient">
+                    <Dumbbell className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-[#D3AF37]" />
+                    Le Tue Schede di Allenamento
+                  </CardTitle>
+                  <CardDescription className="text-xs md:text-sm">
+                    Consulta le schede assegnate dal tuo trainer
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ClientWorkoutPlansView />
                 </CardContent>
               </Card>
             </div>
