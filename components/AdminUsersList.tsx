@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Phone, Mail, Edit, Trash2, X, ChevronDown, ChevronUp, Calendar, Ruler } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { User, Phone, Mail, Edit, Trash2, X, ChevronDown, ChevronUp, Calendar, Ruler, Dumbbell } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Label } from '@/components/ui/Label'
 import Button from '@/components/ui/Button'
@@ -40,6 +41,7 @@ interface AdminUsersListProps {
 }
 
 export default function AdminUsersList({ archiveMode = false }: AdminUsersListProps) {
+  const router = useRouter()
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState<{ id: string; name: string; email: string } | null>(null)
@@ -445,7 +447,7 @@ export default function AdminUsersList({ archiveMode = false }: AdminUsersListPr
                           setEditingUser(user)
                           setIsEditModalOpen(true)
                         }}
-                        className="flex-1 text-[8px] px-1 py-0.5 h-auto"
+                        className="flex-1 text-[7px] px-1 py-0.5 h-auto"
                       >
                         <Edit className="w-2 h-2 mr-0.5" />
                         Modifica
@@ -458,7 +460,7 @@ export default function AdminUsersList({ archiveMode = false }: AdminUsersListPr
                           setSelectedUser({ id: user.id, name: user.name, email: user.email })
                           setIsMeasurementModalOpen(true)
                         }}
-                        className="flex-1 text-[8px] px-1 py-0.5 h-auto"
+                        className="flex-1 text-[7px] px-1 py-0.5 h-auto"
                       >
                         <Ruler className="w-2 h-2 mr-0.5" />
                         Misure
@@ -468,10 +470,22 @@ export default function AdminUsersList({ archiveMode = false }: AdminUsersListPr
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation()
+                          router.push(`/admin/workout-plans/${user.id}`)
+                        }}
+                        className="flex-1 text-[7px] px-1 py-0.5 h-auto"
+                      >
+                        <Dumbbell className="w-2 h-2 mr-0.5" />
+                        Schede
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
                           handleDeleteUserClick(user.id, user.name)
                         }}
                         disabled={deletingUser === user.id}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10 text-[8px] px-1 py-0.5 h-auto"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10 text-[7px] px-1 py-0.5 h-auto"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
@@ -594,6 +608,18 @@ export default function AdminUsersList({ archiveMode = false }: AdminUsersListPr
                           <span className="hidden xl:inline">Modifica</span>
                           <span className="xl:hidden">Mod.</span>
                         </Button>
+                      <Button
+                        variant="outline-gold"
+                        size="sm"
+                        onClick={() => {
+                          router.push(`/admin/workout-plans/${user.id}`)
+                        }}
+                        className="whitespace-nowrap"
+                      >
+                        <Dumbbell className="w-4 h-4 mr-1.5 flex-shrink-0" />
+                        <span className="hidden xl:inline">Schede</span>
+                        <span className="xl:hidden">Sch.</span>
+                      </Button>
                         <Button
                           variant="ghost"
                           size="sm"

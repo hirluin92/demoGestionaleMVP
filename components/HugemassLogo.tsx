@@ -50,7 +50,7 @@ export default function HugemassLogo({
         alt="HUGE MASS PERSONAL TRAINING"
         width={dimensions.width}
         height={dimensions.height}
-        className="object-contain"
+        className="object-contain h-auto"
         priority={variant === 'full'} // Priorità alta per il logo nella pagina di login
       />
     </div>
