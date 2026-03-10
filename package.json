@@ -21,7 +21,8 @@
     "check:admin": "tsx scripts/check-admin.ts",
     "setup:neon": "tsx scripts/setup-neon-db.ts",
     "check:neon": "tsx scripts/check-neon-db.ts",
-    "fix:password": "tsx scripts/fix-user-password.ts"
+    "fix:password": "tsx scripts/fix-user-password.ts",
+    "generate:secrets": "node scripts/generate-secrets.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
