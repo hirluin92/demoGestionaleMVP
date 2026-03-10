@@ -111,7 +111,6 @@ export default async function TenantCalendarPage({
         staff={staffForCalendar}
         appointments={appointmentsForCalendar}
         servicesForCreation={services}
-        onRefresh={() => window.location.reload()}
       />
     </section>
   )

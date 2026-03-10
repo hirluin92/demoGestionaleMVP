@@ -9,12 +9,26 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
+  if (!stripe) {
+    return NextResponse.json(
+      { success: false, error: 'Stripe non configurato' },
+      { status: 503 },
+    )
+  }
+
   const sig = req.headers.get('stripe-signature')
 
   if (!sig) {
     return NextResponse.json(
       { success: false, error: 'Firma mancante' },
       { status: 400 },
+    )
+  }
+
+  if (!env.STRIPE_WEBHOOK_SECRET) {
+    return NextResponse.json(
+      { success: false, error: 'Stripe webhook secret non configurato' },
+      { status: 503 },
     )
   }
 

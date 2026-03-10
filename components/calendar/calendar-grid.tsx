@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { TimeColumn } from './time-column'
 import { StaffHeader } from './staff-header'
 import { AppointmentBlock } from './appointment-block'
@@ -34,7 +35,6 @@ interface CalendarGridProps {
   endHour?: number
   slotMinutes?: number
   servicesForCreation?: { id: string; name: string; duration: number }[]
-  onRefresh?: () => void
 }
 
 const SLOT_HEIGHT = 20
@@ -47,8 +47,8 @@ export function CalendarGrid({
   endHour = 20,
   slotMinutes = 15,
   servicesForCreation = [],
-  onRefresh,
 }: CalendarGridProps) {
+  const router = useRouter()
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
   const [newAptInfo, setNewAptInfo] = useState<{
     staffId: string
@@ -187,6 +187,7 @@ export function CalendarGrid({
               staffIndex={staffIndex + 1}
               columnOffset={1}
               slotMinutes={slotMinutes}
+              calendarStartHour={startHour}
               color={staffColor}
               status={apt.status}
               onClick={setSelectedAppointmentId}
@@ -216,7 +217,7 @@ export function CalendarGrid({
           staffName={newAptInfo.staffName}
           startTime={newAptInfo.startTime}
           services={servicesForCreation}
-          onCreated={onRefresh}
+          onCreated={() => router.refresh()}
         />
       )}
 
@@ -234,7 +235,7 @@ export function CalendarGrid({
             status: selectedAppointment.status,
           }}
           onClose={() => setSelectedAppointmentId(null)}
-          onUpdated={onRefresh}
+          onUpdated={() => router.refresh()}
         />
       )}
     </div>

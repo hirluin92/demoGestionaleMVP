@@ -13,6 +13,7 @@ interface AppointmentBlockProps {
   staffIndex: number
   columnOffset: number
   slotMinutes?: number
+  calendarStartHour?: number
   color: string
   status: string
   onClick?: (id: string) => void
@@ -27,17 +28,19 @@ export function AppointmentBlock({
   staffIndex,
   columnOffset,
   slotMinutes = 15,
+  calendarStartHour = 0,
   color,
   status,
   onClick,
 }: AppointmentBlockProps) {
-  const minutesFromStartOfDay =
-    startTime.getHours() * 60 + startTime.getMinutes()
-  const endMinutesFromStartOfDay =
-    endTime.getHours() * 60 + endTime.getMinutes()
+  const calendarStartMinutes = calendarStartHour * 60
+  const minutesFromCalendarStart =
+    startTime.getHours() * 60 + startTime.getMinutes() - calendarStartMinutes
+  const endMinutesFromCalendarStart =
+    endTime.getHours() * 60 + endTime.getMinutes() - calendarStartMinutes
 
-  const rowStart = Math.floor(minutesFromStartOfDay / slotMinutes) + 2
-  const rowEnd = Math.ceil(endMinutesFromStartOfDay / slotMinutes) + 2
+  const rowStart = Math.floor(minutesFromCalendarStart / slotMinutes) + 2
+  const rowEnd = Math.ceil(endMinutesFromCalendarStart / slotMinutes) + 2
 
   const gridColumn = columnOffset + staffIndex
 

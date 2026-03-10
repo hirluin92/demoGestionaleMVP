@@ -42,6 +42,13 @@ export async function POST(
       )
     }
 
+    if (!env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { success: false, error: 'Funzionalità note vocali non configurata' },
+        { status: 503 },
+      )
+    }
+
     // Chiamata a Claude per strutturare la nota
     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

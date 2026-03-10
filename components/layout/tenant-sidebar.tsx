@@ -17,6 +17,7 @@ import { signOut } from 'next-auth/react'
 interface TenantSidebarProps {
   tenantSlug: string
   tenantName?: string
+  onClose?: () => void
 }
 
 const navigation = [
@@ -29,18 +30,30 @@ const navigation = [
   { name: 'Billing', href: '/billing', icon: CreditCard },
 ]
 
-export function TenantSidebar({ tenantSlug, tenantName }: TenantSidebarProps) {
+export function TenantSidebar({ tenantSlug, tenantName, onClose }: TenantSidebarProps) {
   const pathname = usePathname()
   const basePath = `/${tenantSlug}`
 
   return (
-    <aside className="w-64 bg-dark-800 border-r border-dark-700 min-h-screen flex flex-col">
+    <div className="w-full h-full bg-dark-800 border-r border-dark-700 flex flex-col">
       {/* Logo/Header */}
-      <div className="p-4 border-b border-dark-700">
-        <h2 className="text-lg font-semibold text-gold-400">
-          {tenantName || 'Appointly'}
-        </h2>
-        <p className="text-xs text-dark-400 mt-1">Gestione Appuntamenti</p>
+      <div className="p-4 border-b border-dark-700 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-gold-400">
+            {tenantName || 'Appointly'}
+          </h2>
+          <p className="text-xs text-dark-400 mt-1">Gestione Appuntamenti</p>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="md:hidden text-dark-300 hover:text-white p-1"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -79,6 +92,6 @@ export function TenantSidebar({ tenantSlug, tenantName }: TenantSidebarProps) {
           <span className="text-sm font-medium">Logout</span>
         </button>
       </div>
-    </aside>
+    </div>
   )
 }

@@ -14,6 +14,13 @@ const bodySchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    if (!stripe) {
+      return NextResponse.json(
+        { success: false, error: 'Stripe non configurato' },
+        { status: 503 },
+      )
+    }
+
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {

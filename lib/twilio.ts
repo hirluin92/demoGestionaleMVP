@@ -38,7 +38,7 @@ export async function sendWhatsApp(
   appointmentId?: string,
   type: 'REMINDER' | 'CONFIRMATION' | 'CANCELLATION' = 'REMINDER'
 ) {
-  if (!client || !env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {
+  if (!client || !env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_WHATSAPP_FROM) {
     return { success: false, error: 'Twilio non configurato' }
   }
 

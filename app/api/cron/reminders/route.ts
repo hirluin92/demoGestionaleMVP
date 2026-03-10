@@ -10,6 +10,7 @@ export async function GET(req: Request) {
     const authHeader = req.headers.get('authorization')
     const isVercelCron = req.headers.get('x-vercel-cron') === '1'
 
+    // Se CRON_SECRET non è configurato, accetta solo richieste Vercel cron
     if (!isVercelCron) {
       if (!env.CRON_SECRET || !authHeader || authHeader !== `Bearer ${env.CRON_SECRET}`) {
         return NextResponse.json(

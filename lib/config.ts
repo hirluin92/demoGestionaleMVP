@@ -25,7 +25,7 @@ export const APP_CONFIG = {
   booking: {
     minHour: 8,
     maxHour: 20,
-    slotDurationMinutes: 30,
+    slotIntervalMinutes: 15, // Intervallo griglia calendario
   },
   
   reminders: {
