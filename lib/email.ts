@@ -32,10 +32,10 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
     console.error('')
     console.error('   Opzione 2: Configura un dominio personalizzato (per produzione)')
     console.error('      → Vai su https://resend.com/domains')
-    console.error('      → Aggiungi il tuo dominio (es. hugemass.com)')
+    console.error('      → Aggiungi il tuo dominio (es. appointly.com)')
     console.error('      → Verifica il dominio seguendo le istruzioni')
     console.error('      → Usa un\'email del tuo dominio come mittente')
-    console.error('      → Es: noreply@hugemass.com')
+    console.error('      → Es: noreply@appointly.com')
     console.error('')
     console.log(`🔗 Link reset password (dev): ${resetUrl}`)
     return { 
@@ -48,7 +48,7 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
     const { data, error } = await resend.emails.send({
       from: env.RESEND_FROM_EMAIL,
       to: email,
-      subject: 'Reset Password - Hugemass',
+      subject: 'Reset Password - Appointly',
       html: generateEmailHtml(resetUrl),
     })
 
@@ -78,7 +78,7 @@ function generateEmailHtml(resetUrl: string): string {
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
-          <h1 style="color: #d4af37; margin: 0;">Hugemass</h1>
+          <h1 style="color: #d4af37; margin: 0;">Appointly</h1>
         </div>
         
         <div style="background: #f9f9f9; padding: 30px; border-radius: 10px; margin-bottom: 20px;">
@@ -102,7 +102,7 @@ function generateEmailHtml(resetUrl: string): string {
         </div>
         
         <div style="text-align: center; color: #666; font-size: 12px;">
-          <p>© ${new Date().getFullYear()} Hugemass. Tutti i diritti riservati.</p>
+          <p>© ${new Date().getFullYear()} Appointly. Tutti i diritti riservati.</p>
         </div>
       </body>
     </html>

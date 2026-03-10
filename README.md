@@ -1,17 +1,32 @@
-# Hugemass - Sistema di Prenotazioni
+# Appointly - Sistema di Gestione Appuntamenti Multi-Tenant
 
-Sistema di gestione prenotazioni per studio di personal training.
+Sistema completo di gestione appuntamenti per attività di servizi (parrucchieri, estetisti, dentisti, ecc.) con supporto multi-tenant, calendario interattivo, prenotazioni pubbliche e integrazione WhatsApp.
 
 ## Funzionalità
 
-- ✅ Login clienti
-- ✅ Dashboard con pacchetti e sessioni residue
-- ✅ Prenotazioni integrate con Google Calendar
-- ✅ Scalamento automatico sessioni (1 prenotazione = 1 sessione)
-- ✅ Notifiche WhatsApp (conferma e promemoria)
-- ✅ Area admin per gestione clienti e pacchetti
-- ✅ Blocco prenotazioni se sessioni terminate
-- ✅ Protezione route e validazioni
+- ✅ **Multi-tenancy**: Ogni attività ha il proprio spazio isolato
+- ✅ **Calendario interattivo**: Vista settimanale con drag & drop, linea tempo corrente
+- ✅ **Prenotazioni pubbliche**: Flusso 4-step con integrazione .ics calendar
+- ✅ **Gestione clienti**: Lista, dettagli, note testuali e vocali (con AI)
+- ✅ **Gestione servizi e staff**: CRUD completo con associazioni
+- ✅ **Onboarding wizard**: Setup guidato per nuovi tenant
+- ✅ **Dashboard**: Metriche e statistiche in tempo reale
+- ✅ **Notifiche WhatsApp**: Conferme e reminder automatici via Twilio
+- ✅ **Modalità telefono**: Interfaccia ottimizzata per chiamate
+- ✅ **Integrazione Stripe**: Gestione abbonamenti e fatturazione
+- ✅ **Note vocali**: Trascrizione e strutturazione automatica con Claude AI
+
+## Stack Tecnologico
+
+- **Next.js 14** - App Router, Server Components, Server Actions
+- **TypeScript** - Strict mode, type safety completo
+- **Prisma v5** - ORM con PostgreSQL (Neon)
+- **NextAuth.js** - Autenticazione multi-role (TENANT_OWNER, STAFF, SUPER_ADMIN)
+- **Tailwind CSS** - Styling con tema dark/gold
+- **Zod** - Validazione input API
+- **Twilio** - WhatsApp Business API
+- **Stripe** - Pagamenti e abbonamenti
+- **Claude API** - Strutturazione note vocali
 
 ## Setup Completo
 
@@ -23,17 +38,17 @@ npm install
 
 ### 2. Configurazione Database
 
-Crea un database PostgreSQL e configura la variabile `DATABASE_URL` nel file `.env`:
+Crea un database PostgreSQL (consigliato [Neon](https://neon.tech)) e configura la variabile `DATABASE_URL` nel file `.env`:
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/hugemass?schema=public"
+DATABASE_URL="postgresql://user:password@host:5432/appointly?schema=public"
 ```
 
 Poi esegui:
 
 ```bash
-npm run db:generate
-npm run db:push
+npx prisma generate
+npx prisma db push
 ```
 
 ### 3. Configurazione Autenticazione
@@ -51,97 +66,55 @@ NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="il-secret-generato"
 ```
 
-### 4. Creazione Account Admin
-
-```bash
-npm run seed:admin
-```
-
-Oppure imposta manualmente nel file `.env`:
-
-```env
-ADMIN_EMAIL="admin@hugemass.com"
-ADMIN_PASSWORD="tua-password-sicura"
-```
-
-### 5. Configurazione Google Calendar
-
-1. Vai su [Google Cloud Console](https://console.cloud.google.com/)
-2. Crea un nuovo progetto o seleziona uno esistente
-3. Abilita **Google Calendar API**
-4. Crea credenziali **OAuth 2.0 Client ID**
-5. Configura redirect URI: `http://localhost:3000/api/auth/callback/google`
-6. Ottieni `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`
-7. Usa il flow OAuth per ottenere `access_token` e `refresh_token`
-8. Aggiungi al file `.env`:
-
-```env
-GOOGLE_CLIENT_ID="your-client-id"
-GOOGLE_CLIENT_SECRET="your-client-secret"
-GOOGLE_CALENDAR_ID="primary"  # o l'ID del tuo calendario
-```
-
-9. Esegui lo script di setup:
-
-```bash
-GOOGLE_ACCESS_TOKEN="your-access-token" GOOGLE_REFRESH_TOKEN="your-refresh-token" npm run setup:calendar
-```
-
-### 6. Configurazione Resend (Email Password Reset)
-
-**⚠️ IMPORTANTE**: Resend non permette l'uso di domini pubblici gratuiti (gmail.com, yahoo.com, ecc.) come mittente email.
-
-#### Opzione A: Per Sviluppo/Test (Rapido)
-
-1. Crea un account su [Resend](https://resend.com)
-2. Ottieni la tua API Key dal dashboard
-3. Per sviluppo, usa `onboarding@resend.dev` come mittente (funziona solo per l'email del tuo account Resend)
-4. Aggiungi al file `.env`:
-
-```env
-RESEND_API_KEY="re_xxxxxxxxxxxxx"
-RESEND_FROM_EMAIL="onboarding@resend.dev"  # Solo per sviluppo!
-```
-
-#### Opzione B: Per Produzione (Dominio Personalizzato)
-
-1. Crea un account su [Resend](https://resend.com)
-2. Ottieni la tua API Key dal dashboard
-3. Vai su **Domains** nel dashboard Resend
-4. Clicca **"+ Add Domain"**
-5. Inserisci il tuo dominio (es. `hugemass.com`) - **NON** usare domini pubblici come gmail.com
-6. Segui le istruzioni per configurare i DNS records (SPF, DKIM, DMARC)
-7. Attendi la verifica del dominio (può richiedere qualche minuto)
-8. Una volta verificato, usa il tuo dominio come mittente:
-
-```env
-RESEND_API_KEY="re_xxxxxxxxxxxxx"
-RESEND_FROM_EMAIL="noreply@tuodominio.com"  # Il tuo dominio verificato
-```
-
-**Nota**: Se vedi l'errore "We don't allow free public domains", significa che stai cercando di usare un dominio pubblico. Devi configurare un dominio che possiedi.
-
-**💡 Non possiedi un dominio?** Vedi `SETUP_RESEND.md` per soluzioni alternative, incluso come acquistare un dominio economico (1-3€/anno) o usare servizi alternativi.
-
-### 7. Configurazione Twilio (WhatsApp)
+### 4. Configurazione Twilio (WhatsApp)
 
 1. Crea un account su [Twilio](https://www.twilio.com/)
 2. Ottieni `TWILIO_ACCOUNT_SID` e `TWILIO_AUTH_TOKEN`
-3. Configura un numero WhatsApp (Twilio Sandbox o numero verificato)
-4. Aggiungi al file `.env`:
+3. Configura un numero WhatsApp Business
+4. Crea i template per booking e reminder
+5. Aggiungi al file `.env`:
 
 ```env
 TWILIO_ACCOUNT_SID="your-account-sid"
 TWILIO_AUTH_TOKEN="your-auth-token"
-TWILIO_WHATSAPP_FROM="whatsapp:+14155238886"  # Il tuo numero Twilio
+TWILIO_WHATSAPP_FROM="whatsapp:+14155238886"
+TEMPLATE_SID_BOOKING="your-booking-template-sid"
+TEMPLATE_SID_REMINDER="your-reminder-template-sid"
 ```
 
-### 8. Configurazione Cron Job per Promemoria
+### 5. Configurazione Stripe
 
-Per inviare automaticamente i promemoria 1 ora prima delle prenotazioni, configura un cron job che chiami:
+1. Crea un account su [Stripe](https://stripe.com/)
+2. Ottieni le API keys
+3. Crea i price IDs per i piani (SOLO, PRO, STUDIO)
+4. Configura il webhook endpoint
+5. Aggiungi al file `.env`:
+
+```env
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_PUBLISHABLE_KEY="pk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+STRIPE_PRICE_SOLO="price_..."
+STRIPE_PRICE_PRO="price_..."
+STRIPE_PRICE_STUDIO="price_..."
+```
+
+### 6. Configurazione Claude API
+
+1. Crea un account su [Anthropic](https://www.anthropic.com/)
+2. Ottieni la API key
+3. Aggiungi al file `.env`:
+
+```env
+ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+### 7. Configurazione Cron Job per Reminder
+
+Per inviare automaticamente i reminder WhatsApp, configura un cron job che chiami:
 
 ```
-GET https://tuo-dominio.com/api/reminders
+GET https://tuo-dominio.com/api/cron/reminders
 Authorization: Bearer YOUR_CRON_SECRET
 ```
 
@@ -151,16 +124,50 @@ Aggiungi al file `.env`:
 CRON_SECRET="un-secret-sicuro-per-il-cron"
 ```
 
-Esempio cron job (ogni 5 minuti):
+Esempio cron job (ogni ora):
 
 ```bash
-*/5 * * * * curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://tuo-dominio.com/api/reminders
+0 * * * * curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://tuo-dominio.com/api/cron/reminders
 ```
 
-Oppure usa servizi come:
-- [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)
-- [EasyCron](https://www.easycron.com/)
-- [Cron-job.org](https://cron-job.org/)
+Oppure usa [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs).
+
+### 8. Variabili d'Ambiente Complete
+
+Crea un file `.env` con tutte le variabili:
+
+```env
+# Database
+DATABASE_URL="postgresql://..."
+
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="..."
+
+# Twilio
+TWILIO_ACCOUNT_SID="..."
+TWILIO_AUTH_TOKEN="..."
+TWILIO_WHATSAPP_FROM="whatsapp:+..."
+TEMPLATE_SID_BOOKING="..."
+TEMPLATE_SID_REMINDER="..."
+
+# Stripe
+STRIPE_SECRET_KEY="..."
+STRIPE_PUBLISHABLE_KEY="..."
+STRIPE_WEBHOOK_SECRET="..."
+STRIPE_PRICE_SOLO="..."
+STRIPE_PRICE_PRO="..."
+STRIPE_PRICE_STUDIO="..."
+
+# Claude API
+ANTHROPIC_API_KEY="..."
+
+# Cron
+CRON_SECRET="..."
+
+# App
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
 
 ### 9. Avvio Applicazione
 
@@ -173,101 +180,70 @@ L'applicazione sarà disponibile su `http://localhost:3000`
 ## Struttura Progetto
 
 ```
-├── app/                    # Next.js App Router
-│   ├── api/               # API routes
-│   ├── admin/            # Area admin
-│   ├── dashboard/        # Dashboard cliente
-│   └── login/           # Pagina login
-├── components/           # Componenti React
-├── lib/                  # Utilities e configurazioni
-├── prisma/               # Schema database
-└── scripts/              # Script di setup
+├── app/                          # Next.js App Router
+│   ├── (auth)/                  # Route group autenticazione
+│   │   ├── login/              # Pagina login
+│   │   └── register/           # Pagina registrazione tenant
+│   ├── (marketing)/            # Route group marketing
+│   │   └── page.tsx            # Landing page pubblica
+│   ├── [tenant]/               # Route dinamiche per tenant
+│   │   ├── dashboard/          # Dashboard principale
+│   │   ├── calendar/          # Calendario settimanale
+│   │   ├── clients/           # Gestione clienti
+│   │   ├── services/          # Gestione servizi
+│   │   ├── staff/             # Gestione operatori
+│   │   ├── settings/          # Impostazioni tenant
+│   │   ├── billing/           # Gestione abbonamenti
+│   │   ├── prenota/           # Prenotazione pubblica
+│   │   └── onboarding/        # Wizard setup iniziale
+│   └── api/                    # API routes
+│       ├── [tenant]/          # API tenant-specifiche
+│       ├── cron/              # Cron jobs
+│       ├── stripe/            # Webhook Stripe
+│       └── twilio/            # Webhook Twilio
+├── components/                  # Componenti React
+│   ├── calendar/              # Componenti calendario
+│   ├── clients/               # Componenti gestione clienti
+│   ├── phone-mode/            # Modalità telefono
+│   └── ui/                    # Componenti UI base
+├── lib/                        # Utilities e configurazioni
+│   ├── auth.ts                # Configurazione NextAuth
+│   ├── prisma.ts              # Client Prisma
+│   ├── env.ts                 # Validazione variabili d'ambiente
+│   ├── validators.ts          # Schemi Zod
+│   ├── twilio.ts              # Integrazione Twilio
+│   ├── stripe.ts              # Integrazione Stripe
+│   └── utils.ts              # Funzioni utility
+├── prisma/                     # Schema database
+│   └── schema.prisma          # Schema Prisma completo
+└── scripts/                    # Script di setup
 ```
 
-## Tecnologie
+## Architettura Multi-Tenant
 
-- **Next.js 14** - Framework React con App Router
-- **TypeScript** - Type safety
-- **Prisma** - ORM per database
-- **PostgreSQL** - Database relazionale
-- **NextAuth.js** - Autenticazione
-- **Google Calendar API** - Integrazione calendario
-- **Twilio** - Notifiche WhatsApp
-- **Tailwind CSS** - Styling
+Ogni query al database **DEVE** filtrare per `tenantId` per garantire l'isolamento dei dati. Questo è implementato tramite:
 
-## Testing
+- `requireTenantAccess()` - Helper per verificare accesso tenant
+- Middleware NextAuth - Protezione route tenant-specifiche
+- Filtri automatici in tutte le query Prisma
 
-Il progetto include una suite di test per garantire la qualità del codice.
+## API Standard
 
-### Eseguire i Test
-```bash
-# Run all tests
-npm run test
+Tutte le API seguono questo formato:
 
-# Run tests in watch mode
-npm run test
-
-# Run tests once (CI mode)
-npm run test:run
-
-# Run tests with coverage report
-npm run test:coverage
-
-# Run tests with UI
-npm run test:ui
+```typescript
+{
+  success: boolean
+  data?: T
+  error?: string
+}
 ```
 
-### Test Coverage
-
-Il progetto include test per:
-
-- ✅ **Environment variables validation** - Verifica configurazione corretta
-- ✅ **Error type guards** - Assicura error handling robusto
-- ✅ **Booking flow integration** - Testa il flusso critico di prenotazione
-- ✅ **Database queries** - Verifica performance con indici
-- ✅ **Configuration** - Valida configurazione applicazione
-- ✅ **Logger** - Testa logging in diversi ambienti
-- ✅ **Error Boundary** - Verifica gestione errori UI
-- ✅ **Health check API** - Verifica stato servizi
-
-### Test Files
-```
-tests/
-├── env.test.ts                      # Environment validation
-├── errors.test.ts                   # Type guards
-├── booking-flow.test.ts             # Integration test critico
-├── database-performance.test.ts     # Query performance
-├── config.test.ts                   # Configuration
-├── logger.test.ts                   # Logging
-├── api/
-│   └── health.test.ts              # Health check endpoint
-└── components/
-    └── ErrorBoundary.test.tsx      # Error boundary component
-```
-
-## Funzionalità Dettagliate
-
-### Per i Clienti
-
-- Login sicuro con email e password
-- Visualizzazione pacchetti attivi e sessioni residue
-- Prenotazione sessioni con selezione data e orario
-- Visualizzazione prenotazioni future e passate
-- Cancellazione prenotazioni (con restituzione sessione)
-- Blocco automatico se sessioni terminate
-
-### Per l'Admin
-
-- Gestione clienti (creazione, visualizzazione)
-- Gestione pacchetti (creazione, assegnazione)
-- Visualizzazione statistiche e prenotazioni
-
-### Automazioni
-
-- **Scalamento sessioni**: Ogni prenotazione scala automaticamente 1 sessione
-- **Conferma WhatsApp**: Invio automatico alla creazione prenotazione
-- **Promemoria WhatsApp**: Invio automatico 1 ora prima (via cron job)
-- **Google Calendar**: Sincronizzazione automatica eventi
+Ogni route API:
+1. Verifica autenticazione e accesso tenant
+2. Valida input con Zod
+3. Esegue logica business
+4. Ritorna risposta standardizzata
 
 ## Deployment
 
@@ -275,9 +251,10 @@ tests/
 
 1. Push del codice su GitHub
 2. Importa il progetto su Vercel
-3. Configura le variabili d'ambiente
-4. Configura il database (usa Vercel Postgres o esterno)
-5. Configura cron job per promemoria
+3. Configura tutte le variabili d'ambiente
+4. Configura il database (usa Neon o Vercel Postgres)
+5. Configura cron job per reminder (Vercel Cron Jobs)
+6. Configura webhook Stripe e Twilio
 
 ### Altri Provider
 
@@ -289,8 +266,12 @@ Il progetto può essere deployato su qualsiasi provider che supporta Next.js:
 
 ## Note Importanti
 
-- Assicurati che il database sia sempre accessibile
-- Configura correttamente le variabili d'ambiente in produzione
-- Testa le integrazioni Google Calendar e Twilio prima del deploy
-- Configura il cron job per i promemoria
-- Cambia le password di default in produzione
+- ⚠️ **Multi-tenancy**: Ogni query DEVE filtrare per `tenantId`
+- ⚠️ **TypeScript strict**: Mai usare `any` o `@ts-ignore`
+- ⚠️ **Validazione Zod**: Ogni input API deve essere validato
+- ⚠️ **Prezzi in centesimi**: Tutti i prezzi sono memorizzati in centesimi (€25.00 = 2500)
+- ⚠️ **Commenti in italiano**: Tutti i commenti nel codice sono in italiano
+
+## Licenza
+
+Proprietario - Tutti i diritti riservati

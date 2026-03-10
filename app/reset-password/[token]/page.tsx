@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { Lock, CheckCircle, ArrowLeft } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
-import HugemassLogo from '@/components/HugemassLogo'
+import AppointlyLogo from '@/components/AppointlyLogo'
 import Link from 'next/link'
 
 export default function ResetPasswordPage() {
@@ -58,7 +58,7 @@ export default function ResetPasswordPage() {
           router.push('/login')
         }, 2000)
       }
-    } catch (error) {
+    } catch {
       setError('Errore durante il reset della password')
     } finally {
       setLoading(false)
@@ -67,12 +67,12 @@ export default function ResetPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-dark-950 relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/sfondo3.png')" }}>
+      <div className="min-h-screen flex items-center justify-center bg-dark-950 relative overflow-hidden">
         <div className="relative z-10 w-full max-w-md px-4">
           <div className="bg-dark-50/80 backdrop-blur-xl border border-gold-400/20 rounded-2xl shadow-dark-lg p-8 md:p-10">
             <div className="text-center mb-8">
               <div className="flex justify-center mb-4">
-                <HugemassLogo variant="full" size="md" className="animate-fade-in" />
+                <AppointlyLogo variant="full" size="md" className="animate-fade-in" />
               </div>
             </div>
 
@@ -109,12 +109,13 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-dark-950 relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/sfondo3.png')" }}>
+    <div className="min-h-screen flex items-center justify-center bg-dark-950 relative overflow-hidden">
       <div className="relative z-10 w-full max-w-md px-4">
         <div className="bg-dark-50/80 backdrop-blur-xl border border-gold-400/20 rounded-2xl shadow-dark-lg p-8 md:p-10">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <HugemassLogo variant="full" size="md" className="animate-fade-in" />
+              <AppointlyLogo variant="full" size="md" className="animate-fade-in" />
+              <AppointlyLogo variant="full" size="md" className="animate-fade-in" />
             </div>
           </div>
 

@@ -5,7 +5,7 @@
  * DATABASE_URL="postgresql://..." tsx scripts/create-admin.ts <email> <password> <name>
  * 
  * Esempio:
- * DATABASE_URL="postgresql://..." tsx scripts/create-admin.ts admin2@hugemass.com password123 "Admin 2"
+ * DATABASE_URL="postgresql://..." tsx scripts/create-admin.ts admin2@appointly.com password123 "Admin 2"
  */
 
 import { PrismaClient } from '@prisma/client'
@@ -22,7 +22,7 @@ async function main() {
     console.log('\nUso:')
     console.log('  tsx scripts/create-admin.ts <email> <password> [name]')
     console.log('\nEsempio:')
-    console.log('  tsx scripts/create-admin.ts admin2@hugemass.com password123 "Admin 2"')
+    console.log('  tsx scripts/create-admin.ts admin2@appointly.com password123 "Admin 2"')
     process.exit(1)
   }
 
@@ -31,13 +31,13 @@ async function main() {
   const name = args[2] || 'Admin'
 
   // Valida email
-  if (!email.includes('@')) {
+  if (!email || !email.includes('@')) {
     console.error('❌ Errore: Email non valida')
     process.exit(1)
   }
 
   // Valida password
-  if (password.length < 6) {
+  if (!password || password.length < 6) {
     console.error('❌ Errore: La password deve essere di almeno 6 caratteri')
     process.exit(1)
   }
@@ -59,8 +59,8 @@ async function main() {
       const updatedUser = await prisma.user.update({
         where: { email },
         data: {
-          password: hashedPassword,
-          role: 'ADMIN',
+          passwordHash: hashedPassword,
+          role: 'SUPER_ADMIN',
           name,
         },
       })
@@ -70,16 +70,26 @@ async function main() {
       console.log(`   Nome: ${updatedUser.name}`)
       console.log(`   Ruolo: ${updatedUser.role}`)
     } else {
-      // Crea nuovo admin
+      // Crea nuovo admin - prima crea un tenant
+      const tenant = await prisma.tenant.create({
+        data: {
+          name: `${name}'s Business`,
+          slug: email.split('@')[0]?.toLowerCase() || 'admin',
+          email,
+          category: 'OTHER',
+          city: 'Unknown',
+        },
+      })
+
       const hashedPassword = await bcrypt.hash(password, 10)
       
       const admin = await prisma.user.create({
         data: {
           email,
-          password: hashedPassword,
+          passwordHash: hashedPassword,
           name,
-          role: 'ADMIN',
-          collaborationStartDate: new Date(),
+          role: 'SUPER_ADMIN',
+          tenantId: tenant.id,
         },
       })
       

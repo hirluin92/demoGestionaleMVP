@@ -40,11 +40,12 @@ export async function withRetry<T>(
       // Verifica connessione prima di eseguire
       await prisma.$connect()
       return await operation()
-    } catch (error: any) {
+    } catch (error: unknown) {
       lastError = error
       
       // Se è un errore di connessione chiusa, prova a riconnettere
-      if (error?.code === 'P1017' || error?.message?.includes('closed the connection')) {
+      const errorWithCode = error as { code?: string; message?: string } | null
+      if (errorWithCode?.code === 'P1017' || errorWithCode?.message?.includes('closed the connection')) {
         if (i < maxRetries - 1) {
           // Disconnetti e riconnetti
           await prisma.$disconnect().catch(() => {})

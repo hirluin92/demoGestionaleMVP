@@ -31,7 +31,7 @@
 
 1. Nel dashboard Cloudflare, vai su **"Registrar"** (menu laterale)
 2. Clicca **"Register Domains"**
-3. Cerca il dominio desiderato (es. `hugemass.com`)
+3. Cerca il dominio desiderato (es. `appointly.com`)
 4. Seleziona il dominio e clicca **"Add to Cart"**
 5. Completa il checkout (carta di credito/PayPal)
 6. ⚠️ **IMPORTANTE**: Disabilita "Auto-renew" se vuoi controllo manuale
@@ -69,7 +69,7 @@ TTL: Auto
 2. Seleziona il tuo progetto
 3. Vai su **Settings** → **Domains**
 4. Clicca **"Add Domain"**
-5. Inserisci il tuo dominio (es. `hugemass.com`)
+5. Inserisci il tuo dominio (es. `appointly.com`)
 6. Vercel verificherà automaticamente i DNS records
 7. ⚠️ **Attendi 5-10 minuti** per la propagazione DNS
 

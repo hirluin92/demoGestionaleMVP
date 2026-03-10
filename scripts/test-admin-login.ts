@@ -5,7 +5,7 @@ import { env } from '../lib/env'
 const prisma = new PrismaClient()
 
 async function main() {
-  const adminEmail = env.ADMIN_EMAIL || 'admin@hugemass.com'
+  const adminEmail = env.ADMIN_EMAIL || 'admin@appointly.com'
   const testPassword = 'changeme'
 
   console.log('🔍 Verifica accesso admin...')
@@ -28,7 +28,7 @@ async function main() {
   console.log(`   Name: ${admin.name}`)
 
   // Verifica password
-  const isPasswordValid = await bcrypt.compare(testPassword, admin.password)
+  const isPasswordValid = await bcrypt.compare(testPassword, admin.passwordHash)
 
   if (isPasswordValid) {
     console.log('✅ Password "changeme" è CORRETTA!')

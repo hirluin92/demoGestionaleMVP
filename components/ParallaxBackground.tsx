@@ -6,12 +6,11 @@ export function ParallaxBackground() {
       <div 
         className="parallax-layer parallax-layer-1" 
         style={{
-          backgroundImage: "url('/sfondo3.png')",
+          background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
           backgroundAttachment: 'fixed',
-          imageRendering: 'auto',
           opacity: 1,
           willChange: 'transform'
         } as React.CSSProperties}

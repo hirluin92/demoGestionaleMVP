@@ -15,8 +15,45 @@ const russoOne = Russo_One({
 })
 
 export const metadata: Metadata = {
-  title: 'Hugemass - Sistema Prenotazioni',
-  description: 'Sistema di gestione prenotazioni per studio di personal training',
+  title: {
+    default: 'Appointly - Sistema Prenotazioni Online',
+    template: '%s | Appointly',
+  },
+  description: 'Sistema di gestione prenotazioni online per saloni, centri estetici e studi. Gestisci appuntamenti, clienti e promemoria da un\'unica interfaccia.',
+  keywords: ['prenotazioni online', 'gestione appuntamenti', 'agenda digitale', 'salone', 'centro estetico'],
+  authors: [{ name: 'Appointly' }],
+  creator: 'Appointly',
+  publisher: 'Appointly',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  openGraph: {
+    type: 'website',
+    locale: 'it_IT',
+    url: '/',
+    siteName: 'Appointly',
+    title: 'Appointly - Sistema Prenotazioni Online',
+    description: 'Sistema di gestione prenotazioni online per saloni, centri estetici e studi.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Appointly - Sistema Prenotazioni Online',
+    description: 'Sistema di gestione prenotazioni online per saloni, centri estetici e studi.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 }
 
 export default function RootLayout({

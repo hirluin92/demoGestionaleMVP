@@ -1,10 +1,10 @@
 {
-  "name": "hugemass-booking",
+  "name": "appointly",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "postinstall": "prisma generate",
     "lint": "next lint",
@@ -21,18 +21,18 @@
     "check:admin": "tsx scripts/check-admin.ts",
     "setup:neon": "tsx scripts/setup-neon-db.ts",
     "check:neon": "tsx scripts/check-neon-db.ts",
-    "setup:calendar": "tsx scripts/setup-google-calendar.ts",
-    "fix:password": "tsx scripts/fix-user-password.ts",
-    "check:calendar": "tsx scripts/check-google-calendar-sync.ts",
-    "check:token": "tsx scripts/check-google-token.ts",
-    "check:whatsapp": "tsx scripts/check-whatsapp-user.ts",
-    "list:users": "tsx scripts/list-users-whatsapp.ts",
-    "clean:demo": "tsx scripts/clean-db-for-demo.ts",
-    "seed:exercises": "tsx scripts/seed-exercises.ts"
+    "fix:password": "tsx scripts/fix-user-password.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@auth/prisma-adapter": "^2.11.1",
     "@prisma/client": "^5.19.1",
+    "@react-three/drei": "^9.114.3",
+    "@react-three/fiber": "^8.17.10",
+    "@stripe/stripe-js": "^8.9.0",
+    "@vercel/kv": "^1.0.0",
     "bcryptjs": "^2.4.3",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",
@@ -43,14 +43,14 @@
     "react": "^18.3.1",
     "react-calendar": "^5.0.0",
     "react-dom": "^18.3.1",
-    "@vercel/kv": "^1.0.0",
+    "react-hot-toast": "^2.6.0",
     "resend": "^4.8.0",
+    "stripe": "^20.4.1",
     "tailwind-merge": "^2.5.2",
     "three": "^0.169.0",
-    "@react-three/fiber": "^8.17.10",
-    "@react-three/drei": "^9.114.3",
     "twilio": "^5.3.5",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

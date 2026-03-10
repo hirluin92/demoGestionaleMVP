@@ -65,7 +65,7 @@ async function main() {
   console.log('🧹 Pulizia database per demo...\n')
 
   // Trova l'utente admin (usa process.env direttamente, non lib/env)
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@hugemass.com'
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@appointly.com'
   
   const admin = await prisma.user.findUnique({
     where: { email: adminEmail },
@@ -77,7 +77,7 @@ async function main() {
     process.exit(1)
   }
 
-  if (admin.role !== 'ADMIN') {
+  if (admin.role !== 'SUPER_ADMIN' && admin.role !== 'TENANT_OWNER') {
     console.error(`❌ Errore: L'utente ${adminEmail} non è un admin (role: ${admin.role})`)
     process.exit(1)
   }
@@ -85,25 +85,54 @@ async function main() {
   console.log(`✅ Admin trovato: ${admin.name} (${admin.email})\n`)
 
   // Conta i dati prima della pulizia
+  const tenantsCount = await prisma.tenant.count()
   const usersCount = await prisma.user.count()
-  const bookingsCount = await prisma.booking.count()
-  const packagesCount = await prisma.package.count()
-  const measurementsCount = await prisma.bodyMeasurement.count()
-  const userPackagesCount = await prisma.userPackage.count()
+  const appointmentsCount = await prisma.appointment.count()
+  const clientsCount = await prisma.client.count()
+  const servicesCount = await prisma.service.count()
+  const staffCount = await prisma.staff.count()
 
   console.log('📊 Dati attuali nel database:')
+  console.log(`   - Tenant: ${tenantsCount}`)
   console.log(`   - Utenti: ${usersCount}`)
-  console.log(`   - Prenotazioni: ${bookingsCount}`)
-  console.log(`   - Pacchetti: ${packagesCount}`)
-  console.log(`   - Misurazioni: ${measurementsCount}`)
-  console.log(`   - UserPackages: ${userPackagesCount}\n`)
+  console.log(`   - Appuntamenti: ${appointmentsCount}`)
+  console.log(`   - Clienti: ${clientsCount}`)
+  console.log(`   - Servizi: ${servicesCount}`)
+  console.log(`   - Staff: ${staffCount}\n`)
+
+  // Trova il tenant dell'admin
+  const adminTenant = await prisma.tenant.findUnique({
+    where: { id: admin.tenantId },
+  })
+
+  if (!adminTenant) {
+    console.error('❌ Errore: Tenant dell\'admin non trovato')
+    process.exit(1)
+  }
+
+  console.log(`✅ Tenant admin trovato: ${adminTenant.name} (${adminTenant.slug})\n`)
+
+  // Elimina tutti gli appuntamenti
+  console.log('🗑️  Eliminazione appuntamenti...')
+  const deletedAppointments = await prisma.appointment.deleteMany({})
+  console.log(`   ✅ Eliminati ${deletedAppointments.count} appuntamenti\n`)
+
+  // Elimina tutti i clienti
+  console.log('🗑️  Eliminazione clienti...')
+  const deletedClients = await prisma.client.deleteMany({})
+  console.log(`   ✅ Eliminati ${deletedClients.count} clienti\n`)
+
+  // Elimina tutti i servizi
+  console.log('🗑️  Eliminazione servizi...')
+  const deletedServices = await prisma.service.deleteMany({})
+  console.log(`   ✅ Eliminati ${deletedServices.count} servizi\n`)
+
+  // Elimina tutti gli staff
+  console.log('🗑️  Eliminazione staff...')
+  const deletedStaff = await prisma.staff.deleteMany({})
+  console.log(`   ✅ Eliminati ${deletedStaff.count} staff\n`)
 
   // Elimina tutti gli utenti tranne l'admin
-  // Questo eliminerà automaticamente (cascade):
-  // - bookings
-  // - body_measurements
-  // - user_packages
-  // - packages (se hanno userId)
   console.log('🗑️  Eliminazione utenti (tranne admin)...')
   const deletedUsers = await prisma.user.deleteMany({
     where: {
@@ -112,74 +141,30 @@ async function main() {
   })
   console.log(`   ✅ Eliminati ${deletedUsers.count} utenti\n`)
 
-  // Elimina pacchetti orfani (senza userId e senza userPackages)
-  console.log('🗑️  Eliminazione pacchetti orfani...')
-  const orphanPackages = await prisma.package.findMany({
+  // Elimina tutti i tenant tranne quello dell'admin
+  console.log('🗑️  Eliminazione tenant (tranne quello dell\'admin)...')
+  const deletedTenants = await prisma.tenant.deleteMany({
     where: {
-      userId: null,
-      userPackages: {
-        none: {},
-      },
+      id: { not: admin.tenantId },
     },
   })
-
-  if (orphanPackages.length > 0) {
-    const deletedPackages = await prisma.package.deleteMany({
-      where: {
-        id: { in: orphanPackages.map(p => p.id) },
-      },
-    })
-    console.log(`   ✅ Eliminati ${deletedPackages.count} pacchetti orfani\n`)
-  } else {
-    console.log('   ℹ️  Nessun pacchetto orfano trovato\n')
-  }
-
-  // Verifica che non ci siano più bookings
-  const remainingBookings = await prisma.booking.count()
-  if (remainingBookings > 0) {
-    console.log('⚠️  Eliminazione bookings rimanenti...')
-    await prisma.booking.deleteMany({})
-    console.log(`   ✅ Eliminati ${remainingBookings} bookings rimanenti\n`)
-  }
-
-  // Verifica che non ci siano più misurazioni
-  const remainingMeasurements = await prisma.bodyMeasurement.count()
-  if (remainingMeasurements > 0) {
-    console.log('⚠️  Eliminazione misurazioni rimanenti...')
-    await prisma.bodyMeasurement.deleteMany({})
-    console.log(`   ✅ Eliminati ${remainingMeasurements} misurazioni rimanenti\n`)
-  }
-
-  // Verifica che non ci siano più userPackages
-  const remainingUserPackages = await prisma.userPackage.count()
-  if (remainingUserPackages > 0) {
-    console.log('⚠️  Eliminazione userPackages rimanenti...')
-    await prisma.userPackage.deleteMany({})
-    console.log(`   ✅ Eliminati ${remainingUserPackages} userPackages rimanenti\n`)
-  }
-
-  // Elimina anche le credenziali Google Calendar (opzionale - commenta se vuoi mantenerle)
-  const googleCalendarsCount = await prisma.googleCalendar.count()
-  if (googleCalendarsCount > 0) {
-    console.log('🗑️  Eliminazione credenziali Google Calendar...')
-    const deletedCalendars = await prisma.googleCalendar.deleteMany({})
-    console.log(`   ✅ Eliminate ${deletedCalendars.count} configurazioni Google Calendar`)
-    console.log('   ⚠️  Nota: Dovrai riconfigurare Google Calendar dopo la pulizia\n')
-  }
+  console.log(`   ✅ Eliminati ${deletedTenants.count} tenant\n`)
 
   // Conta i dati dopo la pulizia
+  const finalTenantsCount = await prisma.tenant.count()
   const finalUsersCount = await prisma.user.count()
-  const finalBookingsCount = await prisma.booking.count()
-  const finalPackagesCount = await prisma.package.count()
-  const finalMeasurementsCount = await prisma.bodyMeasurement.count()
-  const finalUserPackagesCount = await prisma.userPackage.count()
+  const finalAppointmentsCount = await prisma.appointment.count()
+  const finalClientsCount = await prisma.client.count()
+  const finalServicesCount = await prisma.service.count()
+  const finalStaffCount = await prisma.staff.count()
 
   console.log('📊 Dati finali nel database:')
+  console.log(`   - Tenant: ${finalTenantsCount} (solo quello dell'admin)`)
   console.log(`   - Utenti: ${finalUsersCount} (solo admin)`)
-  console.log(`   - Prenotazioni: ${finalBookingsCount}`)
-  console.log(`   - Pacchetti: ${finalPackagesCount}`)
-  console.log(`   - Misurazioni: ${finalMeasurementsCount}`)
-  console.log(`   - UserPackages: ${finalUserPackagesCount}\n`)
+  console.log(`   - Appuntamenti: ${finalAppointmentsCount}`)
+  console.log(`   - Clienti: ${finalClientsCount}`)
+  console.log(`   - Servizi: ${finalServicesCount}`)
+  console.log(`   - Staff: ${finalStaffCount}\n`)
 
   // Verifica che l'admin sia ancora presente
   const adminStillExists = await prisma.user.findUnique({

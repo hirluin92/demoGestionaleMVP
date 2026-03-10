@@ -12,7 +12,6 @@ export async function GET() {
     version: '1.0.0',
     checks: {
       database: { status: 'unknown' as 'ok' | 'error' | 'unknown', responseTime: 0 },
-      googleCalendar: { status: 'unknown' as 'ok' | 'not_configured' | 'unknown' },
       twilio: { status: 'unknown' as 'ok' | 'not_configured' | 'unknown' },
     },
   }
@@ -25,23 +24,9 @@ export async function GET() {
       status: 'ok',
       responseTime: Date.now() - start,
     }
-  } catch (error) {
+  } catch {
     healthCheck.status = 'error'
     healthCheck.checks.database = { status: 'error', responseTime: 0 }
-  }
-
-  // Check Google Calendar config
-  try {
-    if (env.GOOGLE_CLIENT_ID) {
-      const calendarConfig = await prisma.googleCalendar.findFirst()
-      healthCheck.checks.googleCalendar = {
-        status: calendarConfig ? 'ok' : 'not_configured',
-      }
-    } else {
-      healthCheck.checks.googleCalendar = { status: 'not_configured' }
-    }
-  } catch (error) {
-    healthCheck.checks.googleCalendar = { status: 'unknown' }
   }
 
   // Check Twilio config
@@ -52,10 +37,7 @@ export async function GET() {
   // Set overall status
   if (healthCheck.checks.database.status === 'error') {
     healthCheck.status = 'error'
-  } else if (
-    healthCheck.checks.googleCalendar.status === 'not_configured' ||
-    healthCheck.checks.twilio.status === 'not_configured'
-  ) {
+  } else if (healthCheck.checks.twilio.status === 'not_configured') {
     healthCheck.status = 'degraded'
   }
 

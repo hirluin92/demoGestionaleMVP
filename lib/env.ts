@@ -20,32 +20,39 @@ import { z } from 'zod'
 
 const envSchema = z.object({
   // Database (sempre richiesto)
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL è richiesto'),
+  DATABASE_URL: z.string().url('DATABASE_URL deve essere un URL valido'),
   
   // NextAuth (sempre richiesto)
   NEXTAUTH_URL: z.string().url('NEXTAUTH_URL deve essere un URL valido'),
-  NEXTAUTH_SECRET: z.string().min(32, 'NEXTAUTH_SECRET deve essere almeno 32 caratteri'),
+  NEXTAUTH_SECRET: z.string().min(16, 'NEXTAUTH_SECRET deve essere almeno 16 caratteri'),
   
-  // Google Calendar (richiesto in produzione, opzionale in dev)
-  GOOGLE_CLIENT_ID: process.env.NODE_ENV === 'production' 
-    ? z.string().min(1, 'GOOGLE_CLIENT_ID è richiesto in produzione')
-    : z.string().optional(),
-  GOOGLE_CLIENT_SECRET: process.env.NODE_ENV === 'production'
-    ? z.string().min(1, 'GOOGLE_CLIENT_SECRET è richiesto in produzione')
-    : z.string().optional(),
+  // Twilio (richiesto per WhatsApp)
+  TWILIO_ACCOUNT_SID: z.string().startsWith('AC', 'TWILIO_ACCOUNT_SID deve iniziare con AC'),
+  TWILIO_AUTH_TOKEN: z.string().min(1, 'TWILIO_AUTH_TOKEN è richiesto'),
+  TWILIO_WHATSAPP_FROM: z.string().startsWith('whatsapp:', 'TWILIO_WHATSAPP_FROM deve iniziare con whatsapp:'),
+  TWILIO_SMS_FROM: z.string().optional(),
+  
+  // Stripe (richiesto per pagamenti)
+  STRIPE_SECRET_KEY: z.string().startsWith('sk_', 'STRIPE_SECRET_KEY deve iniziare con sk_'),
+  STRIPE_PUBLISHABLE_KEY: z.string().startsWith('pk_', 'STRIPE_PUBLISHABLE_KEY deve iniziare con pk_'),
+  STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_', 'STRIPE_WEBHOOK_SECRET deve iniziare con whsec_'),
+  STRIPE_PRICE_SOLO: z.string().optional(),
+  STRIPE_PRICE_PRO: z.string().optional(),
+  STRIPE_PRICE_STUDIO: z.string().optional(),
+  
+  // Claude API (richiesto per note vocali)
+  ANTHROPIC_API_KEY: z.string().startsWith('sk-ant-', 'ANTHROPIC_API_KEY deve iniziare con sk-ant-'),
+  
+  // Cron (richiesto per reminder job)
+  CRON_SECRET: z.string().min(16, 'CRON_SECRET deve essere almeno 16 caratteri'),
+  
+  // App
+  NEXT_PUBLIC_APP_URL: z.string().url('NEXT_PUBLIC_APP_URL deve essere un URL valido'),
+  
+  // Google Calendar (opzionale - per compatibilità con codice esistente)
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_CALENDAR_ID: z.string().default('primary'),
-  
-  // Twilio (opzionale - l'app funziona senza WhatsApp)
-  TWILIO_ACCOUNT_SID: z.string().optional(),
-  TWILIO_AUTH_TOKEN: z.string().optional(),
-  TWILIO_WHATSAPP_FROM: z.string().optional(),
-  
-  // Admin (opzionale - per seed script)
-  ADMIN_EMAIL: z.string().email().optional(),
-  ADMIN_PASSWORD: z.string().min(6).optional(),
-  
-  // Cron (opzionale - per reminder job)
-  CRON_SECRET: z.string().min(16).optional(),
   
   // Resend (opzionale - per email password reset)
   RESEND_API_KEY: z.string().optional(),
@@ -55,6 +62,10 @@ const envSchema = z.object({
   KV_URL: z.string().url().optional(),
   KV_REST_API_URL: z.string().url().optional(),
   KV_REST_API_TOKEN: z.string().optional(),
+  
+  // Admin (opzionale - per seed script)
+  ADMIN_EMAIL: z.string().email().optional(),
+  ADMIN_PASSWORD: z.string().min(6).optional(),
   
   // Environment
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

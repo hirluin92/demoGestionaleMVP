@@ -7,216 +7,253 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id                     String            @id @default(cuid())
-  email                  String            @unique
-  password               String
-  name                   String
-  phone                  String?
-  role                   UserRole          @default(CLIENT)
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @updatedAt
-  resetToken             String?
-  resetTokenExpiry       DateTime?
-  collaborationStartDate DateTime?
-  bookingReminders       Boolean           @default(true)
-  emailNotifications     Boolean           @default(true)
-  loginAlerts            Boolean           @default(true)
-  measurementUpdates     Boolean           @default(true)
-  sessionTimeout         Int               @default(30)
-  measurements           BodyMeasurement[]
-  bookings               Booking[]
-  packages               Package[]         // Relazione uno-a-molti (per compatibilità)
-  userPackages           UserPackage[]      // Relazione molti-a-molti
-  workoutPlans           WorkoutPlan[]
-
-  @@index([email])
-  @@index([resetToken])
-  @@map("users")
+// ==========================================
+// TENANT (attività: salone, centro estetico, ecc.)
+// ==========================================
+enum Plan {
+  SOLO
+  PRO
+  STUDIO
 }
 
-model Package {
-  id              String        @id @default(cuid())
-  userId          String?       // Opzionale per compatibilità con dati esistenti
-  name            String
-  totalSessions   Int
-  usedSessions    Int           @default(0)
-  durationMinutes Int           @default(60)
-  isActive        Boolean       @default(true)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  bookings        Booking[]
-  user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade) // Relazione uno-a-molti (per compatibilità)
-  userPackages    UserPackage[] // Relazione molti-a-molti
-
-  @@index([userId, isActive])
-  @@index([userId])
-  @@map("packages")
-}
-
-model UserPackage {
-  id            String   @id @default(cuid())
-  userId        String
-  packageId     String
-  usedSessions  Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  package       Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, packageId])
-  @@index([userId])
-  @@index([packageId])
-  @@map("user_packages")
-}
-
-model Booking {
-  id              String        @id @default(cuid())
-  userId          String
-  packageId       String
-  date            DateTime
-  time            String
-  status          BookingStatus @default(CONFIRMED)
-  durationMinutes Int?          // Durata personalizzata per questa prenotazione (override del pacchetto)
-  googleEventId   String?       @unique
-  reminderSent    Boolean       @default(false)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  package         Package       @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, status])
-  @@index([date, status])
-  @@index([date, time, status])
-  @@index([googleEventId])
-  @@map("bookings")
-}
-
-model GoogleCalendar {
-  id           String   @id @default(cuid())
-  calendarId   String   @unique
-  accessToken  String
-  refreshToken String
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@index([calendarId])
-  @@map("google_calendars")
-}
-
-model BodyMeasurement {
-  id              String   @id @default(cuid())
-  userId          String
-  measurementDate DateTime @default(now())
-  peso            Float?
-  altezza         Float?  // Altezza
-  massaGrassa     Float?  // % Massa Grassa
-  braccio         Float?  // Circonferenza braccio
-  spalle          Float?  // Circonferenza spalle
-  torace          Float?
-  vita            Float?
-  gamba           Float?  // Circonferenza gamba
-  fianchi         Float?
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, measurementDate])
-  @@index([userId])
-  @@map("body_measurements")
-}
-
-model ExerciseCategory {
-  id        String     @id @default(cuid())
-  name      String     @unique
-  sortOrder Int        @default(0)
-  exercises Exercise[]
-  createdAt DateTime   @default(now())
-
-  @@map("exercise_categories")
-}
-
-model Exercise {
-  id         String           @id @default(cuid())
-  name       String
-  categoryId String
-  equipment  String?
-  isDefault  Boolean          @default(false)
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
-  category   ExerciseCategory @relation(fields: [categoryId], references: [id])
-  workoutExercises WorkoutExercise[]
-
-  @@unique([name, categoryId])
-  @@index([categoryId])
-  @@index([name])
-  @@map("exercises")
-}
-
-model WorkoutPlan {
-  id          String       @id @default(cuid())
-  userId      String
-  name        String
-  description String?
-  startDate   DateTime?
-  endDate     DateTime?
-  isActive    Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  days        WorkoutDay[]
-
-  @@index([userId, isActive])
-  @@index([userId])
-  @@map("workout_plans")
-}
-
-model WorkoutDay {
-  id            String            @id @default(cuid())
-  workoutPlanId String
-  dayNumber     Int
-  name          String
-  notes         String?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  workoutPlan   WorkoutPlan       @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
-  exercises     WorkoutExercise[]
-
-  @@index([workoutPlanId])
-  @@map("workout_days")
-}
-
-model WorkoutExercise {
-  id           String     @id @default(cuid())
-  workoutDayId String
-  orderIndex   Int
-  exerciseId   String?
-  name         String
-  sets         Int
-  reps         String
-  weight       String?
-  restSeconds  Int?
-  tempo        String?
-  notes        String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  workoutDay   WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
-  exercise     Exercise?  @relation(fields: [exerciseId], references: [id])
-
-  @@index([workoutDayId, orderIndex])
-  @@index([exerciseId])
-  @@map("workout_exercises")
-}
-
-enum UserRole {
-  CLIENT
-  ADMIN
-}
-
-enum BookingStatus {
-  CONFIRMED
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
   CANCELLED
+}
+
+model Tenant {
+  id                String        @id @default(cuid())
+  slug              String        @unique    // URL-friendly: /mio-salone
+  name              String                   // "Salone Sara"
+  category          String                   // parrucchiere, estetista, dentista...
+  city              String
+  phone             String?
+  email             String
+  logoUrl           String?
+  plan              Plan          @default(PRO)
+  status            TenantStatus  @default(TRIAL)
+  trialEndsAt       DateTime?
+  stripeCustomerId  String?       @unique
+  stripeSubId       String?       @unique
+  settings          Json          @default("{}")
+  // settings contiene: businessHours, timezone, locale, etc.
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  users             User[]
+  staff             Staff[]
+  services          Service[]
+  clients           Client[]
+  appointments      Appointment[]
+  messageLog        MessageLog[]
+
+  @@index([slug])
+}
+
+// ==========================================
+// USER (account login — separato da Staff)
+// ==========================================
+enum UserRole {
+  SUPER_ADMIN    // Noi (Appointly admin)
+  TENANT_OWNER   // Titolare
+  STAFF          // Dipendente con login
+}
+
+model User {
+  id                String    @id @default(cuid())
+  tenantId          String
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email             String    @unique
+  passwordHash      String
+  name              String
+  role              UserRole  @default(STAFF)
+  staffId           String?   @unique
+  staff             Staff?    @relation(fields: [staffId], references: [id])
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([email])
+}
+
+// ==========================================
+// STAFF (operatore: chi esegue i servizi)
+// ==========================================
+model Staff {
+  id             String        @id @default(cuid())
+  tenantId       String
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name           String
+  color          String        @default("#3B82F6") // Colore nel calendario
+  isActive       Boolean       @default(true)
+  workingHours   Json          @default("{}")
+  // workingHours formato:
+  // { "mon": { "start": "09:00", "end": "18:00", "break": { "start": "13:00", "end": "14:00" } },
+  //   "tue": { ... }, "wed": null (= giorno libero) }
+  createdAt      DateTime      @default(now())
+
+  user           User?
+  appointments   Appointment[]
+  serviceLinks   StaffService[]
+
+  @@index([tenantId])
+}
+
+// ==========================================
+// SERVICE (servizio offerto: taglio, piega, ecc.)
+// ==========================================
+model Service {
+  id             String        @id @default(cuid())
+  tenantId       String
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name           String                    // "Taglio Uomo"
+  duration       Int                       // Minuti
+  price          Int                       // Centesimi (€25.00 = 2500)
+  color          String        @default("#8B5CF6")
+  isActive       Boolean       @default(true)
+  sortOrder      Int           @default(0)
+  createdAt      DateTime      @default(now())
+
+  appointments   Appointment[]
+  staffLinks     StaffService[]
+
+  @@index([tenantId])
+}
+
+// Relazione N:M — quali operatori fanno quali servizi
+model StaffService {
+  staffId    String
+  staff      Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  serviceId  String
+  service    Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([staffId, serviceId])
+}
+
+// ==========================================
+// CLIENT (cliente dell'attività — NON utente Appointly)
+// ==========================================
+model Client {
+  id              String        @id @default(cuid())
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name            String
+  phone           String
+  email           String?
+  optInMarketing  Boolean       @default(false)  // Consenso promozioni (GDPR)
+  optInReminders  Boolean       @default(true)   // Consenso promemoria (GDPR)
+  loyaltyPoints   Int           @default(0)
+  totalVisits     Int           @default(0)
+  totalSpent      Int           @default(0)      // Centesimi
+  lastVisitAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  appointments    Appointment[]
+  notes           ClientNote[]
+
+  @@unique([tenantId, phone])   // Stesso telefono = stesso cliente per tenant
+  @@index([tenantId])
+  @@index([tenantId, name])
+}
+
+// ==========================================
+// CLIENT NOTE (note, preferenze, allergie)
+// ==========================================
+enum NoteType {
+  GENERAL
+  ALLERGY
+  PREFERENCE
+  HISTORY
+  VOICE        // Nota vocale trascritta da Claude API
+}
+
+model ClientNote {
+  id         String    @id @default(cuid())
+  clientId   String
+  client     Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type       NoteType  @default(GENERAL)
+  content    String
+  createdAt  DateTime  @default(now())
+
+  @@index([clientId])
+}
+
+// ==========================================
+// APPOINTMENT (il cuore del sistema)
+// ==========================================
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
   COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Appointment {
+  id              String              @id @default(cuid())
+  tenantId        String
+  tenant          Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId        String
+  client          Client              @relation(fields: [clientId], references: [id])
+  staffId         String
+  staff           Staff               @relation(fields: [staffId], references: [id])
+  serviceId       String
+  service         Service             @relation(fields: [serviceId], references: [id])
+  startTime       DateTime
+  endTime         DateTime            // Calcolato: startTime + service.duration
+  status          AppointmentStatus   @default(SCHEDULED)
+  price           Int                 // Prezzo snapshot al momento della prenotazione (centesimi)
+  notes           String?
+  reminderSentAt  DateTime?           // Quando il promemoria WhatsApp è stato inviato
+  confirmedAt     DateTime?           // Quando il cliente ha confermato
+  cancelledAt     DateTime?
+  source          String              @default("manual") // manual, online, phone, whatsapp
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([tenantId, startTime])
+  @@index([tenantId, staffId, startTime])
+  @@index([tenantId, clientId])
+  @@index([tenantId, status])
+}
+
+// ==========================================
+// MESSAGE LOG (tracciamento messaggi inviati per billing)
+// ==========================================
+enum MessageChannel {
+  WHATSAPP
+  SMS
+  VOICE
+  EMAIL
+}
+
+enum MessageType {
+  REMINDER
+  CONFIRMATION
+  CANCELLATION
+  MARKETING
+  CALLBACK
+}
+
+model MessageLog {
+  id             String          @id @default(cuid())
+  tenantId       String
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointmentId  String?
+  clientPhone    String
+  channel        MessageChannel
+  type           MessageType
+  content        String?
+  twilioSid      String?         // SID messaggio Twilio per tracking
+  status         String          @default("sent") // sent, delivered, read, failed
+  costCents      Int             @default(0)      // Costo in centesimi di euro
+  sentAt         DateTime        @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, sentAt])
 }

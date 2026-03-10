@@ -1,6 +1,6 @@
 # Guida Deploy su Vercel
 
-Questa guida ti aiuterà a deployare l'applicazione Hugemass su Vercel.
+Questa guida ti aiuterà a deployare l'applicazione Appointly su Vercel.
 
 ## Prerequisiti
 
@@ -56,7 +56,7 @@ Assicurati che questi file siano presenti:
 
 1. Vai su [vercel.com/new](https://vercel.com/new)
 2. Connetti il tuo repository GitHub/GitLab/Bitbucket
-3. Seleziona il repository `customSaasMKDA`
+3. Seleziona il repository del progetto Appointly
 4. Clicca su **Import**
 
 ### 3.2 Configurazione Progetto
@@ -103,7 +103,7 @@ TWILIO_AUTH_TOKEN=tuo-auth-token
 TWILIO_WHATSAPP_FROM=whatsapp:+1234567890
 
 # Admin (per creare l'utente admin iniziale)
-ADMIN_EMAIL=admin@hugemass.com
+ADMIN_EMAIL=admin@appointly.com
 ADMIN_PASSWORD=tua-password-sicura
 
 # Cron (per reminder automatici - opzionale)
@@ -111,7 +111,7 @@ CRON_SECRET=genera-un-secret-di-almeno-16-caratteri
 ```
 
 **⚠️ IMPORTANTE**: 
-- Per `NEXTAUTH_URL`, usa l'URL che Vercel ti assegnerà (es: `https://custom-saas-mkda.vercel.app`)
+- Per `NEXTAUTH_URL`, usa l'URL che Vercel ti assegnerà (es: `https://appointly.vercel.app`)
 - Dopo il primo deploy, Vercel ti darà un URL. Aggiorna `NEXTAUTH_URL` con quello URL
 
 ### 3.4 Deploy
@@ -157,13 +157,13 @@ Dopo aver eseguito le migration, crea l'utente admin:
 **Opzione A: Usando lo script dedicato Neon (Consigliato)**
 
 ```bash
-DATABASE_URL="postgresql://user:pass@host/dbname?sslmode=require" ADMIN_EMAIL="admin@hugemass.com" ADMIN_PASSWORD="tua-password-sicura" npm run setup:neon
+DATABASE_URL="postgresql://user:pass@host/dbname?sslmode=require" ADMIN_EMAIL="admin@appointly.com" ADMIN_PASSWORD="tua-password-sicura" npm run setup:neon
 ```
 
 **Opzione B: Usando lo script standard**
 
 ```bash
-DATABASE_URL="postgresql://user:pass@host/dbname?sslmode=require" ADMIN_EMAIL="admin@hugemass.com" ADMIN_PASSWORD="..." npm run seed:admin
+DATABASE_URL="postgresql://user:pass@host/dbname?sslmode=require" ADMIN_EMAIL="admin@appointly.com" ADMIN_PASSWORD="..." npm run seed:admin
 ```
 
 **⚠️ IMPORTANTE**: 
@@ -173,7 +173,7 @@ DATABASE_URL="postgresql://user:pass@host/dbname?sslmode=require" ADMIN_EMAIL="a
 
 ## Step 5: Verifica Deploy
 
-1. Vai all'URL del tuo progetto Vercel (es: `https://custom-saas-mkda.vercel.app`)
+1. Vai all'URL del tuo progetto Vercel (es: `https://appointly.vercel.app`)
 2. Prova a fare login con le credenziali admin
 3. Verifica che tutte le funzionalità funzionino:
    - ✅ Login

@@ -32,30 +32,7 @@ export function isTwilioError(error: unknown): error is TwilioError {
     typeof error === 'object' &&
     error !== null &&
     'code' in error &&
-    typeof (error as any).code === 'number'
-  )
-}
-
-// Google Calendar Error
-export interface GoogleCalendarError extends Error {
-  code?: number
-  response?: {
-    data?: {
-      error?: string
-    }
-  }
-}
-
-/**
- * Checks if an error is a Google Calendar API error
- * 
- * @param error - The error to check
- * @returns True if the error is a GoogleCalendarError
- */
-export function isGoogleCalendarError(error: unknown): error is GoogleCalendarError {
-  return (
-    error instanceof Error &&
-    ('code' in error || 'response' in error)
+    typeof (error as Record<string, unknown>).code === 'number'
   )
 }
 
@@ -83,13 +60,15 @@ export interface PrismaError extends Error {
  * ```
  */
 export function isPrismaError(error: unknown): error is PrismaError {
-  return (
+  if (
     typeof error === 'object' &&
     error !== null &&
-    'code' in error &&
-    typeof (error as any).code === 'string' &&
-    (error as any).code.startsWith('P')
-  )
+    'code' in error
+  ) {
+    const code = (error as Record<string, unknown>).code
+    return typeof code === 'string' && code.startsWith('P')
+  }
+  return false
 }
 
 /**

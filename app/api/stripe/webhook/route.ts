@@ -1,0 +1,130 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { stripe } from '@/lib/stripe'
+import { env } from '@/lib/env'
+import { prisma } from '@/lib/prisma'
+
+// Commenti in italiano: webhook Stripe per aggiornare stato piano Tenant
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+export async function POST(req: NextRequest) {
+  const sig = req.headers.get('stripe-signature')
+
+  if (!sig) {
+    return NextResponse.json(
+      { success: false, error: 'Firma mancante' },
+      { status: 400 },
+    )
+  }
+
+  const rawBody = await req.text()
+
+  try {
+    const event = stripe.webhooks.constructEvent(
+      rawBody,
+      sig,
+      env.STRIPE_WEBHOOK_SECRET,
+    )
+
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as {
+          metadata?: { tenantId?: string }
+          subscription?: string | null
+          customer?: string | null
+        }
+        const tenantId = session.metadata?.tenantId
+        const subscriptionId = session.subscription ?? undefined
+
+        if (tenantId && subscriptionId && session.customer) {
+          await prisma.tenant.update({
+            where: { id: tenantId },
+            data: {
+              stripeCustomerId: session.customer,
+              stripeSubId: subscriptionId,
+              status: 'ACTIVE',
+            },
+          })
+        }
+        break
+      }
+      case 'customer.subscription.updated':
+      case 'customer.subscription.created': {
+        const subscription = event.data.object as {
+          id: string
+          status: string
+          metadata?: { tenantId?: string }
+        }
+        const tenantId = subscription.metadata?.tenantId
+
+        if (tenantId) {
+          await prisma.tenant.update({
+            where: { id: tenantId },
+            data: {
+              stripeSubId: subscription.id,
+              status: subscription.status === 'active' ? 'ACTIVE' : 'SUSPENDED',
+            },
+          })
+        }
+        break
+      }
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as {
+          metadata?: { tenantId?: string }
+        }
+        const tenantId = subscription.metadata?.tenantId
+        if (tenantId) {
+          await prisma.tenant.update({
+            where: { id: tenantId },
+            data: {
+              status: 'CANCELLED',
+            },
+          })
+        }
+        break
+      }
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as {
+          metadata?: { tenantId?: string }
+        }
+        const tenantId = invoice.metadata?.tenantId
+        if (tenantId) {
+          await prisma.tenant.update({
+            where: { id: tenantId },
+            data: {
+              status: 'ACTIVE',
+            },
+          })
+        }
+        break
+      }
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as {
+          metadata?: { tenantId?: string }
+        }
+        const tenantId = invoice.metadata?.tenantId
+        if (tenantId) {
+          await prisma.tenant.update({
+            where: { id: tenantId },
+            data: {
+              status: 'SUSPENDED',
+            },
+          })
+        }
+        break
+      }
+      default:
+        break
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Stripe webhook error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Errore webhook' },
+      { status: 400 },
+    )
+  }
+}
+

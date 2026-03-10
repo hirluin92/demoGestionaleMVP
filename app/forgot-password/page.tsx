@@ -1,15 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Mail, ArrowLeft, Sparkles } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
-import HugemassLogo from '@/components/HugemassLogo'
+import AppointlyLogo from '@/components/AppointlyLogo'
 import Link from 'next/link'
 
 export default function ForgotPasswordPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -34,7 +32,7 @@ export default function ForgotPasswordPage() {
       } else {
         setSuccess(true)
       }
-    } catch (error) {
+    } catch {
       setError('Errore durante l\'invio della richiesta')
     } finally {
       setLoading(false)
@@ -43,12 +41,12 @@ export default function ForgotPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-dark-950 relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/sfondo3.png')" }}>
+      <div className="min-h-screen flex items-center justify-center bg-dark-950 relative overflow-hidden">
         <div className="relative z-10 w-full max-w-md px-4">
           <div className="bg-dark-50/80 backdrop-blur-xl border border-gold-400/20 rounded-2xl shadow-dark-lg p-8 md:p-10">
             <div className="text-center mb-8">
               <div className="flex justify-center mb-4">
-                <HugemassLogo variant="full" size="md" className="animate-fade-in" />
+                <AppointlyLogo variant="full" size="md" className="animate-fade-in" />
               </div>
             </div>
 
@@ -62,7 +60,7 @@ export default function ForgotPasswordPage() {
               <h1 className="text-2xl font-bold text-dark-900">Email inviata!</h1>
               
               <p className="text-dark-700">
-                Se l'email esiste nel nostro sistema, riceverai un link per reimpostare la password.
+                Se l&apos;email esiste nel nostro sistema, riceverai un link per reimpostare la password.
               </p>
               
               <p className="text-sm text-dark-600">
@@ -85,12 +83,12 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-dark-950 relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/sfondo3.png')" }}>
+    <div className="min-h-screen flex items-center justify-center bg-dark-950 relative overflow-hidden">
       <div className="relative z-10 w-full max-w-md px-4">
         <div className="bg-dark-50/80 backdrop-blur-xl border border-gold-400/20 rounded-2xl shadow-dark-lg p-8 md:p-10">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <HugemassLogo variant="full" size="md" className="animate-fade-in" />
+              <AppointlyLogo variant="full" size="md" className="animate-fade-in" />
             </div>
           </div>
 

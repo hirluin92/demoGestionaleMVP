@@ -34,7 +34,7 @@ async function main() {
   // Aggiorna la password
   await prisma.user.update({
     where: { email },
-    data: { password: hashedPassword },
+    data: { passwordHash: hashedPassword },
   })
 
   console.log(`✅ Password aggiornata per ${email}`)

@@ -28,7 +28,7 @@ async function main() {
   }
 
   // Crea utente admin se non esiste
-  const adminEmail = env.ADMIN_EMAIL || 'admin@hugemass.com'
+  const adminEmail = env.ADMIN_EMAIL || 'admin@appointly.com'
   const adminPassword = env.ADMIN_PASSWORD || 'admin123'
 
   const existingAdmin = await prisma.user.findUnique({
@@ -43,19 +43,31 @@ async function main() {
     await prisma.user.update({
       where: { email: adminEmail },
       data: {
-        password: hashedPassword,
-        role: 'ADMIN',
+        passwordHash: hashedPassword,
+        role: 'SUPER_ADMIN',
       },
     })
     console.log(`✅ Password e ruolo admin aggiornati per ${adminEmail}`)
   } else {
+    // Crea nuovo admin - prima crea un tenant
+    const tenant = await prisma.tenant.create({
+      data: {
+        name: 'Admin Business',
+        slug: adminEmail.split('@')[0]?.toLowerCase() || 'admin',
+        email: adminEmail,
+        category: 'OTHER',
+        city: 'Unknown',
+      },
+    })
+
     const hashedPassword = await bcrypt.hash(adminPassword, 10)
     await prisma.user.create({
       data: {
         email: adminEmail,
         name: 'Admin',
-        password: hashedPassword,
-        role: 'ADMIN',
+        passwordHash: hashedPassword,
+        role: 'SUPER_ADMIN',
+        tenantId: tenant.id,
       },
     })
     console.log(`✅ Utente admin creato: ${adminEmail}`)

@@ -9,7 +9,7 @@ import { env } from './env'
 type LogLevel = 'info' | 'warn' | 'error' | 'debug'
 
 interface LogMeta {
-  [key: string]: any
+  [key: string]: unknown
 }
 
 interface LogEntry {
@@ -82,7 +82,7 @@ export function sanitizeError(error: unknown): {
   name?: string
   stack?: string
   code?: string | number
-  [key: string]: any
+  [key: string]: unknown
 } {
   // Lista di campi sensibili da rimuovere
   const sensitiveFields = [
@@ -101,7 +101,13 @@ export function sanitizeError(error: unknown): {
 
   // Se è un Error standard
   if (error instanceof Error) {
-    const sanitized: any = {
+    const sanitized: {
+      message: string
+      name?: string
+      stack?: string
+      code?: string | number
+      [key: string]: unknown
+    } = {
       message: error.message,
       name: error.name,
     }
@@ -113,13 +119,16 @@ export function sanitizeError(error: unknown): {
 
     // Aggiungi code se presente
     if ('code' in error) {
-      sanitized.code = error.code
+      const code = (error as { code?: string | number }).code
+      if (code !== undefined && (typeof code === 'string' || typeof code === 'number')) {
+        sanitized.code = code
+      }
     }
 
     // Rimuovi campi sensibili da eventuali proprietà aggiuntive
     Object.keys(error).forEach(key => {
       if (!sensitiveFields.some(field => key.toLowerCase().includes(field.toLowerCase()))) {
-        const value = (error as any)[key]
+        const value = (error as unknown as Record<string, unknown>)[key]
         // Non loggare oggetti complessi o funzioni
         if (typeof value !== 'function' && typeof value !== 'object') {
           sanitized[key] = value
@@ -132,13 +141,22 @@ export function sanitizeError(error: unknown): {
 
   // Se è un oggetto
   if (typeof error === 'object' && error !== null) {
-    const sanitized: any = {}
+    const sanitized: {
+      message: string
+      [key: string]: unknown
+    } = {
+      message: 'Unknown error',
+    }
     Object.keys(error).forEach(key => {
       if (!sensitiveFields.some(field => key.toLowerCase().includes(field.toLowerCase()))) {
-        const value = (error as any)[key]
+        const value = (error as Record<string, unknown>)[key]
         // Non loggare oggetti complessi, funzioni o valori troppo lunghi
         if (typeof value !== 'function' && typeof value !== 'object' && String(value).length < 500) {
           sanitized[key] = value
+          // Se c'è una proprietà 'message', usala
+          if (key === 'message' && typeof value === 'string') {
+            sanitized.message = value
+          }
         }
       }
     })

@@ -4,8 +4,6 @@
  * @module lib/config
  */
 
-import { env } from './env'
-
 /**
  * Application configuration
  * 

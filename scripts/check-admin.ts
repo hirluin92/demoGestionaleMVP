@@ -5,10 +5,12 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🔍 Verifica utenti admin nel database...\n')
 
-  // Trova tutti gli utenti admin
+  // Trova tutti gli utenti admin (SUPER_ADMIN e TENANT_OWNER)
   const adminUsers = await prisma.user.findMany({
     where: {
-      role: 'ADMIN',
+      role: {
+        in: ['SUPER_ADMIN', 'TENANT_OWNER'],
+      },
     },
     select: {
       id: true,

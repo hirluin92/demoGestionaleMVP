@@ -1,0 +1,8 @@
+Segui SEMPRE le regole in CURSOR_GUIDE.md.
+Ogni query al database DEVE filtrare per tenantId.
+TypeScript strict, MAI any, MAI ts-ignore.
+Validazione Zod su ogni input API.
+Formato risposta API: { success: boolean, data?: T, error?: string }
+Commenti in italiano.
+Prezzi in centesimi.
+
