@@ -1068,86 +1068,6 @@ button.tab-button.active,
   }
 }
 
-/* Body Measurement Styles - Canva Design */
-.body-silhouette {
-  position: relative;
-  max-width: 300px;
-  margin: 0 auto;
-}
-
-.muscle-group {
-  transition: all 0.4s ease;
-  cursor: pointer;
-}
-
-.muscle-group.highlighted {
-  filter: url(#glow);
-}
-
-.muscle-group.highlighted ellipse,
-.muscle-group.highlighted path,
-.muscle-group.highlighted rect {
-  fill: #D3AF37 !important;
-  stroke: #E5C55A !important;
-  stroke-width: 2 !important;
-}
-
-.measurement-point {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  background: linear-gradient(135deg, #D3AF37 0%, #E5C55A 100%);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 0 15px rgba(211, 175, 55, 0.5);
-  z-index: 10;
-}
-
-.measurement-point:hover {
-  transform: scale(1.5);
-  box-shadow: 0 0 25px rgba(211, 175, 55, 0.8);
-}
-
-.measurement-point::after {
-  content: attr(data-label);
-  position: absolute;
-  left: 120%;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(0, 0, 0, 0.9);
-  color: #D3AF37;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-
-.measurement-point:hover::after {
-  opacity: 1;
-}
-
-.measurement-input-group {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.measurement-history-chart {
-  height: 200px;
-  position: relative;
-}
-
-.history-line {
-  stroke: #D3AF37;
-  stroke-width: 2;
-  fill: none;
-  filter: drop-shadow(0 0 4px rgba(211, 175, 55, 0.5));
-}
 
 /* Scroll Animations - IntersectionObserver support */
 /* Versione migliorata: non nasconde il contenuto, solo anima quando entra nel viewport */
@@ -1355,48 +1275,6 @@ button.tab-button.active,
   margin-bottom: 1.5rem;
 }
 
-/* ============================================
-   BADGE VARIETÀ VISIVA MIGLIORATA
-   ============================================ */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.375rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: var(--font-primary);
-}
-
-.status-confirmed {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: #fff;
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
-}
-
-.status-pending {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: #fff;
-  box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
-}
-
-.status-cancelled {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: #fff;
-  box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
-}
-
-.status-completed {
-  background: linear-gradient(135deg, rgba(var(--color-gold-main-rgb), 0.9), rgba(var(--color-gold-dark-rgb), 0.9));
-  color: #000;
-  box-shadow: 0 0 20px rgba(var(--color-gold-main-rgb), 0.4);
-}
-
-.status-badge:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 25px currentColor;
-}
 
 /* ============================================
    TABELLE/LISTE MIGLIORATE

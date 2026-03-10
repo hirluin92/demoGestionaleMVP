@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { PLANS } from '@/lib/stripe'
-import Button from '@/components/ui/Button'
+import { BillingButton } from '@/components/billing/billing-button'
 
 // Commenti in italiano: pagina billing con stato piano corrente e pulsante per checkout Stripe
 
@@ -64,16 +64,7 @@ export default async function TenantBillingPage({
             )}
           </div>
         </div>
-        <form action="/api/stripe/checkout" method="POST" className="mt-2">
-          <input type="hidden" name="plan" value={currentPlan} />
-          <Button
-            type="submit"
-            variant="gold"
-            size="sm"
-          >
-            Gestisci abbonamento
-          </Button>
-        </form>
+        <BillingButton currentPlan={currentPlan} />
       </div>
     </section>
   )

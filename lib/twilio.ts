@@ -2,7 +2,13 @@ import twilio from 'twilio'
 import { env } from './env'
 import { prisma } from './prisma'
 
-const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
+if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {
+  console.warn('⚠️ Twilio non configurato — WhatsApp disabilitato')
+}
+
+const client = env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN
+  ? twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN)
+  : null
 
 /**
  * Normalizza numero italiano
@@ -32,6 +38,10 @@ export async function sendWhatsApp(
   appointmentId?: string,
   type: 'REMINDER' | 'CONFIRMATION' | 'CANCELLATION' = 'REMINDER'
 ) {
+  if (!client || !env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {
+    return { success: false, error: 'Twilio non configurato' }
+  }
+
   const phone = normalizePhone(to)
 
   try {

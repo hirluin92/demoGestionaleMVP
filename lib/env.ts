@@ -26,30 +26,30 @@ const envSchema = z.object({
   NEXTAUTH_URL: z.string().url('NEXTAUTH_URL deve essere un URL valido'),
   NEXTAUTH_SECRET: z.string().min(16, 'NEXTAUTH_SECRET deve essere almeno 16 caratteri'),
   
-  // Twilio (richiesto per WhatsApp)
-  TWILIO_ACCOUNT_SID: z.string().startsWith('AC', 'TWILIO_ACCOUNT_SID deve iniziare con AC'),
-  TWILIO_AUTH_TOKEN: z.string().min(1, 'TWILIO_AUTH_TOKEN è richiesto'),
-  TWILIO_WHATSAPP_FROM: z.string().startsWith('whatsapp:', 'TWILIO_WHATSAPP_FROM deve iniziare con whatsapp:'),
+  // App (sempre richiesto)
+  NEXT_PUBLIC_APP_URL: z.string().url('NEXT_PUBLIC_APP_URL deve essere un URL valido'),
+  
+  // Twilio (opzionale - necessario solo per WhatsApp)
+  TWILIO_ACCOUNT_SID: z.string().startsWith('AC', 'TWILIO_ACCOUNT_SID deve iniziare con AC').optional(),
+  TWILIO_AUTH_TOKEN: z.string().min(1, 'TWILIO_AUTH_TOKEN è richiesto').optional(),
+  TWILIO_WHATSAPP_FROM: z.string().startsWith('whatsapp:', 'TWILIO_WHATSAPP_FROM deve iniziare con whatsapp:').optional(),
   TWILIO_SMS_FROM: z.string().optional(),
   
-  // Stripe (richiesto per pagamenti)
-  STRIPE_SECRET_KEY: z.string().startsWith('sk_', 'STRIPE_SECRET_KEY deve iniziare con sk_'),
-  STRIPE_PUBLISHABLE_KEY: z.string().startsWith('pk_', 'STRIPE_PUBLISHABLE_KEY deve iniziare con pk_'),
-  STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_', 'STRIPE_WEBHOOK_SECRET deve iniziare con whsec_'),
+  // Stripe (opzionale - necessario solo per pagamenti)
+  STRIPE_SECRET_KEY: z.string().startsWith('sk_', 'STRIPE_SECRET_KEY deve iniziare con sk_').optional(),
+  STRIPE_PUBLISHABLE_KEY: z.string().startsWith('pk_', 'STRIPE_PUBLISHABLE_KEY deve iniziare con pk_').optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_', 'STRIPE_WEBHOOK_SECRET deve iniziare con whsec_').optional(),
   STRIPE_PRICE_SOLO: z.string().optional(),
   STRIPE_PRICE_PRO: z.string().optional(),
   STRIPE_PRICE_STUDIO: z.string().optional(),
   
-  // Claude API (richiesto per note vocali)
-  ANTHROPIC_API_KEY: z.string().startsWith('sk-ant-', 'ANTHROPIC_API_KEY deve iniziare con sk-ant-'),
+  // Claude API (opzionale - necessario solo per note vocali)
+  ANTHROPIC_API_KEY: z.string().startsWith('sk-ant-', 'ANTHROPIC_API_KEY deve iniziare con sk-ant-').optional(),
   
-  // Cron (richiesto per reminder job)
-  CRON_SECRET: z.string().min(16, 'CRON_SECRET deve essere almeno 16 caratteri'),
+  // Cron (opzionale)
+  CRON_SECRET: z.string().min(16, 'CRON_SECRET deve essere almeno 16 caratteri').optional(),
   
-  // App
-  NEXT_PUBLIC_APP_URL: z.string().url('NEXT_PUBLIC_APP_URL deve essere un URL valido'),
-  
-  // Google Calendar (opzionale - per compatibilità con codice esistente)
+  // Google Calendar (opzionale - legacy, non usato in Appointly MVP)
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_CALENDAR_ID: z.string().default('primary'),
@@ -81,6 +81,12 @@ try {
   // Log warning per variabili opzionali mancanti
   if (!env.TWILIO_ACCOUNT_SID) {
     console.warn('⚠️  TWILIO_ACCOUNT_SID non configurato - le notifiche WhatsApp saranno disabilitate')
+  }
+  if (!env.STRIPE_SECRET_KEY) {
+    console.warn('⚠️  STRIPE_SECRET_KEY non configurato - i pagamenti saranno disabilitati')
+  }
+  if (!env.ANTHROPIC_API_KEY) {
+    console.warn('⚠️  ANTHROPIC_API_KEY non configurato - le note vocali saranno disabilitate')
   }
   if (!env.GOOGLE_CLIENT_ID && process.env.NODE_ENV === 'development') {
     console.warn('⚠️  GOOGLE_CLIENT_ID non configurato - Google Calendar disabilitato in dev')

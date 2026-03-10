@@ -13,16 +13,40 @@ export async function GET(
   { params }: { params: { tenant: string } }
 ) {
   try {
-    const auth = await requireTenantAccess(params.tenant)
-    if (auth.error) return auth.error
-
     const { searchParams } = new URL(req.url)
     const activeOnly = searchParams.get('activeOnly') === 'true'
+
+    if (activeOnly) {
+      // Accesso pubblico — solo servizi attivi, verifica solo che il tenant esista
+      const tenant = await prisma.tenant.findUnique({ 
+        where: { slug: params.tenant } 
+      })
+      if (!tenant) {
+        return NextResponse.json(
+          { success: false, error: 'Tenant non trovato' },
+          { status: 404 }
+        )
+      }
+      const services = await prisma.service.findMany({
+        where: {
+          tenantId: tenant.id,
+          isActive: true,
+        },
+        orderBy: [
+          { sortOrder: 'asc' },
+          { name: 'asc' },
+        ],
+      })
+      return NextResponse.json({ success: true, data: services })
+    }
+
+    // Accesso autenticato — tutti i servizi
+    const auth = await requireTenantAccess(params.tenant)
+    if (auth.error) return auth.error
 
     const services = await prisma.service.findMany({
       where: {
         tenantId: auth.tenantId!,
-        ...(activeOnly && { isActive: true }),
       },
       orderBy: [
         { sortOrder: 'asc' },

@@ -5,18 +5,18 @@ import { requireTenantAccess } from '@/lib/api-auth'
 
 // Commenti in italiano: API per leggere/aggiornare le impostazioni del tenant (businessHours, ecc.)
 
-const businessHoursSchema = z.record(
-  z.object({
-    start: z.string().regex(/^\d{2}:\d{2}$/),
-    end: z.string().regex(/^\d{2}:\d{2}$/),
-    break: z
-      .object({
-        start: z.string().regex(/^\d{2}:\d{2}$/),
-        end: z.string().regex(/^\d{2}:\d{2}$/),
-      })
-      .optional(),
-  }),
-)
+const dayHoursSchema = z.object({
+  start: z.string().regex(/^\d{2}:\d{2}$/),
+  end: z.string().regex(/^\d{2}:\d{2}$/),
+  break: z
+    .object({
+      start: z.string().regex(/^\d{2}:\d{2}$/),
+      end: z.string().regex(/^\d{2}:\d{2}$/),
+    })
+    .optional(),
+}).nullable()
+
+const businessHoursSchema = z.record(dayHoursSchema)
 
 const updateSettingsSchema = z.object({
   businessHours: businessHoursSchema.optional(),

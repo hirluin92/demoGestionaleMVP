@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireTenantAccess } from '@/lib/api-auth'
 import { createClientSchema } from '@/lib/validators'
@@ -20,12 +21,7 @@ export async function GET(
     const q = searchParams.get('q') || ''
     const filter = searchParams.get('filter') || 'all'
 
-    const where: {
-      tenantId: string
-      OR?: Array<{ name?: { contains: string; mode: 'insensitive' }; phone?: { contains: string } } | { lastVisitAt?: { lt: Date } | { gte: Date } | null }>
-      lastVisitAt?: { gte: Date }
-      totalVisits?: number
-    } = {
+    const where: Prisma.ClientWhereInput = {
       tenantId: auth.tenantId!,
     }
 
@@ -47,9 +43,14 @@ export async function GET(
       // Nessuna visita da 60+ giorni
       const sixtyDaysAgo = new Date()
       sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
-      where.OR = [
-        { lastVisitAt: { lt: sixtyDaysAgo } },
-        { lastVisitAt: null },
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : []),
+        {
+          OR: [
+            { lastVisitAt: { lt: sixtyDaysAgo } },
+            { lastVisitAt: null },
+          ],
+        },
       ]
     } else if (filter === 'new') {
       // Solo 1 visita

@@ -47,20 +47,32 @@ export function NewAppointmentDialog({
     if (!serviceId || !clientName || !clientPhone) return
     setLoading(true)
     try {
-      // 1. Crea o recupera client minimale
-      const clientRes = await fetch(`/api/${tenantSlug}/clients`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: clientName,
-          phone: clientPhone,
-        }),
-      })
-      const clientJson = (await clientRes.json().catch(() => null)) as
-        | { success?: boolean; data?: { id: string }; error?: string }
-        | null
-      if (!clientRes.ok || !clientJson?.success || !clientJson.data) {
-        throw new Error(clientJson?.error ?? 'Errore creazione cliente')
+      // 1. Cerca cliente esistente o creane uno nuovo
+      let clientId: string
+      const searchRes = await fetch(`/api/${tenantSlug}/clients?q=${encodeURIComponent(clientPhone)}`)
+      const searchJson = await searchRes.json()
+      const existingClient = searchJson.data?.find((c: { phone: string }) =>
+        c.phone.includes(clientPhone.replace(/\s/g, ''))
+      )
+
+      if (existingClient) {
+        clientId = existingClient.id
+      } else {
+        const clientRes = await fetch(`/api/${tenantSlug}/clients`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: clientName,
+            phone: clientPhone,
+          }),
+        })
+        const clientJson = (await clientRes.json().catch(() => null)) as
+          | { success?: boolean; data?: { id: string }; error?: string }
+          | null
+        if (!clientRes.ok || !clientJson?.success || !clientJson.data) {
+          throw new Error(clientJson?.error ?? 'Errore creazione cliente')
+        }
+        clientId = clientJson.data.id
       }
 
       // 2. Crea appuntamento
@@ -68,7 +80,7 @@ export function NewAppointmentDialog({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clientId: clientJson.data.id,
+          clientId,
           staffId,
           serviceId,
           startTime: startTime.toISOString(),

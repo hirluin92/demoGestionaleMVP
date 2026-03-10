@@ -33,14 +33,26 @@ export default async function TenantCalendarPage({
   const weekStart = startOfWeek(baseDate, { weekStartsOn: 1 })
   const weekEnd = endOfWeek(baseDate, { weekStartsOn: 1 })
 
-  // Commento in italiano: fetch staff e appuntamenti per la settimana corrente filtrando per tenantId
-  const [staff, appointments] = await Promise.all([
+  // Commento in italiano: fetch staff, servizi e appuntamenti per la settimana corrente filtrando per tenantId
+  const [staff, services, appointments] = await Promise.all([
     prisma.staff.findMany({
       where: {
         tenantId: session.user.tenantId,
         isActive: true,
       },
       orderBy: { name: 'asc' },
+    }),
+    prisma.service.findMany({
+      where: {
+        tenantId: session.user.tenantId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        duration: true,
+      },
+      orderBy: { sortOrder: 'asc' },
     }),
     prisma.appointment.findMany({
       where: {
@@ -98,6 +110,8 @@ export default async function TenantCalendarPage({
         tenantSlug={params.tenant}
         staff={staffForCalendar}
         appointments={appointmentsForCalendar}
+        servicesForCreation={services}
+        onRefresh={() => window.location.reload()}
       />
     </section>
   )

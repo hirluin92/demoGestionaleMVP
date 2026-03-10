@@ -1,9 +1,15 @@
 import Stripe from 'stripe'
 import { env } from './env'
 
-export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2026-02-25.clover',
-})
+if (!env.STRIPE_SECRET_KEY) {
+  console.warn('⚠️ Stripe non configurato')
+}
+
+export const stripe = env.STRIPE_SECRET_KEY
+  ? new Stripe(env.STRIPE_SECRET_KEY, {
+      apiVersion: '2024-12-18.acacia',
+    })
+  : null
 
 export const PLANS = {
   SOLO: { 
@@ -22,3 +28,8 @@ export const PLANS = {
     price: 12900 
   },
 } as const
+
+// Helper per verificare se Stripe è configurato
+export function isStripeConfigured(): boolean {
+  return stripe !== null && env.STRIPE_SECRET_KEY !== undefined
+}

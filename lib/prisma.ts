@@ -22,11 +22,6 @@ if (env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma
 }
 
-// Gestione riconnessione automatica
-prisma.$connect().catch(() => {
-  // Ignora errori di connessione iniziale, verranno gestiti al primo uso
-})
-
 // Helper per eseguire query con retry
 export async function withRetry<T>(
   operation: () => Promise<T>,

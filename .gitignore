@@ -27,9 +27,14 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.production
 
 # vercel
 .vercel
+
+# Cursor/agents
+.agents/
+skills-lock.json
 
 # typescript
 *.tsbuildinfo

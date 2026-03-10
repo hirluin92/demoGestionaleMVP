@@ -1,15 +1,19 @@
- 'use client'
+'use client'
 
 import { ReactNode, useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { PhoneMode } from '@/components/phone-mode/phone-mode'
+import { TenantSidebar } from '@/components/layout/tenant-sidebar'
 
-// Commenti in italiano: layout base per tutte le pagine tenant, include pulsante modalità telefono
+// Commenti in italiano: layout base per tutte le pagine tenant, include sidebar navigazione e pulsante modalità telefono
 
 export default function TenantLayout({
   children,
 }: {
   children: ReactNode
 }) {
+  const params = useParams()
+  const tenantSlug = params.tenant as string
   const [phoneModeActive, setPhoneModeActive] = useState(false)
 
   useEffect(() => {
@@ -24,10 +28,13 @@ export default function TenantLayout({
   }, [])
 
   return (
-    <div className="min-h-screen bg-dark-900 text-white relative">
-      <div className="mx-auto max-w-7xl px-4 py-4">
-        {children}
-      </div>
+    <div className="min-h-screen bg-dark-900 text-white relative flex">
+      <TenantSidebar tenantSlug={tenantSlug} />
+      <main className="flex-1 overflow-auto">
+        <div className="mx-auto max-w-7xl px-4 py-4">
+          {children}
+        </div>
+      </main>
       <button
         type="button"
         onClick={() => setPhoneModeActive(true)}
