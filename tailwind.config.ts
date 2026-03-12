@@ -37,7 +37,7 @@ const config: Config = {
         // Accent colors - WCAG compliant
         accent: {
           success: '#10b981', // ✅ 4.8:1 on dark-950
-          warning: '#ffd700',  // ✅ 8.5:1 on dark-950 - Oro brillante
+          warning: '#facc15',  // giallo meno "oro", usato poco dopo allineamento landing
           danger: '#f87171',   // ✅ 5.2:1 on dark-950
           info: '#60a5fa',     // ✅ 5.8:1 on dark-950
         },
@@ -61,18 +61,18 @@ const config: Config = {
         '5xl': ['3rem', { lineHeight: '1' }],
       },
       boxShadow: {
-        'gold': '0 0 20px rgba(var(--color-gold-main-rgb), 0.3)',
-        'gold-lg': '0 0 40px rgba(var(--color-gold-main-rgb), 0.4)',
+        'gold': '0 0 20px rgba(var(--color-accent-main-rgb), 0.3)',
+        'gold-lg': '0 0 40px rgba(var(--color-accent-main-rgb), 0.4)',
         'dark': '0 4px 6px -1px rgba(0, 0, 0, 0.5)',
         'dark-lg': '0 20px 25px -5px rgba(0, 0, 0, 0.6)',
-        'inner-gold': 'inset 0 2px 4px 0 rgba(var(--color-gold-main-rgb), 0.15)',
-        'glow': '0 0 15px rgba(var(--color-gold-main-rgb), 0.5)',
+        'inner-gold': 'inset 0 2px 4px 0 rgba(var(--color-accent-main-rgb), 0.15)',
+        'glow': '0 0 15px rgba(var(--color-accent-main-rgb), 0.5)',
       },
       backgroundImage: {
-        'gradient-gold': 'linear-gradient(135deg, var(--color-gold-main) 0%, var(--color-gold-dark) 100%)',
+        'gradient-gold': 'linear-gradient(135deg, var(--color-accent-main) 0%, var(--color-accent-dark) 100%)',
         'gradient-dark': 'linear-gradient(135deg, #000000 0%, #0a0a0a 100%)',
-        'gradient-radial': 'radial-gradient(circle at center, var(--color-gold-main), transparent 70%)',
-        'shimmer': 'linear-gradient(90deg, transparent, rgba(var(--color-gold-main-rgb), 0.2), transparent)',
+        'gradient-radial': 'radial-gradient(circle at center, var(--color-accent-main), transparent 70%)',
+        'shimmer': 'linear-gradient(90deg, transparent, rgba(var(--color-accent-main-rgb), 0.2), transparent)',
       },
       animation: {
         'fade-in': 'fadeIn 0.6s ease-out',
@@ -109,8 +109,8 @@ const config: Config = {
           '50%': { opacity: '0.7' },
         },
         glow: {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(var(--color-gold-main-rgb), 0.3)' },
-          '50%': { boxShadow: '0 0 30px rgba(var(--color-gold-main-rgb), 0.5)' },
+          '0%, 100%': { boxShadow: '0 0 20px rgba(var(--color-accent-main-rgb), 0.3)' },
+          '50%': { boxShadow: '0 0 30px rgba(var(--color-accent-main-rgb), 0.5)' },
         },
       },
     },

@@ -177,8 +177,8 @@ export default function TenantClientsPage() {
             onClick={() => setFilter(value)}
             className={`px-3 py-1.5 rounded-full border text-xs transition-smooth ${
               filter === value
-                ? 'border-gold-400 bg-gold-400/10 text-white'
-                : 'border-dark-300 bg-dark-100/20 text-dark-400 hover:border-gold-400/60'
+                ? 'border-accent-main bg-accent-main/10 text-white'
+                : 'border-dark-300 bg-dark-100/20 text-dark-400 hover:border-accent-main/60'
             }`}
           >
             {label}
@@ -210,7 +210,7 @@ export default function TenantClientsPage() {
           <Link
             key={client.id}
             href={`/${tenantSlug}/clients/${client.id}`}
-            className="border border-dark-700 rounded-lg px-3 py-2.5 hover:border-gold-400/60 hover:bg-dark-800/60 transition-smooth"
+            className="border border-dark-700 rounded-lg px-3 py-2.5 hover:border-accent-main/60 hover:bg-dark-800/60 transition-smooth"
           >
             <div className="flex justify-between items-start gap-2 mb-1">
               <div>

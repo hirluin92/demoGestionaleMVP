@@ -69,7 +69,7 @@ export default function ResetPasswordPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-950 relative overflow-hidden">
         <div className="relative z-10 w-full max-w-md px-4">
-          <div className="bg-dark-50/80 backdrop-blur-xl border border-gold-400/20 rounded-2xl shadow-dark-lg p-8 md:p-10">
+          <div className="bg-dark-50/80 backdrop-blur-xl border border-accent-main/20 rounded-2xl shadow-dark-lg p-8 md:p-10">
             <div className="text-center mb-8">
               <div className="flex justify-center mb-4">
                 <AppointlyLogo variant="full" size="md" className="animate-fade-in" />
@@ -111,7 +111,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-dark-950 relative overflow-hidden">
       <div className="relative z-10 w-full max-w-md px-4">
-        <div className="bg-dark-50/80 backdrop-blur-xl border border-gold-400/20 rounded-2xl shadow-dark-lg p-8 md:p-10">
+        <div className="bg-dark-50/80 backdrop-blur-xl border border-accent-main/20 rounded-2xl shadow-dark-lg p-8 md:p-10">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <AppointlyLogo variant="full" size="md" className="animate-fade-in" />
@@ -176,7 +176,7 @@ export default function ResetPasswordPage() {
             </Button>
 
             <div className="text-center">
-              <Link href="/login" className="text-gold-400 hover:text-gold-300 text-sm font-medium">
+              <Link href="/login" className="text-accent-main hover:text-accent-light text-sm font-medium">
                 <ArrowLeft className="w-4 h-4 inline mr-1" />
                 Torna al login
               </Link>

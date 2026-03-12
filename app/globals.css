@@ -12,14 +12,14 @@
   /* Font principale — DM Sans per tutto il gestionale (rimane, ma la landing usa font propri) */
   --font-primary: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  /* Palette ispirata alla landing (teal + blue glow al posto dell'oro) */
-  --color-gold-main: #57E6D6;  /* glow principale */
-  --color-gold-light: #7AA8FF; /* accent secondario */
-  --color-gold-dark: #8EA2FF;
+  /* Palette ispirata alla landing (teal + blue glow) */
+  --color-accent-main: #57E6D6;  /* glow principale */
+  --color-accent-light: #7AA8FF; /* accent secondario */
+  --color-accent-dark: #8EA2FF;
 
-  --color-gold-main-rgb: 87, 230, 214;
-  --color-gold-light-rgb: 122, 168, 255;
-  --color-gold-dark-rgb: 142, 162, 255;
+  --color-accent-main-rgb: 87, 230, 214;
+  --color-accent-light-rgb: 122, 168, 255;
+  --color-accent-dark-rgb: 142, 162, 255;
 
   /* Surface colors */
   --bg-primary: #0F1117;
@@ -70,13 +70,13 @@
   
   *:focus-visible {
     @apply outline-none ring-2 ring-gold-500 ring-offset-2 ring-offset-dark-950;
-  }
+  } /* NOTE: la utility Tailwind usa ancora il nome gold, ma colore teal */
 }
 
 /* Selection color - Usa variabile CSS */
 ::selection {
-  background-color: rgba(var(--color-gold-main-rgb), 0.3);
-  color: var(--color-gold-main);
+  background-color: rgba(var(--color-accent-main-rgb), 0.3);
+  color: var(--color-accent-main);
 }
 
 /* ============================================
@@ -353,8 +353,10 @@
 .side-nav-item {
   height: 42px;
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(4, 10, 22, 0.82));
-  border: 1px solid rgba(122, 168, 255, 0.14);
+  background: radial-gradient(circle at 0% 0%, rgba(87, 230, 214, 0.08), transparent 55%),
+    radial-gradient(circle at 100% 0%, rgba(122, 168, 255, 0.08), transparent 55%),
+    linear-gradient(180deg, rgba(3, 7, 18, 0.9), rgba(3, 7, 18, 0.98));
+  border: 1px solid rgba(15, 23, 42, 0.9);
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -370,34 +372,43 @@
 }
 .side-nav-item.active {
   background: linear-gradient(135deg, rgba(87, 230, 214, 0.95), rgba(122, 168, 255, 0.96));
-  border-color: rgba(255, 255, 255, 0.45);
+  border-color: rgba(248, 250, 252, 0.9);
   color: #041018;
   box-shadow: 0 0 24px rgba(87, 230, 214, 0.18);
 }
 .side-nav-item:hover {
-  border-color: rgba(122, 168, 255, 0.24);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(6, 12, 24, 0.9));
+  border-color: rgba(148, 163, 184, 0.7);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.98));
 }
 .side-nav-icon {
   width: 18px;
   height: 18px;
-  border-radius: 6px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 18px;
 }
 .side-nav-item.active .side-nav-icon {
-  background: rgba(4, 16, 24, 0.16);
-  border-color: rgba(4, 16, 24, 0.1);
+  filter: drop-shadow(0 0 8px rgba(15, 23, 42, 0.6));
 }
 .side-nav-label {
   opacity: 0;
   transform: translateX(-6px);
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
-.preview-inner.expanded .side-nav-label {
+.preview-inner.expanded .side-nav-label,
+.tenant-sidebar-inner.expanded .side-nav-label {
   opacity: 1;
   transform: translateX(0);
+}
+
+/* Sidebar tenant: larghezza in stile preview (compatta / espansa) */
+.tenant-sidebar-inner {
+  width: 88px;
+  transition: width 0.28s ease;
+}
+.tenant-sidebar-inner.expanded {
+  width: 208px;
 }
 .preview-main {
   display: grid;
@@ -928,7 +939,7 @@
 }
 
 .parallax-layer-1 {
-  background: radial-gradient(ellipse at 30% 20%, rgba(var(--color-gold-main-rgb), 0.06) 0%, transparent 50%);
+  background: radial-gradient(ellipse at 30% 20%, rgba(var(--color-accent-main-rgb), 0.06) 0%, transparent 50%);
   image-rendering: auto;
   -webkit-image-rendering: auto;
   image-rendering: crisp-edges;
@@ -940,11 +951,11 @@
 }
 
 .parallax-layer-2 {
-  background: radial-gradient(ellipse at 70% 80%, rgba(var(--color-gold-light-rgb), 0.04) 0%, transparent 50%);
+  background: radial-gradient(ellipse at 70% 80%, rgba(var(--color-accent-light-rgb), 0.04) 0%, transparent 50%);
 }
 
 .parallax-layer-3 {
-  background: radial-gradient(circle at 50% 50%, rgba(var(--color-gold-light-rgb), 0.02) 0%, transparent 70%);
+  background: radial-gradient(circle at 50% 50%, rgba(var(--color-accent-light-rgb), 0.02) 0%, transparent 70%);
 }
 
 /* Particles Container */
@@ -969,11 +980,11 @@
   position: absolute;
   width: 4px;
   height: 4px;
-  background: radial-gradient(circle, rgba(var(--color-gold-main-rgb), 0.5) 0%, rgba(var(--color-gold-light-rgb), 0.25) 40%, transparent 70%);
+  background: radial-gradient(circle, rgba(var(--color-accent-main-rgb), 0.5) 0%, rgba(var(--color-accent-light-rgb), 0.25) 40%, transparent 70%);
   border-radius: 50%;
   animation: float-particle linear infinite;
   opacity: 0;
-  box-shadow: 0 0 8px rgba(var(--color-gold-main-rgb), 0.3), 0 0 15px rgba(var(--color-gold-light-rgb), 0.15);
+  box-shadow: 0 0 8px rgba(var(--color-accent-main-rgb), 0.3), 0 0 15px rgba(var(--color-accent-light-rgb), 0.15);
 }
 
 /* Particelle su mobile: dimensioni originali ma con opacità e animazione migliorate */
@@ -981,8 +992,8 @@
   .particle {
     width: 4px !important;
     height: 4px !important;
-    background: radial-gradient(circle, rgba(var(--color-gold-main-rgb), 0.8) 0%, rgba(var(--color-gold-light-rgb), 0.5) 40%, transparent 70%) !important;
-    box-shadow: 0 0 12px rgba(var(--color-gold-main-rgb), 0.5), 0 0 20px rgba(var(--color-gold-light-rgb), 0.3) !important;
+    background: radial-gradient(circle, rgba(var(--color-accent-main-rgb), 0.8) 0%, rgba(var(--color-accent-light-rgb), 0.5) 40%, transparent 70%) !important;
+    box-shadow: 0 0 12px rgba(var(--color-accent-main-rgb), 0.5), 0 0 20px rgba(var(--color-accent-light-rgb), 0.3) !important;
     will-change: transform, opacity !important;
     transform: translateZ(0) !important;
     -webkit-transform: translateZ(0) !important;
@@ -1054,7 +1065,8 @@
 
 /* Gold Gradient */
 .gold-gradient {
-  background: linear-gradient(135deg, var(--color-gold-main) 0%, var(--color-gold-light) 25%, var(--color-gold-main) 50%, var(--color-gold-dark) 75%, var(--color-gold-main) 100%);
+  /* Nota: usa ora i colori accent teal/azzurri della landing */
+  background: linear-gradient(135deg, var(--color-accent-main) 0%, var(--color-accent-light) 25%, var(--color-accent-main) 50%, var(--color-accent-dark) 75%, var(--color-accent-main) 100%);
   background-size: 200% 200%;
   animation: shimmer 3s ease-in-out infinite;
 }
@@ -1065,7 +1077,7 @@
 }
 
 .gold-text-gradient {
-  background: linear-gradient(135deg, var(--color-gold-main) 0%, var(--color-gold-light) 25%, var(--color-gold-main) 50%, var(--color-gold-dark) 75%, var(--color-gold-main) 100%);
+  background: linear-gradient(135deg, var(--color-accent-main) 0%, var(--color-accent-light) 25%, var(--color-accent-main) 50%, var(--color-accent-dark) 75%, var(--color-accent-main) 100%);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1076,22 +1088,22 @@
 /* Glass Card - stile ispirato ai pannelli della landing */
 .glass-card {
   background:
-    radial-gradient(circle at 15% 0%, rgba(var(--color-gold-main-rgb), 0.10), transparent 50%),
-    radial-gradient(circle at 85% 0%, rgba(var(--color-gold-light-rgb), 0.10), transparent 50%),
+    radial-gradient(circle at 15% 0%, rgba(var(--color-accent-main-rgb), 0.10), transparent 50%),
+    radial-gradient(circle at 85% 0%, rgba(var(--color-accent-light-rgb), 0.10), transparent 50%),
     linear-gradient(180deg, #0b0f1a 0%, #05060b 80%);
-  border: 1px solid rgba(var(--color-gold-light-rgb), 0.18);
+  border: 1px solid rgba(var(--color-accent-light-rgb), 0.18);
   border-radius: 0.75rem;
   box-shadow:
     0 24px 70px rgba(0, 0, 0, 0.75),
-    0 0 40px rgba(var(--color-gold-main-rgb), 0.08);
+    0 0 40px rgba(var(--color-accent-main-rgb), 0.08);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .glass-card:hover:not(.no-hover) {
-  border-color: rgba(var(--color-gold-light-rgb), 0.32);
+  border-color: rgba(var(--color-accent-light-rgb), 0.32);
   box-shadow:
     0 30px 90px rgba(0, 0, 0, 0.85),
-    0 0 60px rgba(var(--color-gold-main-rgb), 0.12);
+    0 0 60px rgba(var(--color-accent-main-rgb), 0.12);
   transform: translateY(-1px);
 }
 
@@ -1099,19 +1111,19 @@
 .glass-card-advanced {
   position: relative;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(var(--color-gold-main-rgb), 0.35), rgba(255, 255, 255, 0.08), rgba(var(--color-gold-main-rgb), 0.20));
+  background: linear-gradient(135deg, rgba(var(--color-accent-main-rgb), 0.35), rgba(255, 255, 255, 0.08), rgba(var(--color-accent-main-rgb), 0.20));
   border-radius: 1rem;
 }
 
 .glass-card-advanced > * {
   position: relative;
   border-radius: calc(1rem - 1px);
-  border: 1px solid rgba(var(--color-gold-main-rgb), 0.15);
+  border: 1px solid rgba(var(--color-accent-main-rgb), 0.15);
   background: rgba(255, 255, 255, 0.045);
   backdrop-filter: blur(20px);
   box-shadow: 
     0 20px 80px rgba(0, 0, 0, 0.65),
-    0 0 40px rgba(var(--color-gold-main-rgb), 0.08);
+    0 0 40px rgba(var(--color-accent-main-rgb), 0.08);
   overflow: hidden;
   transition: all 0.3s ease;
 }
@@ -1119,7 +1131,7 @@
 .glass-card-advanced > *:hover {
   box-shadow: 
     0 25px 100px rgba(0, 0, 0, 0.75),
-    0 0 60px rgba(var(--color-gold-main-rgb), 0.12);
+    0 0 60px rgba(var(--color-accent-main-rgb), 0.12);
 }
 
 /* Top shine effect */
@@ -1181,17 +1193,17 @@
 
 /* Button Styles */
 .btn-gold {
-  background: linear-gradient(135deg, var(--color-gold-main) 0%, var(--color-gold-light) 100%);
+  background: linear-gradient(135deg, var(--color-accent-main) 0%, var(--color-accent-light) 100%);
   color: #0F1117;
   font-weight: 600;
   border: none;
-  box-shadow: 0 2px 8px rgba(var(--color-gold-main-rgb), 0.25);
+  box-shadow: 0 2px 8px rgba(var(--color-accent-main-rgb), 0.25);
   transition: all 0.2s ease;
 }
 
 .btn-gold:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(var(--color-gold-main-rgb), 0.35);
+  box-shadow: 0 4px 12px rgba(var(--color-accent-main-rgb), 0.35);
 }
 
 .btn-gold:active {
@@ -1219,8 +1231,8 @@
 
 .input-field:focus {
   outline: none;
-  border-color: var(--color-gold-main);
-  box-shadow: 0 0 0 3px rgba(var(--color-gold-main-rgb), 0.15);
+  border-color: var(--color-accent-main);
+  box-shadow: 0 0 0 3px rgba(var(--color-accent-main-rgb), 0.15);
 }
 
 .input-field::placeholder {
@@ -1301,7 +1313,7 @@ select option {
   backdrop-filter: blur(10px);
   transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
   border-radius: 34px;
-  border: 1px solid rgba(var(--color-gold-main-rgb), 0.3);
+  border: 1px solid rgba(var(--color-accent-main-rgb), 0.3);
   box-shadow: 
     inset 0 2px 4px rgba(0, 0, 0, 0.3),
     0 2px 8px rgba(0, 0, 0, 0.2);
@@ -1314,7 +1326,7 @@ select option {
   width: 26px;
   left: 4px;
   bottom: 3px;
-  background: linear-gradient(135deg, #D3AF37 0%, #E5C55A 50%, #D3AF37 100%);
+  background: linear-gradient(135deg, #57E6D6 0%, #7AA8FF 50%, #57E6D6 100%);
   transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
   border-radius: 50%;
   box-shadow: 
@@ -1324,10 +1336,10 @@ select option {
 }
 
 input:checked + .toggle-slider {
-  background: rgba(211, 175, 55, 0.15);
+  background: rgba(87, 230, 214, 0.15);
   box-shadow: 
     inset 0 2px 4px rgba(0, 0, 0, 0.2),
-    0 0 20px rgba(211, 175, 55, 0.25);
+    0 0 20px rgba(87, 230, 214, 0.25);
 }
 
 input:checked + .toggle-slider:before {
@@ -1346,17 +1358,17 @@ input:checked + .toggle-slider:before {
 
 .appointment-card:hover {
   transform: translateY(-8px) scale(1.02);
-  border-color: rgba(var(--color-gold-main-rgb), 0.3);
+  border-color: rgba(var(--color-accent-main-rgb), 0.3);
   box-shadow: 
     0 20px 60px 0 rgba(0, 0, 0, 0.5),
-    0 0 80px 0 rgba(var(--color-gold-main-rgb), 0.15),
+    0 0 80px 0 rgba(var(--color-accent-main-rgb), 0.15),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
 }
 
 /* Loading Spinner */
 .loading-spinner {
-  border: 3px solid rgba(var(--color-gold-main-rgb), 0.2);
-  border-top: 3px solid var(--color-gold-main);
+  border: 3px solid rgba(var(--color-accent-main-rgb), 0.2);
+  border-top: 3px solid var(--color-accent-main);
   border-radius: 50%;
   width: 20px;
   height: 20px;
@@ -1482,6 +1494,49 @@ button.tab-button.active,
   grid-template-columns: repeat(7, 1fr);
   gap: 0;
   width: 100%;
+}
+
+/* ============================================
+   Calendario agenda (vista staff, stile landing)
+   ============================================ */
+
+.calendar-agenda {
+  max-height: 75vh;
+  border-radius: 28px;
+  border: 1px solid rgba(122, 168, 255, 0.18);
+  background: radial-gradient(circle at 12% 0%, rgba(87, 230, 214, 0.12), transparent 24%),
+    radial-gradient(circle at 88% 0%, rgba(122, 168, 255, 0.16), transparent 26%),
+    linear-gradient(180deg, rgba(10, 14, 24, 0.96), rgba(5, 8, 16, 0.96));
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.65),
+    inset 0 0 60px rgba(122, 168, 255, 0.08);
+  padding: 10px 10px 14px;
+}
+
+.calendar-agenda .grid {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.78));
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.calendar-agenda .calendar-slot {
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.calendar-agenda .calendar-slot-major {
+  border-top-color: rgba(148, 163, 184, 0.35);
+}
+
+.calendar-agenda .calendar-slot-minor {
+  border-top-color: rgba(148, 163, 184, 0.14);
+}
+
+.calendar-agenda .calendar-slot:hover {
+  background: rgba(15, 23, 42, 0.85);
+  border-top-color: rgba(148, 163, 184, 0.5);
 }
 
 .calendar-day {
@@ -2044,13 +2099,13 @@ button.tab-button.active,
   width: 80px;
   height: 80px;
   margin: 0 auto 1.5rem;
-  background: linear-gradient(135deg, rgba(var(--color-gold-main-rgb), 0.2), rgba(var(--color-gold-main-rgb), 0.1));
+  background: linear-gradient(135deg, rgba(var(--color-accent-main-rgb), 0.2), rgba(var(--color-accent-main-rgb), 0.1));
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid rgba(var(--color-gold-main-rgb), 0.3);
-  box-shadow: 0 0 30px rgba(var(--color-gold-main-rgb), 0.2);
+  border: 2px solid rgba(var(--color-accent-main-rgb), 0.3);
+  box-shadow: 0 0 30px rgba(var(--color-accent-main-rgb), 0.2);
 }
 
 .empty-state-title {
@@ -2077,10 +2132,10 @@ button.tab-button.active,
 }
 
 .table-row:hover {
-  background: rgba(var(--color-gold-main-rgb), 0.08);
+  background: rgba(var(--color-accent-main-rgb), 0.08);
   transform: translateX(4px);
-  border-left: 3px solid var(--color-gold-main);
-  box-shadow: -4px 0 15px rgba(var(--color-gold-main-rgb), 0.2);
+  border-left: 3px solid var(--color-accent-main);
+  box-shadow: -4px 0 15px rgba(var(--color-accent-main-rgb), 0.2);
 }
 
 .table-row:nth-child(even) {
@@ -2088,15 +2143,15 @@ button.tab-button.active,
 }
 
 .table-row:nth-child(even):hover {
-  background: rgba(var(--color-gold-main-rgb), 0.1);
+  background: rgba(var(--color-accent-main-rgb), 0.1);
 }
 
 /* ============================================
    CALENDARIO MIGLIORATO
    ============================================ */
 .calendar-day:hover {
-  background: rgba(var(--color-gold-main-rgb), 0.15) !important;
-  border-color: rgba(var(--color-gold-main-rgb), 0.4) !important;
+  background: rgba(var(--color-accent-main-rgb), 0.15) !important;
+  border-color: rgba(var(--color-accent-main-rgb), 0.4) !important;
   transform: scale(1.08);
   box-shadow: 0 0 20px rgba(var(--color-gold-main-rgb), 0.3);
 }
@@ -2108,7 +2163,7 @@ button.tab-button.active,
 
 .appointment-block:hover {
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 4px 15px rgba(var(--color-gold-main-rgb), 0.3);
+  box-shadow: 0 4px 15px rgba(var(--color-accent-main-rgb), 0.3);
   z-index: 10;
 }
 

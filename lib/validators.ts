@@ -30,6 +30,7 @@ export const createAppointmentSchema = z.object({
   staffId: z.string().cuid(),
   serviceId: z.string().cuid(),
   startTime: z.string().datetime(),
+  customDurationMinutes: z.number().int().min(5).max(480).optional(),
   notes: z.string().optional(),
 })
 
@@ -37,6 +38,7 @@ export const updateAppointmentSchema = z.object({
   status: z.enum(['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW']).optional(),
   startTime: z.string().datetime().optional(),
   staffId: z.string().cuid().optional(),
+  customDurationMinutes: z.number().int().min(5).max(480).optional(),
   notes: z.string().optional(),
 })
 

@@ -205,7 +205,8 @@ model Appointment {
   serviceId       String
   service         Service             @relation(fields: [serviceId], references: [id])
   startTime       DateTime
-  endTime         DateTime            // Calcolato: startTime + service.duration
+  endTime         DateTime            // Calcolato: startTime + (customDurationMinutes ?? service.duration)
+  customDurationMinutes Int?          // Durata personalizzata in minuti (override di service.duration)
   status          AppointmentStatus   @default(SCHEDULED)
   price           Int                 // Prezzo snapshot al momento della prenotazione (centesimi)
   notes           String?

@@ -208,7 +208,7 @@ export default function TenantSettingsPage() {
   if (loading) {
     return (
       <section className="space-y-4">
-        <h1 className="text-2xl font-semibold">Impostazioni</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Impostazioni</h1>
         <p className="text-dark-400">Caricamento...</p>
       </section>
     )
@@ -217,17 +217,17 @@ export default function TenantSettingsPage() {
   return (
     <section className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Impostazioni</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Impostazioni</h1>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
+        <div className="p-4 bg-red-500/15 border border-red-500/40 rounded-2xl text-red-300 text-sm">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="p-4 bg-green-500/20 border border-green-500/50 rounded-lg text-green-400 text-sm">
+        <div className="p-4 bg-emerald-500/15 border border-emerald-500/40 rounded-2xl text-emerald-300 text-sm">
           Impostazioni salvate con successo!
         </div>
       )}
@@ -235,7 +235,7 @@ export default function TenantSettingsPage() {
       <form onSubmit={handleSave} className="space-y-6">
         {/* Orari di apertura */}
         <Card>
-          <h2 className="text-xl font-semibold mb-4">Orari di apertura</h2>
+          <h2 className="text-xl font-semibold mb-4 tracking-tight">Orari di apertura</h2>
           <div className="space-y-4">
             {DAYS.map((day) => {
               const hours = businessHours[day.key]
@@ -347,7 +347,7 @@ export default function TenantSettingsPage() {
 
         {/* Fuso orario */}
         <Card>
-          <h2 className="text-xl font-semibold mb-4">Fuso orario</h2>
+          <h2 className="text-xl font-semibold mb-4 tracking-tight">Fuso orario</h2>
           <div>
             <label className="block text-sm font-semibold text-dark-700 mb-2">
               Seleziona fuso orario
@@ -368,7 +368,7 @@ export default function TenantSettingsPage() {
 
         {/* Brand color */}
         <Card>
-          <h2 className="text-xl font-semibold mb-4">Colore brand</h2>
+          <h2 className="text-xl font-semibold mb-4 tracking-tight">Colore brand</h2>
           <div>
             <label className="block text-sm font-semibold text-dark-700 mb-2">
               Colore principale

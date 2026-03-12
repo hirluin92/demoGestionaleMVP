@@ -232,7 +232,7 @@ export default function PublicBookingPage() {
         <div
           key={s}
           className={`w-7 h-1.5 rounded-full ${
-            step >= s ? 'bg-gold-400' : 'bg-dark-200'
+            step >= s ? 'bg-[linear-gradient(135deg,#57E6D6,#7AA8FF)]' : 'bg-dark-200'
           }`}
         />
       ))}
@@ -240,12 +240,22 @@ export default function PublicBookingPage() {
   )
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-8"
+      style={{
+        background: `
+        radial-gradient(circle at 15% 0%, rgba(87, 230, 214, 0.16), transparent 24%),
+        radial-gradient(circle at 85% 0%, rgba(122, 168, 255, 0.18), transparent 24%),
+        radial-gradient(circle at 50% 35%, rgba(142, 162, 255, 0.1), transparent 30%),
+        linear-gradient(180deg, #05060b 0%, #060913 45%, #05060b 100%)
+      `,
+      }}
+    >
       <div className="w-full max-w-xl">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg md:text-2xl">
-              <CalendarIcon className="w-5 h-5 md:w-6 md:h-6 text-gold-400" />
+              <CalendarIcon className="w-5 h-5 md:w-6 md:h-6 text-[#57E6D6]" />
               Prenota un appuntamento
             </CardTitle>
             <CardDescription className="text-xs md:text-sm">
@@ -280,13 +290,13 @@ export default function PublicBookingPage() {
                       onClick={() => setSelectedServiceId(service.id)}
                       className={`w-full text-left px-3 py-2.5 rounded-lg border text-xs md:text-sm transition-smooth ${
                         selectedServiceId === service.id
-                          ? 'border-gold-400 bg-gold-400/10 text-white'
-                          : 'border-dark-200 bg-dark-100/40 text-dark-600 hover:border-gold-400/60'
+                          ? 'border-teal-300 bg-teal-300/10 text-white'
+                          : 'border-dark-200 bg-dark-100/40 text-dark-600 hover:border-teal-300/60'
                       }`}
                     >
                       <div className="flex justify-between items-center">
                         <span>{service.name}</span>
-                        <span className="text-[11px] text-gold-400">
+                        <span className="text-[11px] text-[#57E6D6]">
                           {service.duration} min ·{' '}
                           {new Intl.NumberFormat('it-IT', {
                             style: 'currency',
@@ -350,8 +360,8 @@ export default function PublicBookingPage() {
                           onClick={() => setSelectedSlotIndex(index)}
                           className={`px-3 py-2 rounded-lg text-[11px] md:text-xs border transition-smooth ${
                             selectedSlotIndex === index
-                              ? 'border-gold-400 bg-gold-400/15 text-white'
-                              : 'border-dark-200 bg-dark-100/40 text-dark-600 hover:border-gold-400/60'
+                              ? 'border-teal-300 bg-teal-300/15 text-white'
+                              : 'border-dark-200 bg-dark-100/40 text-dark-600 hover:border-teal-300/60'
                           }`}
                         >
                           <div>{format(new Date(slot.startTime), 'HH:mm')}</div>
@@ -377,7 +387,7 @@ export default function PublicBookingPage() {
                     Nome
                   </label>
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-gold-400 flex-shrink-0" />
+                    <User className="w-4 h-4 text-[#57E6D6] flex-shrink-0" />
                     <input
                       type="text"
                       value={clientName}
@@ -392,7 +402,7 @@ export default function PublicBookingPage() {
                     Telefono
                   </label>
                   <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-gold-400 flex-shrink-0" />
+                    <Phone className="w-4 h-4 text-[#57E6D6] flex-shrink-0" />
                     <input
                       type="tel"
                       value={clientPhone}
@@ -473,7 +483,7 @@ export default function PublicBookingPage() {
                     <a
                       href={icsHref}
                       download="appuntamento.ics"
-                      className="text-xs text-gold-400 hover:text-gold-200 underline"
+                      className="text-xs text-[#57E6D6] hover:text-[#7AA8FF] underline"
                     >
                       Aggiungi al tuo calendario
                     </a>

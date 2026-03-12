@@ -26,13 +26,14 @@ function DashboardWidget({ title, value, subtitle, icon, href }: DashboardWidget
           <p className="text-3xl font-bold text-white mb-1">{value}</p>
           {subtitle && <p className="text-xs text-dark-500">{subtitle}</p>}
         </div>
-        {icon && <div className="text-gold-400">{icon}</div>}
+        {icon && <div className="text-[#57E6D6]">{icon}</div>}
       </CardContent>
     </Card>
   )
 
   if (href) {
-    return <Link href={href}>{content}</Link>}
+    return <Link href={href}>{content}</Link>
+  }
   return content
 }
 
@@ -168,78 +169,118 @@ export default async function TenantDashboardPage({
         subtitle="Panoramica attività, appuntamenti e automazioni che incidono sul fatturato."
       />
 
-      {/* Widget principali */}
+      {/* Riga metriche in stile preview landing */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <DashboardWidget
-          title="Appuntamenti Oggi"
+          title="Agenda oggi"
           value={appointmentsToday.length}
           subtitle={`${appointmentsNext7Days} nei prossimi 7 giorni`}
           icon={<Calendar className="w-6 h-6" />}
           href={`/${params.tenant}/calendar?date=${now.toISOString().split('T')[0]}`}
         />
         <DashboardWidget
-          title="Slot Vuoti Oggi"
+          title="Slot liberi"
           value={emptySlotsToday}
           subtitle="Disponibili per prenotazioni"
           icon={<Clock className="w-6 h-6" />}
           href={`/${params.tenant}/calendar?date=${now.toISOString().split('T')[0]}`}
         />
         <DashboardWidget
-          title="Messaggi Questo Mese"
-          value={messagesThisMonth}
-          subtitle="WhatsApp inviati"
-          icon={<MessageSquare className="w-6 h-6" />}
+          title="Cliente oggi"
+          value={appointmentsToday.length > 0 ? appointmentsToday[0]?.client?.name ?? '—' : '—'}
+          subtitle={
+            appointmentsToday.length > 0 ? appointmentsToday[0]?.service?.name ?? 'Nessun appuntamento' : 'Nessun appuntamento'
+          }
+          icon={<Users className="w-6 h-6" />}
         />
         <DashboardWidget
-          title="Tempo Risparmiato"
+          title="Tempo risparmiato"
           value={`${hoursSaved}h ${minutesSaved}m`}
           subtitle="Questo mese"
           icon={<TrendingUp className="w-6 h-6" />}
         />
       </div>
 
-      {/* Appuntamenti oggi - lista */}
-      <Card variant="dark">
-        <CardHeader>
-          <CardTitle>Appuntamenti di Oggi</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {appointmentsToday.length === 0 ? (
-            <p className="text-sm text-dark-400">Nessun appuntamento oggi</p>
-          ) : (
-            <div className="space-y-3">
-              {appointmentsToday.map((apt) => {
-                const timeStr = new Date(apt.startTime).toLocaleTimeString('it-IT', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-                return (
-                  <Link
-                    key={apt.id}
-                    href={`/${params.tenant}/calendar?date=${now.toISOString().split('T')[0]}`}
-                    className="block p-3 rounded-lg bg-dark-900 hover:bg-dark-800 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="font-semibold text-white">{apt.client.name}</p>
-                        <p className="text-sm text-dark-400">
-                          {apt.service.name} · {apt.staff.name}
-                        </p>
+      {/* Corpo principale: agenda + "Assistente AI" semplificato */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Agenda multi-operatore (lista oggi) */}
+        <Card variant="dark">
+          <CardHeader>
+            <CardTitle className="text-sm uppercase tracking-[0.18em] text-dark-400">
+              Agenda multi-operatore
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {appointmentsToday.length === 0 ? (
+              <p className="text-sm text-dark-400">Nessun appuntamento oggi</p>
+            ) : (
+              <div className="space-y-3">
+                {appointmentsToday.map((apt) => {
+                  const timeStr = new Date(apt.startTime).toLocaleTimeString('it-IT', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                  return (
+                    <Link
+                      key={apt.id}
+                      href={`/${params.tenant}/calendar?date=${now.toISOString().split('T')[0]}`}
+                      className="block p-3 rounded-2xl bg-dark-900/60 hover:bg-dark-800/80 border border-dark-700/60 hover:border-[rgba(122,168,255,0.5)] transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1">
+                          <p className="font-semibold text-white">{apt.client.name}</p>
+                          <p className="text-xs text-dark-400">
+                            {apt.service.name} · {apt.staff.name}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-mono text-[#57E6D6] text-sm">{timeStr}</p>
+                          <p className="text-[11px] text-dark-500 capitalize">
+                            {apt.status.toLowerCase()}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-mono text-gold-400">{timeStr}</p>
-                        <p className="text-xs text-dark-500 capitalize">{apt.status.toLowerCase()}</p>
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Ultimi clienti */}
+        {/* Assistente AI (mock basato sui dati reali) */}
+        <Card variant="dark">
+          <CardHeader>
+            <CardTitle className="text-sm uppercase tracking-[0.18em] text-dark-400">
+              Assistente AI
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="ai-item">
+              <strong>Slot libero oggi</strong>
+              <span className="block mt-1 text-xs text-dark-300">
+                {emptySlotsToday > 0
+                  ? `${emptySlotsToday} slot ancora prenotabili per oggi.`
+                  : 'Nessuno slot disponibile: agenda piena.'}
+              </span>
+            </div>
+            <div className="ai-item">
+              <strong>Messaggi inviati</strong>
+              <span className="block mt-1 text-xs text-dark-300">
+                {messagesThisMonth} WhatsApp inviati questo mese tra reminder e recall.
+              </span>
+            </div>
+            <div className="ai-item">
+              <strong>Focus clienti recenti</strong>
+              <span className="block mt-1 text-xs text-dark-300">
+                {recentClients.length > 0
+                  ? `Ultimo cliente acquisito: ${recentClients[0]?.name ?? ''}.`
+                  : 'Ancora nessun nuovo cliente registrato.'}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
       <Card variant="dark">
         <CardHeader>
           <CardTitle>Ultimi Clienti</CardTitle>

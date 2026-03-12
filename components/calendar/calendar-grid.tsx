@@ -72,6 +72,63 @@ export function CalendarGrid({
     [appointments],
   )
 
+  // Commento in italiano: calcola per ogni appuntamento la colonna di sovrapposizione
+  // in modo simile a Apple Calendar (offset orizzontale progressivo).
+  const overlapColumnsById = useMemo(() => {
+    const map: Record<string, number> = {}
+
+    staff.forEach(staffMember => {
+      // Raggruppa per giorno per evitare che gli appuntamenti di giorni diversi
+      // vengano considerati sovrapposti
+      const byDate: Record<string, typeof parsedAppointments> = {}
+
+      parsedAppointments
+        .filter(apt => apt.staffId === staffMember.id)
+        .forEach(apt => {
+          const key = apt.start.toISOString().slice(0, 10) // yyyy-MM-dd
+          if (!byDate[key]) byDate[key] = []
+          byDate[key].push(apt)
+        })
+
+      Object.values(byDate).forEach(dayAppointments => {
+        const extended = dayAppointments
+          .map(apt => {
+            const startMins = apt.start.getHours() * 60 + apt.start.getMinutes()
+            const endMins = apt.end.getHours() * 60 + apt.end.getMinutes()
+            return { ...apt, startMins, endMins }
+          })
+          .sort(
+            (a, b) =>
+              a.startMins - b.startMins || b.endMins - a.endMins,
+          )
+
+        const overlap = (
+          a: { startMins: number; endMins: number },
+          b: { startMins: number; endMins: number },
+        ) => a.startMins < b.endMins && a.endMins > b.startMins
+
+        const colOf: Record<string, number> = {}
+
+        extended.forEach(ev => {
+          const earlierOverlapping = extended.filter(other =>
+            other.id !== ev.id && overlap(ev, other) && other.id in colOf,
+          )
+
+          colOf[ev.id] =
+            earlierOverlapping.length === 0
+              ? 0
+              : Math.max(...earlierOverlapping.map(o => colOf[o.id])) + 1
+        })
+
+        Object.entries(colOf).forEach(([id, col]) => {
+          map[id] = col
+        })
+      })
+    })
+
+    return map
+  }, [parsedAppointments, staff])
+
   // Commento in italiano: calcola la riga corrente per la linea rossa "ora attuale"
   const now = new Date()
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
@@ -107,6 +164,47 @@ export function CalendarGrid({
     }
   }
 
+  // Commento in italiano: gestisce il drop di un appuntamento su uno slot
+  const handleDropOnSlot = async (appointmentId: string, staffId: string, slotIndex: number) => {
+    if (!tenantSlug) return
+
+    const apt = parsedAppointments.find(a => a.id === appointmentId)
+    if (!apt) return
+
+    const minutesFromStart = slotIndex * slotMinutes
+    const totalMinutesFromMidnight = startHour * 60 + minutesFromStart
+
+    const nextStart = new Date(apt.start)
+    nextStart.setHours(
+      Math.floor(totalMinutesFromMidnight / 60),
+      totalMinutesFromMidnight % 60,
+      0,
+      0,
+    )
+
+    try {
+      const res = await fetch(`/api/${tenantSlug}/appointments/${appointmentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startTime: nextStart.toISOString(), staffId }),
+      })
+
+      const json = (await res.json().catch(() => null)) as { success?: boolean; error?: string } | null
+
+      if (!res.ok || !json?.success) {
+        // Logga l'errore per debug; in futuro potremo mostrare un toast.
+        // eslint-disable-next-line no-console
+        console.error('Errore spostamento appuntamento:', json?.error ?? 'Unknown error')
+        return
+      }
+
+      router.refresh()
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Errore di rete spostamento appuntamento:', error)
+    }
+  }
+
   const selectedAppointment =
     selectedAppointmentId &&
     appointments.find(a => a.id === selectedAppointmentId)
@@ -114,7 +212,7 @@ export function CalendarGrid({
   return (
     <div
       ref={containerRef}
-      className="relative overflow-x-auto border border-dark-700 rounded-lg bg-dark-900/70 max-h-[75vh]"
+      className="relative overflow-x-auto glass-panel calendar-agenda"
     >
       <div
         className="grid"
@@ -143,7 +241,7 @@ export function CalendarGrid({
         {staff.map((s, index) => (
           <div
             key={s.id}
-            className="border-l border-dark-800 relative"
+            className="border-l border-[rgba(148,163,184,0.28)]/40 relative"
             style={{
               gridColumn: index + 2,
               gridRow: `2 / span ${slotsCount}`,
@@ -158,11 +256,21 @@ export function CalendarGrid({
                     openNewAppointment(s.id, i + 2)
                   }
                 }}
-                className={`border-t ${
+                onDragOver={event => {
+                  event.preventDefault()
+                  event.dataTransfer.dropEffect = 'move'
+                }}
+                onDrop={event => {
+                  event.preventDefault()
+                  const appointmentId = event.dataTransfer.getData('application/appointly-appointment-id')
+                  if (!appointmentId) return
+                  void handleDropOnSlot(appointmentId, s.id, i)
+                }}
+                className={`calendar-slot ${
                   i % (60 / slotMinutes) === 0
-                    ? 'border-dark-800'
-                    : 'border-dark-900/60'
-                } hover:bg-dark-700/30 cursor-pointer`}
+                    ? 'calendar-slot-major'
+                    : 'calendar-slot-minor'
+                }`}
                 style={{ height: SLOT_HEIGHT }}
               />
             ))}
@@ -190,6 +298,43 @@ export function CalendarGrid({
               calendarStartHour={startHour}
               color={staffColor}
               status={apt.status}
+              overlapColumn={overlapColumnsById[apt.id] ?? 0}
+              slotHeight={SLOT_HEIGHT}
+              onResizeEnd={(appointmentId, newDurationMinutes) => {
+                if (!tenantSlug) return
+                void (async () => {
+                  try {
+                    const res = await fetch(
+                      `/api/${tenantSlug}/appointments/${appointmentId}`,
+                      {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          customDurationMinutes: newDurationMinutes,
+                        }),
+                      },
+                    )
+                    const json = (await res.json().catch(() => null)) as
+                      | { success?: boolean; error?: string }
+                      | null
+                    if (!res.ok || !json?.success) {
+                      // eslint-disable-next-line no-console
+                      console.error(
+                        'Errore aggiornamento durata appuntamento:',
+                        json?.error ?? 'Errore sconosciuto',
+                      )
+                      return
+                    }
+                    router.refresh()
+                  } catch (error) {
+                    // eslint-disable-next-line no-console
+                    console.error(
+                      'Errore di rete aggiornamento durata appuntamento:',
+                      error,
+                    )
+                  }
+                })()
+              }}
               onClick={setSelectedAppointmentId}
             />
           )

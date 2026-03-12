@@ -25,7 +25,7 @@ export default function GlobalError({
             )}
             <button
               onClick={reset}
-              className="px-4 py-2 bg-gold-400 text-black rounded-lg hover:bg-gold-300"
+              className="px-4 py-2 rounded-lg text-sm font-semibold bg-[linear-gradient(135deg,#57E6D6,#7AA8FF)] text-black shadow-[0_12px_34px_rgba(87,230,214,0.25)] hover:brightness-110 transition"
             >
               Riprova
             </button>

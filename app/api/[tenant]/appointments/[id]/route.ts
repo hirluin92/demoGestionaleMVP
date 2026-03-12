@@ -47,7 +47,16 @@ export async function PUT(
 
     if (data.startTime) {
       nextStartTime = new Date(data.startTime)
-      nextEndTime = addMinutes(nextStartTime, existing.service.duration)
+    }
+
+    // Durata effettiva da usare (override per appuntamento)
+    const effectiveDuration =
+      data.customDurationMinutes ??
+      existing.customDurationMinutes ??
+      existing.service.duration
+
+    if (nextStartTime) {
+      nextEndTime = addMinutes(nextStartTime, effectiveDuration)
     }
 
     // Se viene cambiato lo staff, verifica che appartenga al tenant
@@ -68,11 +77,16 @@ export async function PUT(
     }
 
     // Controllo conflitti solo se cambiamo orario o staff
-    if (nextStartTime || data.staffId) {
+    if (nextStartTime || data.staffId || data.customDurationMinutes) {
       const startTime = nextStartTime ?? existing.startTime
       const endTime =
         nextEndTime ??
-        addMinutes(startTime, existing.service.duration)
+        addMinutes(
+          startTime,
+          data.customDurationMinutes ??
+            existing.customDurationMinutes ??
+            existing.service.duration,
+        )
       const staffId = data.staffId ?? existing.staffId
 
       const overlapping = await prisma.appointment.findFirst({
@@ -105,6 +119,9 @@ export async function PUT(
         ...(nextStartTime && { startTime: nextStartTime }),
         ...(nextEndTime && { endTime: nextEndTime }),
         ...(data.staffId && { staffId: data.staffId }),
+        ...(data.customDurationMinutes !== undefined && {
+          customDurationMinutes: data.customDurationMinutes,
+        }),
       },
       include: {
         client: true,

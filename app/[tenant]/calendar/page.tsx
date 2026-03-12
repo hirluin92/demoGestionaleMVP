@@ -93,7 +93,7 @@ export default async function TenantCalendarPage({
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Calendario
         </h1>
         <span className="text-xs text-dark-500">

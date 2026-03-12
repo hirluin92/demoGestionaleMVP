@@ -90,14 +90,18 @@ export function NewAppointmentDialog({
         | { success?: boolean; error?: string }
         | null
       if (!aptRes.ok || !aptJson?.success) {
-        throw new Error(aptJson?.error ?? 'Errore creazione appuntamento')
+        // Mostra l'errore specifico restituito dall'API (es. "Operatore non offre questo servizio")
+        setError(aptJson?.error ?? 'Errore creazione appuntamento')
+        return
       }
 
       if (onCreated) onCreated()
       onClose()
     } catch (err) {
       console.error(err)
-      setError('Impossibile creare l\'appuntamento.')
+      if (!error) {
+        setError("Impossibile creare l'appuntamento.")
+      }
     } finally {
       setLoading(false)
     }

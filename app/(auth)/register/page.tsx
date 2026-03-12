@@ -1,5 +1,7 @@
 'use client'
 
+// Commenti in italiano: pagina di registrazione minimale per creare un nuovo tenant
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { UserPlus, ArrowLeft } from 'lucide-react'
@@ -7,22 +9,21 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import AppointlyLogo from '@/components/AppointlyLogo'
 
-// Commenti in italiano: pagina di registrazione tenant minimale che chiama l'API /api/tenants
-
 export default function RegisterPage() {
   const router = useRouter()
-  const [businessName, setBusinessName] = useState('')
-  const [category, setCategory] = useState('parrucchiere')
-  const [city, setCity] = useState('')
-  const [ownerName, setOwnerName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [phone, setPhone] = useState('')
-  const [loading, setLoading] = useState(false)
+
+  const [businessName, setBusinessName] = useState<string>('')
+  const [category, setCategory] = useState<string>('parrucchiere')
+  const [city, setCity] = useState<string>('')
+  const [ownerName, setOwnerName] = useState<string>('')
+  const [email, setEmail] = useState<string>('')
+  const [password, setPassword] = useState<string>('')
+  const [phone, setPhone] = useState<string>('')
+  const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError(null)
     setSuccess(null)
@@ -47,7 +48,7 @@ export default function RegisterPage() {
         | { success?: boolean; error?: string; data?: { tenantSlug: string } }
         | null
 
-      if (!res.ok || !json?.success || !json.data) {
+      if (!res.ok || !json?.success) {
         setError(json?.error ?? 'Registrazione non riuscita.')
         return
       }
@@ -65,14 +66,38 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+    <div
+      className="min-h-screen flex items-center justify-center relative overflow-hidden"
+      style={{
+        background: `
+        radial-gradient(circle at 15% 0%, rgba(87, 230, 214, 0.16), transparent 24%),
+        radial-gradient(circle at 85% 0%, rgba(122, 168, 255, 0.18), transparent 24%),
+        radial-gradient(circle at 50% 35%, rgba(142, 162, 255, 0.1), transparent 30%),
+        linear-gradient(180deg, #05060b 0%, #060913 45%, #05060b 100%)
+      `,
+      }}
+    >
+      {/* Overlay griglia di sfondo */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          opacity: 0.18,
+          backgroundImage:
+            'linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)',
+          backgroundSize: '34px 34px',
+          maskImage: 'radial-gradient(circle at center, black 35%, transparent 85%)',
+          WebkitMaskImage: 'radial-gradient(circle at center, black 35%, transparent 85%)',
+        }}
+      />
+
       <div className="relative z-10 w-full max-w-xl px-4">
-        <div className="glass-card rounded-2xl p-6 md:p-8 fade-in">
+        <div className="glass-card p-6 md:p-8 fade-in">
           <div className="flex items-center justify-between mb-4">
             <button
               type="button"
               onClick={() => router.push('/login')}
-              className="inline-flex items-center text-xs text-dark-500 hover:text-dark-300"
+              className="inline-flex items-center text-xs transition-colors"
+              style={{ color: '#7f8daa' }}
             >
               <ArrowLeft className="w-3 h-3 mr-1" />
               Torna al login
@@ -80,25 +105,32 @@ export default function RegisterPage() {
             <AppointlyLogo variant="icon" size="sm" />
           </div>
 
-          <h1 className="text-lg md:text-2xl font-semibold text-white mb-1">
+          <h1
+            className="text-lg md:text-2xl font-semibold mb-1"
+            style={{
+              fontFamily: "'Bricolage Grotesque', sans-serif",
+              color: '#f0ede6',
+              letterSpacing: '-0.04em',
+            }}
+          >
             Crea il tuo account salone
           </h1>
-          <p className="text-xs md:text-sm text-dark-500 mb-4">
+          <p className="text-xs md:text-sm mb-4" style={{ color: '#7f8daa' }}>
             Inserisci solo le informazioni essenziali. Potrai completare i dettagli in seguito.
           </p>
 
           {error && (
-            <p className="text-xs text-red-400 mb-3">
+            <p className="text-xs mb-3" style={{ color: '#ff8ba7' }}>
               {error}
             </p>
           )}
           {success && (
-            <p className="text-xs text-green-400 mb-3">
+            <p className="text-xs mb-3" style={{ color: '#7df5c5' }}>
               {success}
             </p>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Input
                 id="businessName"
@@ -120,13 +152,18 @@ export default function RegisterPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-medium text-dark-500 mb-1">
+                <label
+                  className="block text-[11px] font-medium mb-1"
+                  style={{ color: '#7f8daa' }}
+                  htmlFor="category"
+                >
                   Categoria
                 </label>
                 <select
+                  id="category"
                   value={category}
                   onChange={e => setCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-dark-100/40 border border-dark-200 text-xs md:text-sm text-white"
+                  className="input-field w-full text-xs md:text-sm"
                 >
                   <option value="parrucchiere">Parrucchiere</option>
                   <option value="estetista">Estetista</option>
@@ -137,20 +174,20 @@ export default function RegisterPage() {
                 </select>
               </div>
               <Input
-                id="phone"
-                label="Telefono (opzionale)"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
+                id="ownerName"
+                label="Nome titolare"
+                value={ownerName}
+                onChange={e => setOwnerName(e.target.value)}
+                required
                 className="text-xs md:text-sm"
               />
             </div>
 
             <Input
-              id="ownerName"
-              label="Nome titolare"
-              value={ownerName}
-              onChange={e => setOwnerName(e.target.value)}
-              required
+              id="phone"
+              label="Telefono (opzionale)"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
               className="text-xs md:text-sm"
             />
 

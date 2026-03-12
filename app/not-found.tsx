@@ -9,7 +9,7 @@ export default function NotFound() {
     <div className="min-h-screen bg-dark-900 flex items-center justify-center p-4">
       <Card variant="dark" className="max-w-md w-full text-center">
         <CardHeader>
-          <CardTitle className="text-6xl font-bold text-gold-400 mb-2">404</CardTitle>
+          <CardTitle className="text-6xl font-bold text-accent-main mb-2">404</CardTitle>
           <CardTitle>Pagina non trovata</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

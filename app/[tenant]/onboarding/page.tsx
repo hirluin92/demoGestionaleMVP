@@ -406,7 +406,7 @@ export default function OnboardingPage() {
         <div
           key={s}
           className={`w-7 h-1.5 rounded-full ${
-            step >= s ? 'bg-gold-400' : 'bg-dark-200'
+            step >= s ? 'bg-[linear-gradient(135deg,#57E6D6,#7AA8FF)]' : 'bg-dark-200'
           }`}
         />
       ))}
@@ -575,7 +575,7 @@ export default function OnboardingPage() {
                     }
                     className={`px-2 py-1 rounded-full text-[11px] border ${
                       member.serviceIds.includes(s.id ?? s.name)
-                        ? 'border-gold-400 bg-gold-400/10'
+                        ? 'border-teal-300 bg-teal-300/10'
                         : 'border-dark-500 bg-dark-900'
                     }`}
                   >
@@ -695,7 +695,17 @@ export default function OnboardingPage() {
     step === 3
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-8"
+      style={{
+        background: `
+        radial-gradient(circle at 15% 0%, rgba(87, 230, 214, 0.16), transparent 24%),
+        radial-gradient(circle at 85% 0%, rgba(122, 168, 255, 0.18), transparent 24%),
+        radial-gradient(circle at 50% 35%, rgba(142, 162, 255, 0.1), transparent 30%),
+        linear-gradient(180deg, #05060b 0%, #060913 45%, #05060b 100%)
+      `,
+      }}
+    >
       <div className="w-full max-w-3xl">
         <Card>
           <CardHeader>

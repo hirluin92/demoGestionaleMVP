@@ -199,7 +199,7 @@ export default function TenantStaffPage() {
   return (
     <section className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Staff</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Staff</h1>
         <Button onClick={() => handleOpenModal()} size="sm">
           <Plus className="w-4 h-4 mr-2" />
           Nuovo operatore
@@ -207,7 +207,7 @@ export default function TenantStaffPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
+        <div className="p-4 bg-red-500/15 border border-red-500/40 rounded-2xl text-red-300 text-sm">
           {error}
         </div>
       )}
@@ -231,7 +231,7 @@ export default function TenantStaffPage() {
                     className="w-4 h-4 rounded-full"
                     style={{ backgroundColor: staffMember.color }}
                   />
-                  <h3 className="font-semibold text-lg">{staffMember.name}</h3>
+                  <h3 className="font-semibold text-lg tracking-tight">{staffMember.name}</h3>
                 </div>
                 {!staffMember.isActive && (
                   <span className="text-xs text-dark-500 bg-dark-100/40 px-2 py-1 rounded">
@@ -280,7 +280,7 @@ export default function TenantStaffPage() {
             style={{ maxWidth: '600px', width: '90vw' }}
           >
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold gold-text-gradient">
+              <h2 className="text-2xl font-bold text-white tracking-tight">
                 {editingStaff ? 'Modifica operatore' : 'Nuovo operatore'}
               </h2>
               <button

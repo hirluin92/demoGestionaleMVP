@@ -2,15 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  Users, 
-  Scissors, 
-  UserCog, 
-  Settings, 
+import { useState } from 'react'
+import {
+  LayoutDashboard,
+  Calendar,
+  Users,
+  Scissors,
+  UserCog,
+  Settings,
   CreditCard,
-  LogOut 
+  LogOut,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -22,7 +23,7 @@ interface TenantSidebarProps {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Calendario', href: '/calendar', icon: Calendar },
+  { name: 'Agenda', href: '/calendar', icon: Calendar },
   { name: 'Clienti', href: '/clients', icon: Users },
   { name: 'Servizi', href: '/services', icon: Scissors },
   { name: 'Staff', href: '/staff', icon: UserCog },
@@ -33,64 +34,71 @@ const navigation = [
 export function TenantSidebar({ tenantSlug, tenantName, onClose }: TenantSidebarProps) {
   const pathname = usePathname()
   const basePath = `/${tenantSlug}`
+  const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="w-full h-full bg-[#1A1D26] border-r border-[#2E3240] flex flex-col">
-      {/* Logo/Header */}
-      <div className="p-4 border-b border-[#2E3240] flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-[#C9A84C]">
-            {tenantName || 'Appointly'}
-          </h2>
-          <p className="text-xs text-[#9BA1B0] mt-1">Gestione Appuntamenti</p>
-        </div>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="md:hidden text-[#9BA1B0] hover:text-white p-1"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
-        {navigation.map((item) => {
-          const href = `${basePath}${item.href}`
-          const isActive = pathname === href || pathname?.startsWith(`${href}/`)
-          const Icon = item.icon
-
-          return (
-            <Link
-              key={item.name}
-              href={href}
-              className={`
-                flex items-center gap-3 px-3 py-2 rounded-lg transition-colors
-                ${isActive
-                  ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/30'
-                  : 'text-[#9BA1B0] hover:bg-[#242833] hover:text-white'
-                }
-              `}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="text-sm font-medium">{item.name}</span>
-            </Link>
-          )
-        })}
-      </nav>
-
-      {/* Logout */}
-      <div className="p-4 border-t border-[#2E3240]">
-        <button
-          onClick={() => signOut({ callbackUrl: '/' })}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-[#9BA1B0] hover:bg-[#242833] hover:text-white w-full transition-colors"
+    <div
+      className={`tenant-sidebar-inner h-full flex flex-col preview-side ${expanded ? 'expanded' : ''}`}
+    >
+      <div className="side-top">
+        <div
+          className="logo"
+          role="button"
+          aria-label="Apri o chiudi il menu"
+          onClick={() => setExpanded(prev => !prev)}
         >
-          <LogOut className="w-5 h-5" />
-          <span className="text-sm font-medium">Logout</span>
-        </button>
+          Ap.
+        </div>
+        <div className="side-stack" style={{ marginTop: 10 }}>
+          {navigation.slice(0, 5).map((item) => {
+            const href = `${basePath}${item.href}`
+            const isActive = pathname === href || pathname?.startsWith(`${href}/`)
+            const Icon = item.icon
+
+            return (
+              <Link
+                key={item.name}
+                href={href}
+                className={`side-nav-item ${isActive ? 'active' : ''}`}
+              >
+                <span className="side-nav-icon" aria-hidden="true">
+                  <Icon className="w-3.5 h-3.5 text-[rgba(226,232,255,0.9)]" />
+                </span>
+                <span className="side-nav-label">{item.name}</span>
+              </Link>
+            )
+          })}
+        </div>
+        <div className="side-bottom">
+          {navigation.slice(5).map((item) => {
+            const href = `${basePath}${item.href}`
+            const isActive = pathname === href || pathname?.startsWith(`${href}/`)
+            const Icon = item.icon
+
+            return (
+              <Link
+                key={item.name}
+                href={href}
+                className={`side-nav-item ${isActive ? 'active' : ''}`}
+              >
+                <span className="side-nav-icon" aria-hidden="true">
+                  <Icon className="w-3.5 h-3.5 text-[rgba(226,232,255,0.9)]" />
+                </span>
+                <span className="side-nav-label">{item.name}</span>
+              </Link>
+            )
+          })}
+
+          <button
+            onClick={() => signOut({ callbackUrl: '/' })}
+            className="side-nav-item mt-1 text-[rgba(148,163,184,0.9)] hover:text-white"
+          >
+            <span className="side-nav-icon" aria-hidden="true">
+              <LogOut className="w-3.5 h-3.5" />
+            </span>
+            <span className="side-nav-label">Logout</span>
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-950 relative overflow-hidden">
         <div className="relative z-10 w-full max-w-md px-4">
-          <div className="bg-dark-50/80 backdrop-blur-xl border border-gold-400/20 rounded-2xl shadow-dark-lg p-8 md:p-10">
+          <div className="bg-dark-50/80 backdrop-blur-xl border border-accent-main/20 rounded-2xl shadow-dark-lg p-8 md:p-10">
             <div className="text-center mb-8">
               <div className="flex justify-center mb-4">
                 <AppointlyLogo variant="full" size="md" className="animate-fade-in" />
@@ -52,8 +52,8 @@ export default function ForgotPasswordPage() {
 
             <div className="text-center space-y-4">
               <div className="flex justify-center mb-4">
-                <div className="bg-gold-400/20 rounded-full p-4">
-                  <Mail className="w-8 h-8 text-[#E8DCA0]" />
+                <div className="rounded-full p-4 bg-[radial-gradient(circle_at_0%_0%,rgba(87,230,214,0.25),transparent_55%),radial-gradient(circle_at_100%_0%,rgba(122,168,255,0.25),transparent_55%)] border border-accent-main/40">
+                  <Mail className="w-8 h-8 text-accent-main" />
                 </div>
               </div>
               
@@ -85,7 +85,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-dark-950 relative overflow-hidden">
       <div className="relative z-10 w-full max-w-md px-4">
-        <div className="bg-dark-50/80 backdrop-blur-xl border border-gold-400/20 rounded-2xl shadow-dark-lg p-8 md:p-10">
+        <div className="bg-dark-50/80 backdrop-blur-xl border border-accent-main/20 rounded-2xl shadow-dark-lg p-8 md:p-10">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <AppointlyLogo variant="full" size="md" className="animate-fade-in" />
@@ -134,7 +134,7 @@ export default function ForgotPasswordPage() {
             </Button>
 
             <div className="text-center">
-              <Link href="/login" className="text-[#E8DCA0] hover:text-[#F5ECC8] text-sm font-medium">
+              <Link href="/login" className="text-accent-main hover:text-accent-light text-sm font-medium">
                 <ArrowLeft className="w-4 h-4 inline mr-1" />
                 Torna al login
               </Link>
@@ -143,7 +143,7 @@ export default function ForgotPasswordPage() {
 
           <div className="mt-8 pt-6 border-t border-dark-200/30 text-center">
             <p className="text-xs text-dark-600 flex items-center justify-center">
-              <Sparkles className="w-3 h-3 mr-1 text-[#E8DCA0]" />
+              <Sparkles className="w-3 h-3 mr-1 text-accent-main" />
               Sistema di gestione premium
             </p>
           </div>

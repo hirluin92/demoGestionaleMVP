@@ -139,7 +139,9 @@ export async function POST(
     }
 
     const startTime = new Date(data.startTime)
-    const endTime = addMinutes(startTime, service.duration)
+    // Durata: usa eventuale override, altrimenti durata del servizio
+    const durationMinutes = data.customDurationMinutes ?? service.duration
+    const endTime = addMinutes(startTime, durationMinutes)
 
     // Commento in italiano: verifica che l'appuntamento cada negli orari di lavoro dell'operatore
     const dayOfWeek = format(startTime, 'EEE').toLowerCase().slice(0, 3) // mon, tue, ...
@@ -178,9 +180,29 @@ export async function POST(
     const aptStart = startTime.getHours() * 60 + startTime.getMinutes()
     const aptEnd = endTime.getHours() * 60 + endTime.getMinutes()
 
-    if (aptStart < workStart || aptEnd > workEnd) {
+    // L'appuntamento deve iniziare DENTRO gli orari e finire DENTRO gli orari
+    if (aptStart < workStart) {
       return NextResponse.json(
-        { success: false, error: 'Appuntamento fuori dagli orari di lavoro' },
+        { 
+          success: false, 
+          error: `L'appuntamento inizia prima degli orari di lavoro (${workingHoursForDay.start})` 
+        },
+        { status: 400 },
+      )
+    }
+    
+    if (aptEnd > workEnd) {
+      // Calcola l'ultimo slot disponibile (fine orari - durata effettiva)
+      const lastAvailableSlot = workEnd - durationMinutes
+      const lastSlotHours = Math.floor(lastAvailableSlot / 60)
+      const lastSlotMinutes = lastAvailableSlot % 60
+      const lastSlotTime = `${String(lastSlotHours).padStart(2, '0')}:${String(lastSlotMinutes).padStart(2, '0')}`
+      
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `L'appuntamento finisce dopo gli orari di lavoro (${workingHoursForDay.end}). L'ultimo slot disponibile è alle ${lastSlotTime}` 
+        },
         { status: 400 },
       )
     }
@@ -208,6 +230,7 @@ export async function POST(
         serviceId: data.serviceId,
         startTime,
         endTime,
+        customDurationMinutes: data.customDurationMinutes ?? null,
         price: service.price,
         notes: data.notes,
         source: 'manual',
