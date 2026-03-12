@@ -117,7 +117,16 @@ export default async function TenantDashboardPage({
     const endMinutes = endHour * 60 + endMin
     const totalMinutes = endMinutes - startMinutes
     const slotsCount = Math.floor(totalMinutes / 30) // Slot da 30 min
-    emptySlotsToday = Math.max(0, slotsCount - appointmentsToday.length)
+
+    // Commento in italiano: calcola quanti slot da 30 minuti sono effettivamente occupati
+    const occupiedSlots = appointmentsToday.reduce((sum, apt) => {
+      const duration =
+        (apt as { customDurationMinutes?: number }).customDurationMinutes ??
+        apt.service.duration
+      return sum + Math.ceil(duration / 30)
+    }, 0)
+
+    emptySlotsToday = Math.max(0, slotsCount - occupiedSlots)
   }
 
   // Ultimi clienti (ultimi 5)

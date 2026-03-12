@@ -17,6 +17,14 @@ interface AppointmentBlockProps {
   overlapColumn?: number
   slotHeight?: number
   onResizeEnd?: (id: string, newDurationMinutes: number) => void
+  isDragging?: boolean
+  onDragStart?: (
+    id: string,
+    clientX: number,
+    clientY: number,
+    offsetX: number,
+    offsetY: number,
+  ) => void
   onClick?: (id: string) => void
 }
 
@@ -35,6 +43,8 @@ export function AppointmentBlock({
   overlapColumn = 0,
   slotHeight = 20,
   onResizeEnd,
+  isDragging = false,
+  onDragStart,
   onClick,
 }: AppointmentBlockProps) {
   const calendarStartMinutes = calendarStartHour * 60
@@ -61,6 +71,7 @@ export function AppointmentBlock({
 
   const isResizingRef = useRef(false)
   const wasDraggedRef = useRef(false)
+  const wasResizedRef = useRef(false)
 
   useEffect(() => {
     return () => {
@@ -68,10 +79,18 @@ export function AppointmentBlock({
     }
   }, [])
 
+  // Quando endTime cambia (dopo risposta server), azzera l'anteprima locale
+  // così l'altezza viene calcolata solo dalla durata reale salvata.
+  const endTimestamp = endTime.getTime()
+  useEffect(() => {
+    setExtraSlots(0)
+  }, [endTimestamp])
+
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
     event.stopPropagation()
-    if (isResizingRef.current || wasDraggedRef.current) {
+    if (isResizingRef.current || wasDraggedRef.current || wasResizedRef.current) {
       wasDraggedRef.current = false
+      wasResizedRef.current = false
       return
     }
     if (onClick) {
@@ -95,6 +114,7 @@ export function AppointmentBlock({
 
     isResizingRef.current = true
     wasDraggedRef.current = false
+    wasResizedRef.current = false
     document.body.style.userSelect = 'none'
 
     const startY = event.clientY
@@ -125,7 +145,7 @@ export function AppointmentBlock({
       const totalSlots = (baseRowEnd - baseRowStart) + finalExtraSlots
       const newDurationMinutes = Math.max(slotMinutes, totalSlots * slotMinutes)
       onResizeEnd(id, newDurationMinutes)
-      setExtraSlots(0)
+      wasResizedRef.current = true
       isResizingRef.current = false
     }
 
@@ -134,20 +154,45 @@ export function AppointmentBlock({
     window.addEventListener('pointercancel', handleUp)
   }
 
+  const handleBlockPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (!onDragStart) return
+    // Se il target è l'handle di resize, lascia gestire al resize
+    const target = event.target as HTMLElement
+    if (target.dataset.resizeHandle === 'true') return
+
+    event.preventDefault()
+    event.stopPropagation()
+
+    const element = event.currentTarget
+    const startX = event.clientX
+    const startY = event.clientY
+    const rect = element.getBoundingClientRect()
+    const offsetX = startX - rect.left
+    const offsetY = startY - rect.top
+
+    const handleMove = (moveEvent: globalThis.PointerEvent) => {
+      const dx = moveEvent.clientX - startX
+      const dy = moveEvent.clientY - startY
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        wasDraggedRef.current = true
+        onDragStart(id, moveEvent.clientX, moveEvent.clientY, offsetX, offsetY)
+        element.removeEventListener('pointermove', handleMove)
+        element.removeEventListener('pointerup', handleUp)
+      }
+    }
+
+    const handleUp = () => {
+      element.removeEventListener('pointermove', handleMove)
+      element.removeEventListener('pointerup', handleUp)
+    }
+
+    element.addEventListener('pointermove', handleMove)
+    element.addEventListener('pointerup', handleUp)
+  }
+
   return (
     <div
-      draggable
-      onDragStart={event => {
-        event.stopPropagation()
-        wasDraggedRef.current = false
-        event.dataTransfer.setData('application/appointly-appointment-id', id)
-        event.dataTransfer.effectAllowed = 'move'
-      }}
-      onDrag={event => {
-        if (event.clientX !== 0 || event.clientY !== 0) {
-          wasDraggedRef.current = true
-        }
-      }}
+      onPointerDown={handleBlockPointerDown}
       onClick={handleClick}
       className={`relative rounded-md px-2 py-1 text-[11px] cursor-pointer overflow-hidden border-l-2 ${statusBorder}`}
       style={{
@@ -157,6 +202,7 @@ export function AppointmentBlock({
         marginLeft: leftOffset,
         width: `calc(100% - ${leftOffset + rightMarginPx}px)`,
         zIndex: 10 + overlapColumn,
+        opacity: isDragging ? 0.4 : 1,
         backgroundColor: `${color}33`,
       }}
     >
@@ -165,6 +211,7 @@ export function AppointmentBlock({
       {onResizeEnd && (
         <div
           className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize flex items-center justify-center"
+          data-resize-handle="true"
           onPointerDown={handleResizePointerDown}
         >
           <div className="w-8 h-0.5 rounded-full bg-[rgba(148,163,184,0.9)]" />

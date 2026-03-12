@@ -55,8 +55,13 @@ export async function PUT(
       existing.customDurationMinutes ??
       existing.service.duration
 
+    // Se cambia l'orario, ricalcola endTime con la durata effettiva
     if (nextStartTime) {
       nextEndTime = addMinutes(nextStartTime, effectiveDuration)
+    }
+    // Se cambia solo la durata, ricalcola endTime mantenendo lo start attuale
+    if (!nextStartTime && data.customDurationMinutes !== undefined) {
+      nextEndTime = addMinutes(existing.startTime, effectiveDuration)
     }
 
     // Se viene cambiato lo staff, verifica che appartenga al tenant
@@ -130,14 +135,28 @@ export async function PUT(
       },
     })
 
-    // Commento in italiano: aggiorna statistiche cliente se l'appuntamento è stato completato
+    // Commento in italiano: aggiorna statistiche cliente se lo stato COMPLETED cambia
     if (data.status === 'COMPLETED' && existing.status !== 'COMPLETED') {
+      // Passaggio a COMPLETED: incrementa visite e spesa
       await prisma.client.update({
         where: { id: existing.clientId },
         data: {
           totalVisits: { increment: 1 },
           totalSpent: { increment: existing.price },
           lastVisitAt: new Date(),
+        },
+      })
+    } else if (
+      data.status &&
+      data.status !== 'COMPLETED' &&
+      existing.status === 'COMPLETED'
+    ) {
+      // Uscita da COMPLETED: decrementa visite e spesa
+      await prisma.client.update({
+        where: { id: existing.clientId },
+        data: {
+          totalVisits: { decrement: 1 },
+          totalSpent: { decrement: existing.price },
         },
       })
     }

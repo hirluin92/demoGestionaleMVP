@@ -58,18 +58,25 @@ export function CalendarGrid({
 
   const containerRef = useRef<HTMLDivElement | null>(null)
 
+  // Stato locale per aggiornare subito la UI (drag/resize ottimistico)
+  const [localAppointments, setLocalAppointments] = useState<CalendarAppointment[]>(appointments)
+
+  useEffect(() => {
+    setLocalAppointments(appointments)
+  }, [appointments])
+
   const totalMinutes = (endHour - startHour) * 60
   const slotsCount = totalMinutes / slotMinutes
   const staffCount = staff.length
 
   const parsedAppointments = useMemo(
     () =>
-      appointments.map(apt => ({
+      localAppointments.map(apt => ({
         ...apt,
         start: new Date(apt.startTime),
         end: new Date(apt.endTime),
       })),
-    [appointments],
+    [localAppointments],
   )
 
   // Commento in italiano: calcola per ogni appuntamento la colonna di sovrapposizione
@@ -129,6 +136,17 @@ export function CalendarGrid({
     return map
   }, [parsedAppointments, staff])
 
+  // Stato drag per appuntamenti (ghost floating)
+  const [dragState, setDragState] = useState<{
+    id: string
+    staffId: string
+    x: number
+    y: number
+    offsetX: number
+    offsetY: number
+    height: number
+  } | null>(null)
+
   // Commento in italiano: calcola la riga corrente per la linea rossa "ora attuale"
   const now = new Date()
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
@@ -182,6 +200,25 @@ export function CalendarGrid({
       0,
     )
 
+    // Calcola la durata attuale dell'appuntamento per mantenere l'altezza corretta
+    const durationMinutes =
+      (apt.end.getTime() - apt.start.getTime()) / 60000 || slotMinutes
+    const nextEnd = new Date(nextStart.getTime() + durationMinutes * 60_000)
+
+    // Aggiornamento ottimistico in memoria per avere effetto immediato
+    setLocalAppointments(prev =>
+      prev.map(a =>
+        a.id === appointmentId
+          ? {
+              ...a,
+              staffId,
+              startTime: nextStart.toISOString(),
+              endTime: nextEnd.toISOString(),
+            }
+          : a,
+      ),
+    )
+
     try {
       const res = await fetch(`/api/${tenantSlug}/appointments/${appointmentId}`, {
         method: 'PUT',
@@ -192,9 +229,10 @@ export function CalendarGrid({
       const json = (await res.json().catch(() => null)) as { success?: boolean; error?: string } | null
 
       if (!res.ok || !json?.success) {
-        // Logga l'errore per debug; in futuro potremo mostrare un toast.
+        // In caso di errore, riallinea lo stato locale con i dati reali
         // eslint-disable-next-line no-console
         console.error('Errore spostamento appuntamento:', json?.error ?? 'Unknown error')
+        router.refresh()
         return
       }
 
@@ -205,9 +243,73 @@ export function CalendarGrid({
     }
   }
 
+  // Commento in italiano: avvia drag custom basato su Pointer Events
+  const handleDragStartFromBlock = (
+    appointmentId: string,
+    clientX: number,
+    clientY: number,
+    offsetX: number,
+    offsetY: number,
+  ) => {
+    const apt = parsedAppointments.find(a => a.id === appointmentId)
+    if (!apt) return
+
+    const durationMinutes =
+      (apt.end.getTime() - apt.start.getTime()) / 60000 || slotMinutes
+    const height =
+      Math.max(SLOT_HEIGHT, (durationMinutes / slotMinutes) * SLOT_HEIGHT)
+
+    setDragState({
+      id: appointmentId,
+      staffId: apt.staffId,
+      x: clientX,
+      y: clientY,
+      offsetX,
+      offsetY,
+      height,
+    })
+
+    const handleMove = (event: PointerEvent) => {
+      setDragState(prev =>
+        prev && prev.id === appointmentId
+          ? { ...prev, x: event.clientX, y: event.clientY }
+          : prev,
+      )
+    }
+
+    const handleUp = (event: PointerEvent) => {
+      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('pointerup', handleUp)
+
+      setDragState(prev => {
+        if (!prev || prev.id !== appointmentId) return null
+
+        const el = document.elementFromPoint(event.clientX, event.clientY) as
+          | HTMLElement
+          | null
+        const slotEl = el?.closest('[data-calendar-slot="true"]') as
+          | HTMLElement
+          | null
+
+        if (slotEl) {
+          const staffId = slotEl.dataset.staffId
+          const slotIndexStr = slotEl.dataset.slotIndex
+          if (staffId && slotIndexStr) {
+            void handleDropOnSlot(appointmentId, staffId, Number(slotIndexStr))
+          }
+        }
+
+        return null
+      })
+    }
+
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handleUp)
+  }
+
   const selectedAppointment =
     selectedAppointmentId &&
-    appointments.find(a => a.id === selectedAppointmentId)
+    localAppointments.find(a => a.id === selectedAppointmentId)
 
   return (
     <div
@@ -256,16 +358,9 @@ export function CalendarGrid({
                     openNewAppointment(s.id, i + 2)
                   }
                 }}
-                onDragOver={event => {
-                  event.preventDefault()
-                  event.dataTransfer.dropEffect = 'move'
-                }}
-                onDrop={event => {
-                  event.preventDefault()
-                  const appointmentId = event.dataTransfer.getData('application/appointly-appointment-id')
-                  if (!appointmentId) return
-                  void handleDropOnSlot(appointmentId, s.id, i)
-                }}
+                data-calendar-slot="true"
+                data-staff-id={s.id}
+                data-slot-index={i}
                 className={`calendar-slot ${
                   i % (60 / slotMinutes) === 0
                     ? 'calendar-slot-major'
@@ -300,6 +395,8 @@ export function CalendarGrid({
               status={apt.status}
               overlapColumn={overlapColumnsById[apt.id] ?? 0}
               slotHeight={SLOT_HEIGHT}
+              isDragging={dragState?.id === apt.id}
+              onDragStart={handleDragStartFromBlock}
               onResizeEnd={(appointmentId, newDurationMinutes) => {
                 if (!tenantSlug) return
                 void (async () => {
@@ -351,6 +448,48 @@ export function CalendarGrid({
           />
         )}
       </div>
+
+      {/* Ghost drag appuntamento */}
+      {dragState && (
+        <div
+          style={{
+            position: 'fixed',
+            left: dragState.x - dragState.offsetX,
+            top: dragState.y - dragState.offsetY,
+            width: 180,
+            height: dragState.height,
+            pointerEvents: 'none',
+            zIndex: 9999,
+            opacity: 0.9,
+          }}
+        >
+          {(() => {
+            const apt = parsedAppointments.find(a => a.id === dragState.id)
+            if (!apt) return null
+            const staffIndex = staff.findIndex(s => s.id === apt.staffId)
+            if (staffIndex === -1) return null
+            const staffColor = staff[staffIndex]?.color ?? '#3B82F6'
+            return (
+              <AppointmentBlock
+                id={apt.id}
+                clientName={apt.clientName}
+                serviceName={apt.serviceName}
+                startTime={apt.start}
+                endTime={apt.end}
+                staffIndex={0}
+                columnOffset={0}
+                slotMinutes={slotMinutes}
+                calendarStartHour={startHour}
+                color={staffColor}
+                status={apt.status}
+                overlapColumn={0}
+                slotHeight={SLOT_HEIGHT}
+                isDragging={false}
+              />
+            )
+          })()}
+        </div>
+      )}
 
       {/* Dialog creazione appuntamento */}
       {tenantSlug && newAptInfo && servicesForCreation.length > 0 && (

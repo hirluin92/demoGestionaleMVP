@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     // Recupera l'ultimo messaggio log per questo numero per derivare il tenantId
     const lastMessage = await prisma.messageLog.findFirst({
       where: {
-        clientPhone: { contains: phone.slice(-9) },
+      clientPhone: { endsWith: phone.slice(-10) },
         channel: 'WHATSAPP',
       },
       orderBy: { sentAt: 'desc' },
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     const client = await prisma.client.findFirst({
       where: {
         tenantId,
-        phone: { contains: phone.slice(-9) },
+      phone: { endsWith: phone.slice(-10) },
       },
     })
 

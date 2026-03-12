@@ -207,6 +207,25 @@ export async function POST(
       )
     }
 
+    // Verifica che l'appuntamento non cada durante la pausa (se definita)
+    const breakTime = workingHoursForDay.break
+    if (breakTime) {
+      const [bStartH, bStartM] = breakTime.start.split(':').map(Number)
+      const [bEndH, bEndM] = breakTime.end.split(':').map(Number)
+      const breakStart = (bStartH ?? 0) * 60 + (bStartM ?? 0)
+      const breakEnd = (bEndH ?? 0) * 60 + (bEndM ?? 0)
+
+      if (aptStart < breakEnd && aptEnd > breakStart) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `L'appuntamento cade durante la pausa (${breakTime.start}–${breakTime.end})`,
+          },
+          { status: 400 },
+        )
+      }
+    }
+
     // Verifica conflitti usando la funzione dedicata
     const availability = await checkSlotAvailability(
       auth.tenantId!,

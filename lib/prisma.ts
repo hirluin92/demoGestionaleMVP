@@ -17,10 +17,7 @@ const createPrismaClient = () => {
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient()
-
-if (env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma
-}
+globalForPrisma.prisma = prisma
 
 // Helper per eseguire query con retry
 export async function withRetry<T>(
