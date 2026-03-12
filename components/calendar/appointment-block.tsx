@@ -1,8 +1,6 @@
 'use client'
 
-import { MouseEvent, useRef, useState } from 'react'
-
-// Commenti in italiano: blocco singolo appuntamento nel calendario
+import { MouseEvent, PointerEvent, useEffect, useRef, useState } from 'react'
 
 interface AppointmentBlockProps {
   id: string
@@ -62,10 +60,20 @@ export function AppointmentBlock({
   const leftOffset = overlapColumn * indentPx
 
   const isResizingRef = useRef(false)
+  const wasDraggedRef = useRef(false)
+
+  useEffect(() => {
+    return () => {
+      document.body.style.userSelect = ''
+    }
+  }, [])
 
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
     event.stopPropagation()
-    if (isResizingRef.current) return
+    if (isResizingRef.current || wasDraggedRef.current) {
+      wasDraggedRef.current = false
+      return
+    }
     if (onClick) {
       onClick(id)
     }
@@ -80,29 +88,38 @@ export function AppointmentBlock({
       ? 'border-orange-400'
       : 'border-transparent'
 
-  const handleResizeMouseDown = (event: MouseEvent<HTMLDivElement>) => {
+  const handleResizePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (!onResizeEnd) return
     event.preventDefault()
     event.stopPropagation()
 
     isResizingRef.current = true
+    wasDraggedRef.current = false
+    document.body.style.userSelect = 'none'
 
     const startY = event.clientY
     const startExtraSlots = extraSlots
+    const pointerId = event.pointerId
 
-    const handleMove = (moveEvent: MouseEvent) => {
+    event.currentTarget.setPointerCapture(pointerId)
+
+    const handleMove = (moveEvent: globalThis.PointerEvent) => {
       const deltaY = moveEvent.clientY - startY
       const slotsDelta = Math.round(deltaY / slotHeight)
-      setExtraSlots(Math.max(- (baseRowEnd - baseRowStart - 1), startExtraSlots + slotsDelta))
+      const minResizeSlots = -(baseRowEnd - baseRowStart - 1)
+      setExtraSlots(Math.max(minResizeSlots, startExtraSlots + slotsDelta))
     }
 
-    const handleUp = (upEvent: MouseEvent) => {
-      document.removeEventListener('mousemove', handleMove)
-      document.removeEventListener('mouseup', handleUp)
+    const handleUp = (upEvent: globalThis.PointerEvent) => {
+      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('pointerup', handleUp)
+      window.removeEventListener('pointercancel', handleUp)
+      document.body.style.userSelect = ''
 
       const deltaY = upEvent.clientY - startY
       const slotsDelta = Math.round(deltaY / slotHeight)
-      const finalExtraSlots = Math.max(- (baseRowEnd - baseRowStart - 1), startExtraSlots + slotsDelta)
+      const minResizeSlots = -(baseRowEnd - baseRowStart - 1)
+      const finalExtraSlots = Math.max(minResizeSlots, startExtraSlots + slotsDelta)
       setExtraSlots(finalExtraSlots)
 
       const totalSlots = (baseRowEnd - baseRowStart) + finalExtraSlots
@@ -112,8 +129,9 @@ export function AppointmentBlock({
       isResizingRef.current = false
     }
 
-    document.addEventListener('mousemove', handleMove)
-    document.addEventListener('mouseup', handleUp)
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handleUp)
+    window.addEventListener('pointercancel', handleUp)
   }
 
   return (
@@ -121,8 +139,14 @@ export function AppointmentBlock({
       draggable
       onDragStart={event => {
         event.stopPropagation()
+        wasDraggedRef.current = false
         event.dataTransfer.setData('application/appointly-appointment-id', id)
         event.dataTransfer.effectAllowed = 'move'
+      }}
+      onDrag={event => {
+        if (event.clientX !== 0 || event.clientY !== 0) {
+          wasDraggedRef.current = true
+        }
       }}
       onClick={handleClick}
       className={`relative rounded-md px-2 py-1 text-[11px] cursor-pointer overflow-hidden border-l-2 ${statusBorder}`}
@@ -141,7 +165,7 @@ export function AppointmentBlock({
       {onResizeEnd && (
         <div
           className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize flex items-center justify-center"
-          onMouseDown={handleResizeMouseDown}
+          onPointerDown={handleResizePointerDown}
         >
           <div className="w-8 h-0.5 rounded-full bg-[rgba(148,163,184,0.9)]" />
         </div>
@@ -149,4 +173,3 @@ export function AppointmentBlock({
     </div>
   )
 }
-
