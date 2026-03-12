@@ -36,7 +36,21 @@ export async function getAvailableSlots(
     .filter(sl => sl.staff.isActive)
     .map(sl => sl.staff)
 
-  // 3. Prendi tutti gli appuntamenti del giorno per questi staff
+  if (activeStaff.length === 0) return []
+
+  // 3. Recupera businessHours del tenant come fallback
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { settings: true },
+  })
+
+  const tenantSettings = tenant?.settings as Record<string, unknown> | null
+  const tenantBusinessHours = (tenantSettings?.businessHours ?? {}) as Record<
+    string,
+    { start: string; end: string; break?: { start: string; end: string } } | null
+  >
+
+  // 4. Prendi tutti gli appuntamenti del giorno per questi staff
   const appointments = await prisma.appointment.findMany({
     where: {
       tenantId,
@@ -46,15 +60,24 @@ export async function getAvailableSlots(
     },
   })
 
-  // 4. Per ogni staff, calcola slot liberi
+  // 5. Per ogni staff, calcola slot liberi
   const dayName = format(date, 'EEE').toLowerCase().slice(0, 3) // mon, tue, ...
   const slots: AvailableSlot[] = []
   const now = new Date()
 
   for (const staff of activeStaff) {
-    const workingHours = staff.workingHours as Record<string, { start: string; end: string; break?: { start: string; end: string } }> | null
-    const hours = workingHours?.[dayName]
-    if (!hours) continue // Giorno libero
+    // Commento in italiano: usa workingHours dello staff, con fallback a businessHours del tenant
+    const staffWorkingHours = staff.workingHours as Record<
+      string,
+      { start: string; end: string; break?: { start: string; end: string } } | null
+    > | null
+
+    const staffDayHours = staffWorkingHours?.[dayName]
+    const tenantDayHours = tenantBusinessHours[dayName]
+
+    // Prendi gli orari dello staff se esistono, altrimenti quelli del tenant
+    const hours = staffDayHours ?? tenantDayHours
+    if (!hours) continue // Giorno libero per tutti
 
     const dayStart = parse(hours.start, 'HH:mm', date)
     const dayEnd = parse(hours.end, 'HH:mm', date)
@@ -83,7 +106,7 @@ export async function getAvailableSlots(
       // Controlla conflitti con appuntamenti esistenti
       const slotEnd = addMinutes(cursor, service.duration)
       const hasConflict = staffAppointments.some(
-        apt => cursor < apt.endTime && slotEnd > apt.startTime
+        apt => cursor < apt.endTime && slotEnd > apt.startTime,
       )
 
       if (!hasConflict) {

@@ -35,19 +35,19 @@ export function TenantSidebar({ tenantSlug, tenantName, onClose }: TenantSidebar
   const basePath = `/${tenantSlug}`
 
   return (
-    <div className="w-full h-full bg-dark-800 border-r border-dark-700 flex flex-col">
+    <div className="w-full h-full bg-[#1A1D26] border-r border-[#2E3240] flex flex-col">
       {/* Logo/Header */}
-      <div className="p-4 border-b border-dark-700 flex items-center justify-between">
+      <div className="p-4 border-b border-[#2E3240] flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gold-400">
+          <h2 className="text-lg font-semibold text-[#C9A84C]">
             {tenantName || 'Appointly'}
           </h2>
-          <p className="text-xs text-dark-400 mt-1">Gestione Appuntamenti</p>
+          <p className="text-xs text-[#9BA1B0] mt-1">Gestione Appuntamenti</p>
         </div>
         {onClose && (
           <button
             onClick={onClose}
-            className="md:hidden text-dark-300 hover:text-white p-1"
+            className="md:hidden text-[#9BA1B0] hover:text-white p-1"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -70,8 +70,8 @@ export function TenantSidebar({ tenantSlug, tenantName, onClose }: TenantSidebar
               className={`
                 flex items-center gap-3 px-3 py-2 rounded-lg transition-colors
                 ${isActive
-                  ? 'bg-gold-500/20 text-gold-400 border border-gold-500/30'
-                  : 'text-dark-300 hover:bg-dark-700 hover:text-white'
+                  ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/30'
+                  : 'text-[#9BA1B0] hover:bg-[#242833] hover:text-white'
                 }
               `}
             >
@@ -83,10 +83,10 @@ export function TenantSidebar({ tenantSlug, tenantName, onClose }: TenantSidebar
       </nav>
 
       {/* Logout */}
-      <div className="p-4 border-t border-dark-700">
+      <div className="p-4 border-t border-[#2E3240]">
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-dark-300 hover:bg-dark-700 hover:text-white w-full transition-colors"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-[#9BA1B0] hover:bg-[#242833] hover:text-white w-full transition-colors"
         >
           <LogOut className="w-5 h-5" />
           <span className="text-sm font-medium">Logout</span>

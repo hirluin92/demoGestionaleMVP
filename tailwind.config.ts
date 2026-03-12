@@ -9,32 +9,30 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Gold/Oro palette - Usa variabili CSS per centralizzazione
         gold: {
-          50: 'var(--color-gold-light)',
-          100: 'var(--color-gold-light)',
-          200: 'var(--color-gold-main)',
-          300: 'var(--color-gold-main)',  // Gold principale
-          400: 'var(--color-gold-main)',  // Gold principale
-          500: 'var(--color-gold-dark)',  // Gold scuro
-          600: 'var(--color-gold-dark)',
-          700: 'var(--color-gold-dark)',
-          800: 'var(--color-gold-dark)',
-          900: 'var(--color-gold-dark)',
+          50: '#FBF7E8',
+          100: '#F5ECC8',
+          200: '#E8D48A',
+          300: '#D4B85E',
+          400: '#C9A84C',
+          500: '#A88B3A',
+          600: '#8A7030',
+          700: '#6B5624',
+          800: '#4D3D1A',
+          900: '#332810',
         },
-        // Black palette - Nero puro, non marrone
         dark: {
-          50: '#0a0a0a',   // Quasi nero
-          100: '#111111',   // Nero scuro
-          200: '#1a1a1a',  // Nero scuro
-          300: '#2a2a2a',  // Grigio molto scuro
-          400: '#3a3a3a',  // Grigio scuro
-          500: '#666666',  // ✅ 4.6:1 contrast on dark-950 (WCAG AA)
-          600: '#999999',  // ✅ 7.8:1 contrast on dark-950 (WCAG AAA)
-          700: '#cccccc',  // ✅ 12.1:1 contrast on dark-950 (WCAG AAA)
-          800: '#e0e0e0',
-          900: '#f5f5f5',
-          950: '#000000',  // Nero puro - Main background
+          50: '#0F1117',
+          100: '#1A1D26',
+          200: '#242833',
+          300: '#2E3240',
+          400: '#4A5168',
+          500: '#636A7C',
+          600: '#9BA1B0',
+          700: '#C5C9D4',
+          800: '#E0E2E8',
+          900: '#F0F1F4',
+          950: '#0A0B0F',
         },
         // Accent colors - WCAG compliant
         accent: {

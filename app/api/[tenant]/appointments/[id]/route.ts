@@ -113,6 +113,18 @@ export async function PUT(
       },
     })
 
+    // Commento in italiano: aggiorna statistiche cliente se l'appuntamento è stato completato
+    if (data.status === 'COMPLETED' && existing.status !== 'COMPLETED') {
+      await prisma.client.update({
+        where: { id: existing.clientId },
+        data: {
+          totalVisits: { increment: 1 },
+          totalSpent: { increment: existing.price },
+          lastVisitAt: new Date(),
+        },
+      })
+    }
+
     return NextResponse.json({ success: true, data: updated })
   } catch (error) {
     if (error instanceof z.ZodError) {

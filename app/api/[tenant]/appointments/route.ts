@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireTenantAccess } from '@/lib/api-auth'
 import { createAppointmentSchema } from '@/lib/validators'
-import { addMinutes } from 'date-fns'
+import { addMinutes, format } from 'date-fns'
 import { checkSlotAvailability } from '@/lib/appointment-utils'
 
 /**
@@ -140,6 +140,50 @@ export async function POST(
 
     const startTime = new Date(data.startTime)
     const endTime = addMinutes(startTime, service.duration)
+
+    // Commento in italiano: verifica che l'appuntamento cada negli orari di lavoro dell'operatore
+    const dayOfWeek = format(startTime, 'EEE').toLowerCase().slice(0, 3) // mon, tue, ...
+
+    // Leggi orari staff con fallback a orari tenant
+    const staffWorkingHours = staff.workingHours as Record<
+      string,
+      { start: string; end: string; break?: { start: string; end: string } } | null
+    > | null
+
+    const tenantRecord = await prisma.tenant.findUnique({
+      where: { id: auth.tenantId! },
+      select: { settings: true },
+    })
+
+    const tenantSettings = tenantRecord?.settings as Record<string, unknown> | null
+    const tenantBusinessHours = (tenantSettings?.businessHours ?? {}) as Record<
+      string,
+      { start: string; end: string; break?: { start: string; end: string } } | null
+    >
+
+    const workingHoursForDay = staffWorkingHours?.[dayOfWeek] ?? tenantBusinessHours[dayOfWeek]
+
+    if (!workingHoursForDay) {
+      return NextResponse.json(
+        { success: false, error: "L'operatore non lavora in questo giorno" },
+        { status: 400 },
+      )
+    }
+
+    // Verifica che l'appuntamento sia dentro gli orari
+    const [wStartH, wStartM] = workingHoursForDay.start.split(':').map(Number)
+    const [wEndH, wEndM] = workingHoursForDay.end.split(':').map(Number)
+    const workStart = (wStartH ?? 0) * 60 + (wStartM ?? 0)
+    const workEnd = (wEndH ?? 0) * 60 + (wEndM ?? 0)
+    const aptStart = startTime.getHours() * 60 + startTime.getMinutes()
+    const aptEnd = endTime.getHours() * 60 + endTime.getMinutes()
+
+    if (aptStart < workStart || aptEnd > workEnd) {
+      return NextResponse.json(
+        { success: false, error: 'Appuntamento fuori dagli orari di lavoro' },
+        { status: 400 },
+      )
+    }
 
     // Verifica conflitti usando la funzione dedicata
     const availability = await checkSlotAvailability(

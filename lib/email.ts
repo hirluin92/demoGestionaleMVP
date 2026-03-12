@@ -20,28 +20,11 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
   const emailDomain = fromEmail.split('@')[1]?.toLowerCase()
   
   if (emailDomain && publicDomains.includes(emailDomain)) {
-    console.error('❌ ERRORE: Non puoi usare domini pubblici gratuiti come mittente email con Resend')
-    console.error(`   Dominio rilevato: ${emailDomain}`)
-    console.error('')
-    console.error('   💡 SOLUZIONI:')
-    console.error('')
-    console.error('   Opzione 1: Usa onboarding@resend.dev (per sviluppo/test)')
-    console.error('      → Funziona SOLO per inviare alla tua email di registrazione Resend')
-    console.error('      → Aggiungi al .env:')
-    console.error('        RESEND_FROM_EMAIL="onboarding@resend.dev"')
-    console.error('')
-    console.error('   Opzione 2: Configura un dominio personalizzato (per produzione)')
-    console.error('      → Vai su https://resend.com/domains')
-    console.error('      → Aggiungi il tuo dominio (es. appointly.com)')
-    console.error('      → Verifica il dominio seguendo le istruzioni')
-    console.error('      → Usa un\'email del tuo dominio come mittente')
-    console.error('      → Es: noreply@appointly.com')
-    console.error('')
-    console.log(`🔗 Link reset password (dev): ${resetUrl}`)
-    return { 
-      success: false, 
-      error: `Non puoi usare domini pubblici gratuiti come ${emailDomain}. Usa onboarding@resend.dev per sviluppo o configura un dominio personalizzato per produzione.` 
+    console.warn(`Resend: dominio mittente ${emailDomain} non valido. Usa un dominio personalizzato o onboarding@resend.dev per sviluppo.`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Link reset password (dev): ${resetUrl}`)
     }
+    return { success: false, error: 'Dominio mittente email non valido' }
   }
 
   try {

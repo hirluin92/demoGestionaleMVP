@@ -287,7 +287,11 @@ export default function PublicBookingPage() {
                       <div className="flex justify-between items-center">
                         <span>{service.name}</span>
                         <span className="text-[11px] text-gold-400">
-                          {service.duration} min
+                          {service.duration} min ·{' '}
+                          {new Intl.NumberFormat('it-IT', {
+                            style: 'currency',
+                            currency: 'EUR',
+                          }).format(service.price / 100)}
                         </span>
                       </div>
                     </button>

@@ -1,0 +1,9 @@
+{
+  // Commento in italiano: disattiva i falsi positivi del language server CSS su direttive Tailwind
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+
+  // Opzionale: lascia che sia l'estensione Tailwind a validare le classi, non il CSS puro
+  "css.validate": true
+}
+

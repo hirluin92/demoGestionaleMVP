@@ -1,17 +1,14 @@
 import type { Metadata } from 'next'
-import { Russo_One } from 'next/font/google'
+import { DM_Sans } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
-import { ParallaxBackground } from '@/components/ParallaxBackground'
-import { Particles } from '@/components/Particles'
 
-const russoOne = Russo_One({ 
-  subsets: ['latin', 'cyrillic'],
+const dmSans = DM_Sans({
+  subsets: ['latin'],
   display: 'swap',
-  variable: '--font-russo-one',
+  variable: '--font-dm-sans',
   preload: true,
-  fallback: ['-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-  weight: ['400'],
+  weight: ['400', '500', '600', '700'],
 })
 
 export const metadata: Metadata = {
@@ -62,16 +59,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="it" className={`${russoOne.variable} h-full`}>
-      <head>
-        {/* Preconnect per performance */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
-      <body className="font-sans antialiased bg-[#0a0a0a] text-white h-full overflow-hidden">
-        <ParallaxBackground />
-        <Particles />
-        <main className="w-full h-full overflow-y-auto overflow-x-hidden main-content no-scrollbar">
+    <html lang="it" className={`${dmSans.variable} h-full`}>
+      <body className="font-sans antialiased bg-[#0F1117] text-[#F0F1F4] h-full overflow-hidden">
+        <main className="w-full h-full overflow-y-auto overflow-x-hidden main-content">
           <Providers>{children}</Providers>
         </main>
       </body>

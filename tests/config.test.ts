@@ -12,9 +12,9 @@ describe('Application Configuration', () => {
     expect(APP_CONFIG.booking.minHour).toBeLessThan(APP_CONFIG.booking.maxHour)
   })
 
-  it('should have valid slot duration', () => {
-    expect(APP_CONFIG.booking.slotDurationMinutes).toBe(30)
-    expect(APP_CONFIG.booking.slotDurationMinutes).toBeGreaterThan(0)
+  it('should have valid slot interval', () => {
+    expect(APP_CONFIG.booking.slotIntervalMinutes).toBe(15)
+    expect(APP_CONFIG.booking.slotIntervalMinutes).toBeGreaterThan(0)
   })
 
   it('should have valid reminder settings', () => {

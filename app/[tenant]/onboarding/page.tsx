@@ -226,6 +226,37 @@ export default function OnboardingPage() {
           throw new Error(json?.error ?? 'Errore creazione servizi')
         }
       }
+
+      // Commento in italiano: ricarica servizi dal server per avere gli ID reali
+      const reloadRes = await fetch(`/api/${tenantSlug}/services`)
+      const reloadJson = (await reloadRes.json().catch(() => null)) as
+        | {
+            success?: boolean
+            data?: Array<{
+              id: string
+              name: string
+              duration: number
+              price: number
+              color: string
+              isActive: boolean
+            }>
+            error?: string
+          }
+        | null
+
+      if (reloadRes.ok && reloadJson?.success && reloadJson.data) {
+        setServices(
+          reloadJson.data.map(s => ({
+            id: s.id,
+            name: s.name,
+            duration: s.duration,
+            price: s.price,
+            color: s.color,
+            isActive: s.isActive,
+          })),
+        )
+      }
+
       setStep(2)
     } catch (err) {
       console.error(err)

@@ -4,7 +4,7 @@ import { ReactNode, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { PhoneMode } from '@/components/phone-mode/phone-mode'
 import { TenantSidebar } from '@/components/layout/tenant-sidebar'
-import { Menu, X } from 'lucide-react'
+import { Menu } from 'lucide-react'
 
 // Commenti in italiano: layout base per tutte le pagine tenant, include sidebar navigazione e pulsante modalità telefono
 

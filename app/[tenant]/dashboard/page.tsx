@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import Link from 'next/link'
 import { Calendar, Clock, Users, MessageSquare, TrendingUp } from 'lucide-react'
+import { SectionHeader } from '@/components/ui/SectionHeader'
 
 // Commenti in italiano: dashboard tenant con widget attività
 
@@ -161,12 +162,11 @@ export default async function TenantDashboardPage({
 
   return (
     <section className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
-        <p className="text-sm text-dark-400">
-          Panoramica attività e metriche del tuo business
-        </p>
-      </div>
+      <SectionHeader
+        kicker="Panoramica"
+        title="Dashboard del salone"
+        subtitle="Panoramica attività, appuntamenti e automazioni che incidono sul fatturato."
+      />
 
       {/* Widget principali */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

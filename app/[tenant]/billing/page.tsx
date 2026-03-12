@@ -64,7 +64,7 @@ export default async function TenantBillingPage({
             )}
           </div>
         </div>
-        <BillingButton currentPlan={currentPlan} />
+        <BillingButton currentPlan={currentPlan} hasSubscription={!!tenant.stripeSubId} />
       </div>
     </section>
   )
